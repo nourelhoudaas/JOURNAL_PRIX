@@ -39,7 +39,7 @@ Route::get('/csrf-token', fn() => response()->json([
 
 // ✅ Profil (API sécurisée)
 Route::middleware('auth:sanctum')->get('/profile', [ProfileController::class, 'dashboard']);
-Route::middleware('auth:sanctum')->get('/infosPerso', [ProfileController::class, 'infoPerso']);
+Route::middleware('auth:sanctum')->get('/infosPerso', [ProfileController::class, 'infoPerso']);//ssssssss
 
 // ✅ Soumission multi-étapes (sécurisées)
 /*Route::middleware('auth:sanctum')->group(function () {
