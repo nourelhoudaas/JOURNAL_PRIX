@@ -1,0 +1,37 @@
+# ========== LARAVEL (backend_1) ==========
+/backend_1/vendor/
+/backend_1/node_modules/
+/backend_1/public/storage
+/backend_1/storage/*.key
+/backend_1/storage/app/public
+/backend_1/storage/debugbar
+/backend_1/storage/framework/cache
+/backend_1/storage/framework/sessions
+/backend_1/storage/framework/views
+/backend_1/storage/logs
+
+/backend_1/.env.*
+/backend_1/.phpunit.result.cache
+/backend_1/.idea
+/backend_1/.vscode
+
+# Laravel log files
+/backend_1/storage/logs/*.log
+
+# ========== REACT (frontend) ==========
+/frontend/node_modules/
+/frontend/build/
+/frontend/dist/
+/frontend/.env
+/frontend/.DS_Store
+/frontend/.vscode
+/frontend/.idea
+/frontend/npm-debug.log*
+/frontend/yarn-debug.log*
+/frontend/yarn-error.log*
+
+# ========== SYSTEME ==========
+*.log
+.DS_Store
+Thumbs.db
+.env.*

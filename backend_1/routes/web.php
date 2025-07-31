@@ -1,0 +1,59 @@
+<?php
+
+use App\Models\categories;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\GoogleController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SoumissionController;
+use App\Http\Controllers\VerificationController;
+use App\Models\Theme;
+
+
+// ✅ Page d’accueil personnalisée
+Route::get('/', function () {
+    return view('home');
+});
+
+// ✅ Redirection vers interface React authentifiée
+Route::get('/dashboard', function () {
+    return redirect('http://localhost:3003/profile');
+})->middleware(['auth'])->name('dashboard');
+
+// ✅ Redirection vers la page de soumission (React)
+Route::get('/soumission', function () {
+    return redirect('http://localhost:5173/');
+})->middleware(['auth'])->name('soumission');
+
+// ✅ Authentification via Google
+Route::get('/login/google', [GoogleController::class, 'redirectToGoogle'])->name('login.google');
+Route::get('/login/google/callback', [GoogleController::class, 'handleGoogleCallback']);
+
+// ✅ Vérification du code reçu par email
+Route::get('/verify-code', [VerificationController::class, 'show'])->name('verify.code.form');
+Route::post('/verify-code', [VerificationController::class, 'verify'])->name('verify.code.submit');
+
+// ✅ Récupération du token CSRF (pour React)
+Route::get('/csrf-token', fn() => response()->json([
+    'csrf_token' => csrf_token()
+]));
+
+// ✅ Profil (API sécurisée)
+Route::middleware('auth:sanctum')->get('/profile', [ProfileController::class, 'dashboard']);
+Route::middleware('auth:sanctum')->get('/infosPerso', [ProfileController::class, 'infoPerso']);
+
+// ✅ Soumission multi-étapes (sécurisées)
+/*Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/soumission/store-step1', [SoumissionController::class, 'storeStep1']);
+    Route::post('/soumission/store-step2', [SoumissionController::class, 'storeStep2']);
+    Route::post('/soumission/store-step3', [SoumissionController::class, 'storeStep3']);
+    Route::get('/soumission/collaborateurs', [SoumissionController::class, 'getCollaborateursEligibles']);
+});*/
+Route::post('/soumission/store-step1', [SoumissionController::class, 'storeStep1']);
+// ✅ Récupération des données pour le formulaire (thèmes, catégories, userId)
+Route::get('/form-data', function () {
+    return response()->json([
+        'themes' => Theme::all(),
+        'categories' => categories::all(),
+        'userId' => auth()->id(),
+    ]);
+});
