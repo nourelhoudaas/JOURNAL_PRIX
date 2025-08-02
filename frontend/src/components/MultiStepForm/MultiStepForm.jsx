@@ -129,7 +129,7 @@ export default function MultiStepForm({ currentUserId }) {
   };
 
   return (
-    <div className="min-h-screen bg-blue-50 flex flex-col">
+    <div className="min-h-screen bg-gray-100 flex flex-col pt-8">
       
       <div className="flex-grow flex flex-col items-center justify-start p-4">
         <div className="bg-white rounded-xl shadow-xl w-full max-w-4xl overflow-hidden">
@@ -149,7 +149,7 @@ export default function MultiStepForm({ currentUserId }) {
               );
             })}
           </div>
-          <div className="p-8">{renderStepContent()}</div>
+          <div>{renderStepContent()}</div>
         </div>
       </div>
     </div>

@@ -32,8 +32,8 @@ export default function Step1({ data, onChange, onFileChange, onNext, error }) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <div className="flex-grow flex items-start justify-center p-4">
+    //<div className="min-h-screen bg-gray-100 flex flex-col">
+      //<div className="flex-grow flex items-start justify-center p-4">
         <form onSubmit={handleSubmit} className="space-y-6 w-full max-w-5xl bg-white shadow-md rounded-lg p-8">
           {error && (
             <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
@@ -254,7 +254,7 @@ export default function Step1({ data, onChange, onFileChange, onNext, error }) {
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      //</div>
+    //</div>
   );
 }

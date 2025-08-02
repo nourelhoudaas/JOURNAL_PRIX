@@ -3,7 +3,8 @@ import MultiStepForm from './components/MultiStepForm/MultiStepForm';
 
 function App() {
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="w-full mx-auto py-11 max-w-7xl">
+
       {/* <h1 className="text-2xl font-bold mb-6">Participation au concours</h1> */}
       <nav className="w-full bg-white shadow px-8 py-4 flex items-center justify-between fixed top-0 z-50">
         <div className="flex items-center space-x-4">
