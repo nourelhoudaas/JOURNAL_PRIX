@@ -4,5 +4,8 @@
 
 
       .max-w-7xl {
-  max-width: 104rem;
+  max-width: 174rem;
+}
+.max-w-5xl {
+    max-width: 70rem;
 }

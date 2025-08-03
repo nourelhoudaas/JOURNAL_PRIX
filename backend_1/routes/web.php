@@ -7,7 +7,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\SoumissionController;
 use App\Http\Controllers\VerificationController;
 use App\Models\Theme;
-
+use App\Models\Wilaya;
 
 // ✅ Page d’accueil personnalisée
 Route::get('/', function () {
@@ -42,13 +42,14 @@ Route::middleware('auth:sanctum')->get('/profile', [ProfileController::class, 'd
 Route::middleware('auth:sanctum')->get('/infosPerso', [ProfileController::class, 'infoPerso']);//ssssssss
 
 // ✅ Soumission multi-étapes (sécurisées)
-/*Route::middleware('auth:sanctum')->group(function () {
+Route::middleware('auth:sanctum')->group(function () {
     Route::post('/soumission/store-step1', [SoumissionController::class, 'storeStep1']);
     Route::post('/soumission/store-step2', [SoumissionController::class, 'storeStep2']);
     Route::post('/soumission/store-step3', [SoumissionController::class, 'storeStep3']);
     Route::get('/soumission/collaborateurs', [SoumissionController::class, 'getCollaborateursEligibles']);
-});*/
-Route::post('/soumission/store-step1', [SoumissionController::class, 'storeStep1']);
+});
+//Route::post('/soumission/store-step1', [SoumissionController::class, 'storeStep1']);
+
 // ✅ Récupération des données pour le formulaire (thèmes, catégories, userId)
 Route::get('/form-data', function () {
     return response()->json([
@@ -56,4 +57,11 @@ Route::get('/form-data', function () {
         'categories' => categories::all(),
         'userId' => auth()->id(),
     ]);
+});
+
+// ✅ Récupération des wilayas
+
+Route::get('/wilayas', function () {
+    $wilayas = Wilaya::all(['id', 'name_fr', 'name_ar']);
+    return response()->json($wilayas);
 });

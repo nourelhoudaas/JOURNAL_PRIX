@@ -9,143 +9,102 @@ use App\Models\Fichier;
 use App\Models\Forme;
 use App\Models\Personne;
 use App\Models\Theme;
+use App\Models\Wilaya;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class SoumissionController extends Controller
 {
     // 🟢 ÉTAPE 1 - Données personnelles + fichiers
-    public function storeStep1(Request $request)
+public function storeStep1(Request $request)
     {
-        // Validation des données de la requête
         $validated = $request->validate([
-            'id_nin_personne'   => 'required|digits:18', // Vérifie que le NIN contient exactement 18 chiffres
-            'nom_fr'            => 'required|string|max:191',
-            'prenom_fr'         => 'required|string|max:191',
-            'nom_ar'            => 'required|string|max:191',
-            'prenom_ar'         => 'required|string|max:191',
-            'date_naissance'    => 'required|date',
-            'lieu_naissance_fr' => 'required|string|max:191',
-            'lieu_naissance_ar' => 'required|string|max:191',
-            'nationalite_fr'    => 'required|string|max:191',
-            'nationalite_ar'    => 'required|string|max:191',
-            'num_tlf'           => 'required|string|max:191',
-            'adresse_fr'        => 'required|string|max:191',
-            'adresse_ar'        => 'required|string|max:191',
-            'sexe_personne_fr'  => 'required|string|max:191',
-            'sexe_personne_ar'  => 'required|string|max:191',
-            'groupage'          => 'required|string|max:191',
-            'carte_nationale'   => 'required|file|mimes:pdf|max:10240',
-            'photo'             => 'required|image|max:5120',
+            'id_nin_personne' => ['required', 'string', 'size:18', 'regex:/^[0-9]{18}$/', 'unique:personnes,id_nin_personne'],
+            'nom_personne_fr' => 'required|string|max:191',
+            'prenom_personne_fr' => 'required|string|max:191',
+            'nom_personne_ar' => 'required|string|max:191',
+            'prenom_personne_ar' => 'required|string|max:191',
+            'date_naissance' => 'required|date',
+            'lieu_naissance_fr' => ['required', 'string', 'max:191', Rule::exists('wilayas', 'name_fr')],
+            'lieu_naissance_ar' => ['required', 'string', 'max:191', Rule::exists('wilayas', 'name_ar')],
+            'nationalite_fr' => ['required', 'string', 'max:191', Rule::in(['Algerienne'])],
+            'nationalite_ar' => ['required', 'string', 'max:191', Rule::in(['جزائرية'])],
+            'num_tlf_personne' => ['required', 'string', 'regex:/^[0-9]{10}$/'],
+            'adresse_fr' => 'required|string|max:191',
+            'adresse_ar' => 'required|string|max:191',
+            'sexe_personne_fr' => ['required', 'string', 'max:191', Rule::in(['Masculin', 'Féminin'])],
+            'sexe_personne_ar' => ['required', 'string', 'max:191', Rule::in(['ذكر', 'أنثى'])],
+            'groupage' => ['required', 'string', 'max:191', Rule::in(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])],
+            'id_professional_card' => 'nullable|integer',
+            'fonction_ar' => 'nullable|string|max:191',
+            'fonction_fr' => 'nullable|string|max:191',
+            'carte_nationale' => 'required|file|mimes:pdf|max:10240',
+            'photo' => 'required|image|mimes:jpeg,png,jpg|max:5120',
+        ], [
+            'id_nin_personne.size' => 'Le numéro NIN doit contenir exactement 18 chiffres.',
+            'id_nin_personne.regex' => 'Le numéro NIN doit être composé de 18 chiffres.',
+            'id_nin_personne.unique' => 'Ce numéro NIN est déjà utilisé.',
+            'lieu_naissance_fr.exists' => 'Le lieu de naissance (français) doit être une wilaya valide.',
+            'lieu_naissance_ar.exists' => 'Le lieu de naissance (arabe) doit être une wilaya valide.',
+            'sexe_personne_fr.in' => 'Le sexe (français) doit être Masculin ou Féminin.',
+            'sexe_personne_ar.in' => 'Le sexe (arabe) doit être ذكر ou أنثى.',
+            'nationalite_fr.in' => 'La nationalité (français) doit être Algerienne.',
+            'nationalite_ar.in' => 'La nationalité (arabe) doit être جزائرية.',
+            'num_tlf_personne.regex' => 'Le numéro de téléphone doit contenir exactement 10 chiffres.',
+            'groupage.in' => 'Le groupe sanguin doit être l’un des suivants : A+, A-, B+, B-, AB+, AB-, O+, O-.',
         ]);
-
-        // Vérification si le NIN existe déjà
-        $existingPerson = Personne::where('id_nin_personne', $validated['id_nin_personne'])->first();
-        if ($existingPerson) {
-            return response()->json([
-                'error' => 'Ce numéro d\'identification nationale est déjà enregistré.',
-            ], 422);
-        }
-
-        // Vérification si la personne est un membre du jury
-        $isJury = DB::table('peut-etre-juries')
-            ->join('juries', 'peut-etre-juries.id_jury', '=', 'juries.id_jury')
-            ->where('peut-etre-juries.id_personne', function ($query) use ($validated) {
-                $query->select('id_personne')
-                    ->from('personnes')
-                    ->where('id_nin_personne', $validated['id_nin_personne']);
-            })
-            ->where('juries.date_fin_mondat', '>=', now())
-            ->exists();
-
-        if ($isJury) {
-            return response()->json([
-                'error' => 'Les membres du jury ne peuvent pas s\'inscrire comme participants.',
-            ], 422);
-        }
-
-        // Vérification si la personne a gagné au cours des 3 dernières années
-        $threeYearsAgo = now()->subYears(3)->startOfYear();
-        $isWinner      = DB::table('travails')
-            ->join('equipes', 'travails.id_oeuvre', '=', 'equipes.id_oeuvre')
-            ->join('personnes', 'equipes.id_personne', '=', 'personnes.id_personne')
-            ->where('personnes.id_nin_personne', $validated['id_nin_personne'])
-            ->whereNotNull('travails.annee_gain')
-            ->where('travails.annee_gain', '>=', $threeYearsAgo)
-            ->exists();
-
-        if ($isWinner) {
-            return response()->json([
-                'error' => 'Les gagnants des trois dernières années ne peuvent pas s\'inscrire.',
-            ], 422);
-        }
 
         DB::beginTransaction();
         try {
-            // Stockage de la photo dans storage/app/public/photos
-            $photoPath = $request->file('photo')->store('photos', 'public');
+            // Store files
+            $pathPhoto = $request->file('photo')->store('photos', 'public');
 
-            // Création de la personne
-            $personne = Personne::create([
-                'id_nin_personne'    => $validated['id_nin_personne'],
-                'nom_personne_fr'    => $validated['nom_fr'],
-                'prenom_personne_fr' => $validated['prenom_fr'],
-                'nom_personne_ar'    => $validated['nom_ar'],
-                'prenom_personne_ar' => $validated['prenom_ar'],
-                'date_naissance'     => $validated['date_naissance'],
-                'lieu_naissance_fr'  => $validated['lieu_naissance_fr'],
-                'lieu_naissance_ar'  => $validated['lieu_naissance_ar'],
-                'nationalite_fr'     => $validated['nationalite_fr'],
-                'nationalite_ar'     => $validated['nationalite_ar'],
-                'num_tlf_personne'   => $validated['num_tlf'],
-                'adresse_fr'         => $validated['adresse_fr'],
-                'adresse_ar'         => $validated['adresse_ar'],
-                'sexe_personne_fr'   => $validated['sexe_personne_fr'],
-                'sexe_personne_ar'   => $validated['sexe_personne_ar'],
-                'groupage'           => $validated['groupage'],
-                'photo_path'         => $photoPath,
-                'id_compte'          => auth()->id() ?? 1, // Valeur par défaut si non authentifié
-            ]);
+            // Prepare data for insertion
+            $data = [
+                'id_nin_personne' => $validated['id_nin_personne'],
+                'nom_personne_fr' => $validated['nom_personne_fr'],
+                'prenom_personne_fr' => $validated['prenom_personne_fr'],
+                'nom_personne_ar' => $validated['nom_personne_ar'],
+                'prenom_personne_ar' => $validated['prenom_personne_ar'],
+                'date_naissance' => $validated['date_naissance'],
+                'lieu_naissance_fr' => $validated['lieu_naissance_fr'],
+                'lieu_naissance_ar' => $validated['lieu_naissance_ar'],
+                'nationalite_fr' => $validated['nationalite_fr'],
+                'nationalite_ar' => $validated['nationalite_ar'],
+                'num_tlf_personne' => $validated['num_tlf_personne'],
+                'adresse_fr' => $validated['adresse_fr'],
+                'adresse_ar' => $validated['adresse_ar'],
+                'sexe_personne_fr' => $validated['sexe_personne_fr'],
+                'sexe_personne_ar' => $validated['sexe_personne_ar'],
+                'groupage' => $validated['groupage'],
+                'id_professional_card' => $validated['id_professional_card'] ?? null,
+                'fonction_ar' => $validated['fonction_ar'] ?? null,
+                'fonction_fr' => $validated['fonction_fr'] ?? null,
+                'photo_path' => $pathPhoto,
+                'id_compte' => auth()->id(),
+            ];
 
-            // Stockage du fichier de la carte nationale dans storage/app/public/fichiers
-            $cartePath = $request->file('carte_nationale')->store('fichiers', 'public');
-
-                                                     // Utilisation du nom original du fichier ou d'une traduction en arabe
-            $nomFichierAr = 'بطاقة وطنية'; // Traduction de "carte nationale" en arabe
-                                                     // Alternative : utiliser le nom original du fichier
-                                                     // $nomFichierAr = $request->file('carte_nationale')->getClientOriginalName();
-
-            $fichier = Fichier::create([
-                'nom_fichier_fr' => 'carte_nationale',
-                'nom_fichier_ar' => $nomFichierAr,
-                'type'           => 'carte_nationale',
-                'file_path'      => $cartePath,
-                'size'           => $request->file('carte_nationale')->getSize(),
-                'date_upload'    => now(),
-            ]);
-
-            // Création du dossier
-            Dossier::create([
-                'id_personne'         => $personne->id_personne,
-                'id_fichier'          => $fichier->id_fichier,
-                'statut_dossier'      => 'En cours',
-                'date_create_dossier' => now(),
-            ]);
+            // Create personne
+            $personne = Personne::create($data);
 
             DB::commit();
+
             return response()->json([
-                'message'     => 'Étape 1 enregistrée avec succès',
+                'message' => 'Étape 1 enregistrée avec succès',
                 'id_personne' => $personne->id_personne,
             ], 201);
-
         } catch (\Exception $e) {
             DB::rollBack();
-            \Log::error('Erreur lors de l\'enregistrement de l\'étape 1 : ' . $e->getMessage());
+            Log::error('Erreur lors de l\'enregistrement de l\'étape 1 : ' . $e->getMessage());
             return response()->json([
-                'error' => 'Erreur lors de l\'enregistrement : ' . $e->getMessage(),
+                'error' => 'Erreur serveur interne : ' . $e->getMessage(),
             ], 500);
         }
     }
+
+
 
     // 🟢 ÉTAPE 2 - Établissement + mise à jour de la personne
     public function storeStep2(Request $request)
@@ -164,8 +123,8 @@ class SoumissionController extends Controller
             'radio'                => 'nullable|string|max:191',
             'media'                => 'nullable|string|max:191',
             'langue'               => 'nullable|string|max:191',
-            'nom_fr_etab'          => 'required|string|max:191', // Nom de l'établissement en français
-            'nom_ar_etab'          => 'required|string|max:191', // Nom de l'établissement en arabe
+            'nom_personne_fr_etab'          => 'required|string|max:191', // Nom de l'établissement en français
+            'nom_personne_ar_etab'          => 'required|string|max:191', // Nom de l'établissement en arabe
             'email_etab'           => 'required|email|max:191',
             'tel_etab'             => 'required|string|max:191',
         ]);
@@ -181,8 +140,8 @@ class SoumissionController extends Controller
 
             // Créer l’établissement
             $etablissement = Etablissement::create([
-                'nom_fr_etab'   => $validated['nom_fr_etab'],
-                'nom_ar_etab'   => $validated['nom_ar_etab'],
+                'nom_personne_fr_etab'   => $validated['nom_personne_fr_etab'],
+                'nom_personne_ar_etab'   => $validated['nom_personne_ar_etab'],
                 'email_etab'    => $validated['email_etab'],
                 'tel_etab'      => $validated['tel_etab'],
                 'langue'        => $validated['langue'],
@@ -196,10 +155,10 @@ class SoumissionController extends Controller
                 'updated_at'    => now(),
             ]);
 
-                                                    // Générer un num_asset unique pour la table travaille
-            $numAsset = random_int(100000, 999999); // Génère un numéro unique (à ajuster selon vos besoins)
-            while (Travail::where('num_asset', $numAsset)->exists()) {
-                $numAsset = random_int(100000, 999999); // Vérifie l'unicité
+                                                    // Générer un num_personne_asset unique pour la table travaille
+            $numAsset = random_personne_int(100000, 999999); // Génère un numéro unique (à ajuster selon vos besoins)
+            while (Travail::where('num_personne_asset', $numAsset)->exists()) {
+                $numAsset = random_personne_int(100000, 999999); // Vérifie l'unicité
             }
 
             // Créer la relation dans la table travaille
@@ -207,7 +166,7 @@ class SoumissionController extends Controller
                 'id_personne' => $validated['id_personne'],
                 'id_etab'     => $etablissement->id_etab,
                 'date_recrut' => now()->toDateString(), // Date de recrutement (ajustable)
-                'num_asset'   => $numAsset,
+                'num_personne_asset'   => $numAsset,
                 'created_at'  => now(),
                 'updated_at'  => now(),
             ]);
@@ -242,8 +201,8 @@ class SoumissionController extends Controller
 
         // Création ou récupération de l'équipe
         $equipe = \App\Models\Equipe::create([
-            'nom_equipe_ar' => 'Équipe de ' . $id_personne,
-            'nom_equipe_fr' => 'Équipe de ' . $id_personne,
+            'nom_personne_equipe_ar' => 'Équipe de ' . $id_personne,
+            'nom_personne_equipe_fr' => 'Équipe de ' . $id_personne,
             'id_personne'   => $id_personne,
             'id_oeuvre'     => 0, // sera mis à jour plus tard
         ]);
