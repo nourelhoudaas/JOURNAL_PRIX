@@ -10,13 +10,15 @@ class SpecialiteSeeder extends Seeder
     public function run()
     {
         DB::table('specialite')->insert([
-            ['name_ar' => 'عامة', 'name_fr' => 'Générales'],
-            ['name_ar' => 'إخبارية', 'name_fr' => 'Informations'],
-            ['name_ar' => 'دينية', 'name_fr' => 'Religieuses'],
-            ['name_ar' => 'رياضية', 'name_fr' => 'Sportives'],
-            ['name_ar' => 'نسائية', 'name_fr' => 'Féminines'],
-            ['name_ar' => 'أطفال', 'name_fr' => 'Enfants'],
-            ['name_ar' => 'اقتصادية', 'name_fr' => 'Économiques'],
+            ['name_ar' => 'ثقافي',       'name_fr' => 'Culturel'],
+            ['name_ar' => 'إقتصادي',     'name_fr' => 'Economique'],
+            ['name_ar' => 'عام',         'name_fr' => 'publique'],
+            ['name_ar' => 'رياضي',       'name_fr' => 'sport'],
+            ['name_ar' => 'صحي',         'name_fr' => 'Santé'],
+            ['name_ar' => 'سياحي',       'name_fr' => 'Touristique'],
+            ['name_ar' => 'فلاحي',       'name_fr' => 'Agricole'],
+            ['name_ar' => 'تكنولوجي',    'name_fr' => 'Technologique'],
+            ['name_ar' => 'سيارات',      'name_fr' => 'Automobile'],
         ]);
     }
 }

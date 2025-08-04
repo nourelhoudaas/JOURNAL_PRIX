@@ -18,10 +18,7 @@ public function run(): void
     // Supprimer les utilisateurs sans casser les clés étrangères
     DB::table('users')->delete();
 
-    User::factory()->create([
-        'name' => 'Test User',
-        'email' => 'test@example.com',
-    ]);
+   
 
     $this->call([
         SecteurTravailSeeder::class,
@@ -30,6 +27,7 @@ public function run(): void
         SpecialiteSeeder::class,
         TypeMediaSeeder::class,
         CategorieSeeder::class,
+        WilayaSeeder::class,
 
     ]);
 }

@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('personnes', function (Blueprint $table) {
                 $table->engine = 'InnoDB';
             $table->integer('id_personne')->primary()->autoIncrement();
-            $table->integer('id_nin_personne')->unique()->nullable(false);
+            $table->decimal('id_nin_personne', 18, 0)->unique()->nullable(false);
             $table->string('nom_personne_ar');
             $table->string('nom_personne_fr');
             $table->string('prenom_personne_ar');

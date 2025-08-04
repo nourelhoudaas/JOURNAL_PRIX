@@ -8,6 +8,10 @@ use App\Http\Controllers\SoumissionController;
 use App\Http\Controllers\VerificationController;
 use App\Models\Theme;
 use App\Models\Wilaya;
+use App\Models\Specialite;
+use App\Models\SecteurTravail;
+
+
 
 // ✅ Page d’accueil personnalisée
 Route::get('/', function () {
@@ -65,3 +69,34 @@ Route::get('/wilayas', function () {
     $wilayas = Wilaya::all(['id', 'name_fr', 'name_ar']);
     return response()->json($wilayas);
 });
+
+/*Route::get('/step3', function () {
+    $secteurs = SecteurTravail::all()->map(function ($secteur) {
+        return [
+            'value' => strtolower($secteur->nom_fr_sect), // ex: 'privé', 'public'
+            'label_fr' => $secteur->nom_fr_sect, // ex: 'Privé', 'Public'
+            'label_ar' => $secteur->nom_ar_sect, // ex: 'خاص', 'عام'
+        ];
+    })->toArray();
+
+    $categories = categories::all()->map(function ($categorie) {
+        return [
+            'value' => strtolower($categorie->nom_categorie_fr), // ex: 'presse écrite'
+            'label_fr' => $categorie->nom_categorie_fr, // ex: 'Presse écrite'
+            'label_ar' => $categorie->nom_categorie_ar, // ex: 'الصحافة المكتوبة'
+        ];
+    })->toArray();
+
+    $specialites = Specialite::all()->map(function ($specialite) {
+        return [
+            'value' => $specialite->name_fr, // ex: 'Culturel'
+            'label_fr' => $specialite->name_fr, // ex: 'Culturel'
+            'label_ar' => $specialite->name_ar, // ex: 'ثقافي'
+        ];
+    })->toArray();
+    return response()->json([
+        'secteurs' => $secteurs,
+        'categories' => $categories,
+        'specialites' => $specialites
+    ]);
+});*/

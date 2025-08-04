@@ -1,6 +1,8 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoadingWilayas }) => {
+  const [ninError, setNinError] = useState('');
+
   useEffect(() => {
     console.log('État de Step1 :', {
       id_nin_personne: data.id_nin_personne,
@@ -27,6 +29,29 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
     });
   }, [data, isLoadingWilayas, wilayas]);
 
+  const validateNin = (value) => {
+    if (!value) {
+      setNinError('Le numéro NIN est requis.');
+      return false;
+    }
+    if (value.length !== 18) {
+      setNinError('Le numéro NIN doit contenir exactement 18 chiffres.');
+      return false;
+    }
+    if (!/^[0-9]{18}$/.test(value)) {
+      setNinError('Le numéro NIN doit être composé uniquement de chiffres.');
+      return false;
+    }
+    setNinError('');
+    return true;
+  };
+
+  const handleNinChange = (e) => {
+    const { value } = e.target;
+    onChange(e);
+    validateNin(value);
+  };
+
   const isFormComplete = () => {
     const checks = {
       id_nin_personne: data.id_nin_personne && data.id_nin_personne.length === 18 && /^[0-9]{18}$/.test(data.id_nin_personne),
@@ -52,11 +77,12 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
 
     const isComplete = Object.values(checks).every(check => check === true);
     console.log('isFormComplete :', { isComplete, checks });
-    return isComplete;
+    return isComplete && !ninError;
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (!validateNin(data.id_nin_personne)) return;
     onNext();
   };
 
@@ -67,9 +93,9 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
           {error}
         </div>
       )}
-      {isLoadingWilayas && (
+      {/* {isLoadingWilayas && (
         <div className="text-center text-gray-600">Chargement des wilayas...</div>
-      )}
+      )} */}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
@@ -78,14 +104,15 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
             type="text"
             name="id_nin_personne"
             value={data.id_nin_personne || ''}
-            onChange={onChange}
+            onChange={handleNinChange}
             maxLength={18}
-            pattern="[0-9]{18}"
-            title="Le numéro NIN doit contenir exactement 18 chiffres."
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            className={`bg-gray-50 border ${ninError ? 'border-red-500' : 'border-gray-300'} text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
             placeholder="18 chiffres"
             required
           />
+          {ninError && (
+            <p className="mt-1 text-sm text-red-600">{ninError}</p>
+          )}
         </div>
 
         <div>

@@ -1,55 +1,81 @@
-import React, { useState } from 'react';
+import React from 'react';
 
 export default function Step2({ data, onChange, onNext, onBack }) {
   const secteurs = ['public', 'prive'];
   const categories = ['media audio', 'media ecrit', 'electronique'];
-  const specialites = ['Général', 'Sport', 'Information', 'Culture', 'Économie'];
+  const specialites = ['Culturel', 'Economique', 'publique', 'sport', 'Santé', 'Touristique', 'Agricole', 'Technologique', 'Automobile'];
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    // Log form data for debugging
+    console.log('Step2 form data:', data);
     onNext();
   };
 
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white p-6 shadow-md rounded-xl max-w-3xl mx-auto space-y-6"
+      className="space-y-6 w-full max-w-5xl bg-white shadow-md rounded-lg p-8"
     >
-      <h2 className="text-2xl font-bold text-blue-700 border-b pb-2">
-        💼 Informations professionnelles
-      </h2>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <input
-          name="fonction_fr"
-          value={data.fonction_fr || ''}
-          onChange={onChange}
-          placeholder="Fonction (FR)"
-          className="input"
-        />
-        <input
-          name="fonction_ar"
-          value={data.fonction_ar || ''}
-          onChange={onChange}
-          placeholder="الوظيفة"
-          className="input text-right"
-        />
-
+      <div className="grid gap-6 mb-6 md:grid-cols-2">
+      <div >
+        <label className="block mb-2 text-sm font-medium text-gray-900">N° carte professionnelle</label>
         <input
           name="id_professional_card"
           value={data.id_professional_card || ''}
           onChange={onChange}
           placeholder="N° carte professionnelle"
-          className="input"
+          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+          required
         />
+      </div>
+      <div >
+        <label className="block mb-2 text-sm font-medium text-gray-900">N° atestation de travail</label>
+        <input
+          name="id_professional_card"
+          value={data.id_professional_card || ''}
+          onChange={onChange}
+          placeholder="N° carte professionnelle"
+          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+          required
+        />
+      </div>
+      
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900">Fonction (FR)</label>
+          <input
+            name="fonction_fr"
+            value={data.fonction_fr || ''}
+            onChange={onChange}
+            placeholder="Fonction (FR)"
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            required
+          />
+        </div>
 
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900 ">Fonction (AR)</label>
+          <input
+            name="fonction_ar"
+            value={data.fonction_ar || ''}
+            onChange={onChange}
+            placeholder="الوظيفة"
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right"
+            required
+          />
+        </div>
+      </div>
+
+      <div className="mb-6 w-full">
+        <label className="block mb-2 text-sm font-medium text-gray-900">Secteur de travail</label>
         <select
           name="secteur_travail"
           value={data.secteur_travail || ''}
           onChange={onChange}
-          className="input"
+          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+          required
         >
-          <option value="">Secteur de travail</option>
+          <option value="">Sélectionnez un Secteur de travail</option>
           {secteurs.map((s, index) => (
             <option key={index} value={s}>
               {s}
@@ -58,134 +84,188 @@ export default function Step2({ data, onChange, onNext, onBack }) {
         </select>
       </div>
 
-      {/* Catégorie – affichée seulement si secteur = public */}
-      {data.secteur_travail === 'public' && (
-        <div className="space-y-4">
-          <select
-            name="categorie"
-            value={data.categorie || ''}
-            onChange={onChange}
-            className="input w-full"
-          >
-            <option value="">Catégorie</option>
-            {categories.map((c, index) => (
-              <option key={index} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-
-          {data.categorie === 'media audio' && (
-            <select
-              name="type_media"
-              value={data.type_media || ''}
-              onChange={onChange}
-              className="input w-full"
-            >
-              <option value="">Type Média</option>
-              <option value="tv">TV</option>
-              <option value="radio">Radio</option>
-            </select>
-          )}
-
-          {data.type_media === 'tv' && (
-            <select
-              name="tv"
-              value={data.tv || ''}
-              onChange={onChange}
-              className="input w-full"
-            >
-              <option value="">TV</option>
-              <option value="regionale">Régionale</option>
-              <option value="nationale">Nationale</option>
-            </select>
-          )}
-
-          {data.type_media === 'radio' && (
-            <select
-              name="radio"
-              value={data.radio || ''}
-              onChange={onChange}
-              className="input w-full"
-            >
-              <option value="">Radio</option>
-              <option value="publique">Publique</option>
-              <option value="locale">Locale</option>
-            </select>
-          )}
-
-          {(data.categorie === 'media ecrit' || data.categorie === 'electronique') && (
-            <select
-              name="media"
-              value={data.media || ''}
-              onChange={onChange}
-              className="input w-full"
-            >
-              <option value="">Type</option>
-              <option value="ecrit">Écrit</option>
-              <option value="electronique">Électronique</option>
-            </select>
-          )}
-        </div>
-      )}
-
-      {/* Langue – affichée si secteur = privé */}
-      {data.secteur_travail === 'prive' && (
-        <select
-          name="langue"
-          value={data.langue || ''}
-          onChange={onChange}
-          className="input w-full"
-        >
-          <option value="">Langue</option>
-          <option value="arabe">Arabe</option>
-          <option value="français">Français</option>
-        </select>
-      )}
-
-      {/* Spécialité – affichée si médias ou privé */}
-      {(data.type_media === 'tv' || data.media || data.secteur_travail === 'prive') && (
-        <select
-          name="specialite"
-          value={data.specialite || ''}
-          onChange={onChange}
-          className="input w-full"
-        >
-          <option value="">Spécialité</option>
-          {specialites.map((sp, index) => (
-            <option key={index} value={sp}>
-              {sp}
-            </option>
-          ))}
-        </select>
-      )}
-
-      {/* Établissement */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {data.secteur_travail === 'public' && (
+          <>
+            <div>
+              <label className="block mb-2 text-sm font-medium text-gray-900">Catégorie</label>
+              <select
+                name="categorie"
+                value={data.categorie || ''}
+                onChange={onChange}
+                className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+              >
+                <option value="">Catégorie</option>
+                {categories.map((c, index) => (
+                  <option key={index} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {data.categorie === 'media audio' && (
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-900">Type Média</label>
+                <select
+                  name="type_media"
+                  value={data.type_media || ''}
+                  onChange={onChange}
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                >
+                  <option value="">Type Média</option>
+                  <option value="tv">TV</option>
+                  <option value="radio">Radio</option>
+                </select>
+              </div>
+            )}
+
+            {data.type_media === 'tv' && (
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-900">TV</label>
+                <select
+                  name="tv"
+                  value={data.tv || ''}
+                  onChange={onChange}
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                >
+                  <option value="">TV</option>
+                  <option value="regionale">Régionale</option>
+                  <option value="nationale">Nationale</option>
+                </select>
+              </div>
+            )}
+
+            {data.type_media === 'radio' && (
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-900">Radio</label>
+                <select
+                  name="radio"
+                  value={data.radio || ''}
+                  onChange={onChange}
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                >
+                  <option value="">Radio</option>
+                  <option value="publique">Publique</option>
+                  <option value="locale">Locale</option>
+                </select>
+              </div>
+            )}
+
+            {(data.categorie === 'media ecrit' || data.categorie === 'electronique') && (
+              <div>
+                <label className="block mb-2 text-sm font-medium text-gray-900">Type</label>
+                <select
+                  name="media"
+                  value={data.media || ''}
+                  onChange={onChange}
+                  className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+                >
+                  <option value="">Type</option>
+                  <option value="ecrit">Écrit</option>
+                  <option value="electronique">Électronique</option>
+                </select>
+              </div>
+            )}
+          </>
+        )}
+
+        {data.secteur_travail === 'prive' && (
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-900">Langue</label>
+            <select
+              name="langue"
+              value={data.langue || ''}
+              onChange={onChange}
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            >
+              <option value="">Langue</option>
+              <option value="arabe">Arabe</option>
+              <option value="français">Français</option>
+            </select>
+          </div>
+        )}
+
+        {(data.type_media === 'tv' || data.media || data.secteur_travail === 'prive') && (
+          <div>
+            <label className="block mb-2 text-sm font-medium text-gray-900">Spécialité</label>
+            <select
+              name="specialite"
+              value={data.specialite || ''}
+              onChange={onChange}
+              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            >
+              <option value="">Spécialité</option>
+              {specialites.map((sp, index) => (
+                <option key={index} value={sp}>
+                  {sp}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900">Nom établissement (FR)</label>
+          <input
+            name="nom_etablissement"
+            value={data.nom_etablissement || ''}
+            onChange={onChange}
+            placeholder="Nom établissement (FR)"
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900">Nom établissement (AR)</label>
+          <input
+            name="nom_etablissement_ar"
+            value={data.nom_etablissement_ar || ''}
+            onChange={onChange}
+            placeholder="اسم المؤسسة"
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right"
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900">Email établissement</label>
+          <input
+            name="email"
+            value={data.email || ''}
+            onChange={onChange}
+            placeholder="Email établissement"
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900">Téléphone établissement</label>
+          <input
+            name="tel"
+            value={data.tel || ''}
+            onChange={onChange}
+            placeholder="Téléphone établissement"
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            required
+          />
+        </div>
+      </div>
+            <div>
+        <label className="block mb-2 text-sm font-medium text-gray-900" htmlFor="carte_nationale">
+          Attestation de travail
+        </label>
         <input
-          name="nom_etablissement"
-          value={data.nom_etablissement || ''}
-          onChange={onChange}
-          placeholder="Nom établissement"
-          className="input"
-        />
-        <input
-          name="email"
-          value={data.email || ''}
-          onChange={onChange}
-          placeholder="Email établissement"
-          className="input"
-        />
-        <input
-          name="tel"
-          value={data.tel || ''}
-          onChange={onChange}
-          placeholder="Téléphone établissement"
-          className="input"
+          type="file"
+          name="carte_nationale"
+          //onChange={onFileChange}
+          accept="application/pdf"
+          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+          required
         />
       </div>
 
-      {/* Boutons navigation */}
       <div className="flex justify-between mt-6">
         <button
           type="button"
