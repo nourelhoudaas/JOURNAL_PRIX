@@ -30,6 +30,7 @@ export default function MultiStepForm() {
     themes: [],
     categories: [],
     id_professional_card: '',
+    num_attes: '',
     fonction_fr: '',
     fonction_ar: '',
     secteur_travail: '',
@@ -44,6 +45,7 @@ export default function MultiStepForm() {
     nom_etablissement_ar: '',
     email: '',
     tel: '',
+    attestation_travail: null,
   });
   const [wilayas, setWilayas] = useState([]);
   const [error, setError] = useState('');
@@ -93,18 +95,23 @@ export default function MultiStepForm() {
     const fetchWilayas = async () => {
       try {
         setIsLoadingWilayas(true);
+        console.log('Début du chargement des wilayas...');
         const response = await fetch('http://localhost:8000/wilayas', {
           credentials: 'include',
           headers: { Accept: 'application/json' },
         });
-        if (!response.ok) throw new Error('Erreur lors du chargement des wilayas');
+        console.log('Réponse API wilayas:', response.status, response.statusText);
+        if (!response.ok) {
+          throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
+        }
         const data = await response.json();
+        console.log('Données des wilayas:', data);
         setWilayas(data);
         setWilayasError('');
+        setIsLoadingWilayas(false);
       } catch (error) {
         console.error('❌ Erreur chargement des wilayas :', error);
         setWilayasError('Impossible de charger les wilayas. Veuillez réessayer.');
-      } finally {
         setIsLoadingWilayas(false);
       }
     };
@@ -134,7 +141,15 @@ export default function MultiStepForm() {
         setError('La photo ne doit pas dépasser 5 Mo.');
         return;
       }
-      setStep1Data((prev) => ({ ...prev, [name]: files[0] }));
+      if (name === 'attestation_travail' && files[0].size > 10 * 1024 * 1024) {
+        setError('L\'attestation de travail ne doit pas dépasser 10 Mo.');
+        return;
+      }
+      if (name === 'carte_nationale' || name === 'photo') {
+        setStep1Data((prev) => ({ ...prev, [name]: files[0] }));
+      } else {
+        setFormData((prev) => ({ ...prev, [name]: files[0] }));
+      }
       setError('');
     }
   };
@@ -218,11 +233,11 @@ export default function MultiStepForm() {
       setError('Veuillez sélectionner un groupe sanguin.');
       return false;
     }
-    if (!step1Data.carte_nationale) {
+    if (!(step1Data.carte_nationale instanceof File)) {
       setError('Veuillez télécharger la carte nationale.');
       return false;
     }
-    if (!step1Data.photo) {
+    if (!(step1Data.photo instanceof File)) {
       setError('Veuillez télécharger une photo.');
       return false;
     }
@@ -232,6 +247,10 @@ export default function MultiStepForm() {
   const validateStep2 = () => {
     if (!formData.id_professional_card) {
       setError('Veuillez entrer le numéro de carte professionnelle.');
+      return false;
+    }
+    if (!formData.num_attes) {
+      setError('Veuillez entrer la référence de l\'attestation de travail.');
       return false;
     }
     if (!formData.fonction_fr) {
@@ -284,6 +303,10 @@ export default function MultiStepForm() {
     }
     if (!formData.tel || !/^[0-9]{10}$/.test(formData.tel)) {
       setError('Veuillez entrer un numéro de téléphone valide (10 chiffres).');
+      return false;
+    }
+    if (!(formData.attestation_travail instanceof File)) {
+      setError('Veuillez télécharger l\'attestation de travail.');
       return false;
     }
     return true;
@@ -381,6 +404,7 @@ export default function MultiStepForm() {
         setError('');
         setStep(3);
       } catch (error) {
+        console.error('Erreur fetch :', error);
         setError(error.message || 'Erreur de soumission.');
       }
     } else {
@@ -414,6 +438,7 @@ export default function MultiStepForm() {
           <Step2
             data={formData}
             onChange={handleStep2Change}
+            onFileChange={handleFileChange}
             onNext={nextStep}
             onBack={prevStep}
             error={error}

@@ -1,25 +1,32 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class fichier extends Model
+class Fichier extends Model
 {
-    protected $table = 'fichiers';
     protected $primaryKey = 'id_fichier';
     public $incrementing = true;
-    protected $keyType = 'integer';  
-    public $timestamps = false; 
-    protected $fillable = ['id_fichier','nom_fichier_ar','nom_fichier_fr','file_path','size','date_upload','type'
-];
-  public function dossierfichier()
+    public $timestamps = false;
+    protected $fillable = [
+        'nom_fichier_ar', 'nom_fichier_fr', 'file_path', 'type', 'size', 'date_upload', 'id_dossier'
+    ];
+    protected $casts = [
+        'date_upload' => 'datetime',
+    ];
+
+    public function dossier()
     {
-        return $this->hasMany(dossier::class,'id_fichier','id_fichier');
+        return $this->belongsTo(Dossier::class, 'id_dossier', 'id_dossier');
     }
 
-    
+    public function travail()
+    {
+        return $this->hasOne(Travail::class, 'id_fichier', 'id_fichier');
+    }
 
+    public function occuper()
+    {
+        return $this->hasOne(Occuper::class, 'id_fichier', 'id_fichier');
+    }
 }
-
-         

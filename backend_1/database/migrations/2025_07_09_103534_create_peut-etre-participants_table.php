@@ -12,14 +12,10 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('peut-etre-participants', function (Blueprint $table) {
-                $table->engine = 'InnoDB';
+            $table->engine = 'InnoDB';
             $table->integer('id_peut_etre_participant')->primary()->autoIncrement();
-
-            $table->integer('id_personne');
+            $table->unsignedBigInteger('id_personne'); // Changed to unsignedBigInteger
             $table->foreign('id_personne')->references('id_personne')->on('personnes')->onDelete('cascade');
-
-
-
             $table->integer('id_participant');
             $table->foreign('id_participant')->references('id_participant')->on('participants')->onDelete('cascade');
         });

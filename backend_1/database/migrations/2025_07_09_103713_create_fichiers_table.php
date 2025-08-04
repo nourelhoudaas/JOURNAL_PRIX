@@ -1,34 +1,28 @@
 <?php
-
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateFichiersTable extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('fichiers', function (Blueprint $table) {
-                $table->engine = 'InnoDB';
-            $table->integer('id_fichier')->primary()->autoIncrement();
-            $table->string('nom_fichier_ar');
-            $table->string('nom_fichier_fr');
-            $table->string('file_path'); 
-            $table->string('type'); 
+            $table->id('id_fichier');
+            $table->string('nom_fichier_ar', 191);
+            $table->string('nom_fichier_fr', 191);
+            $table->string('file_path', 191);
+            $table->string('type', 191);
             $table->integer('size');
             $table->dateTime('date_upload');
-         
+            $table->foreignId('id_dossier')->constrained('dossiers', 'id_dossier')->onDelete('cascade');
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('fichiers');
     }
-};
+}

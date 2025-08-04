@@ -27,7 +27,7 @@ return new class extends Migration
             $table->date('annee_gain')->nullable();
             $table->integer('classement')->nullable();
 
-            $table->integer('id_fichier');
+            $table->unsignedBigInteger('id_fichier');
             $table->foreign('id_fichier')->references('id_fichier')->on('fichiers')->onDelete('cascade');
         });
     }

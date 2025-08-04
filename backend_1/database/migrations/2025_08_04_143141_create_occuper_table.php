@@ -1,3 +1,4 @@
+
 <?php
 
 use Illuminate\Database\Migrations\Migration;
@@ -6,30 +7,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('occuper', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->date('date_recrut')->nullable(false);
-            $table->unsignedBigInteger('num_attes')->unique();
-            $table->unsignedBigInteger('id_etab');
-            $table->unsignedBigInteger('id_personne');
-            $table->string('attestation_travail_path', 191)->nullable();
+            $table->id();
+            $table->date('date_recrut');
+            $table->string('num_attes', 191)->unique();
+            $table->foreignId('id_etab')->constrained('etablissement', 'id_etab')->onDelete('cascade');
+            $table->foreignId('id_personne')->constrained('personnes', 'id_personne')->onDelete('cascade');
+            $table->foreignId('id_fichier')->nullable()->constrained('fichiers', 'id_fichier')->onDelete('set null');
             $table->timestamps();
-
-            // Clés étrangères
-            $table->foreign('id_etab')->references('id_etab')->on('etablissement')->onDelete('cascade');
-            $table->foreign('id_personne')->references('id_personne')->on('personnes')->onDelete('cascade');
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('occuper');
     }

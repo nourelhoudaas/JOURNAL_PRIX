@@ -15,7 +15,7 @@ return new class extends Migration
                 $table->engine = 'InnoDB';
             $table->integer('id_peut_etre_jury')->primary()->autoIncrement();
 
-            $table->integer('id_personne');
+           $table->unsignedBigInteger('id_personne');
             $table->foreign('id_personne')->references('id_personne')->on('personnes')->onDelete('cascade');
 
         

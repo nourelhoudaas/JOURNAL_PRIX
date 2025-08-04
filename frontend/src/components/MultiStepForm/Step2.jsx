@@ -1,13 +1,12 @@
 import React from 'react';
 
-export default function Step2({ data, onChange, onNext, onBack }) {
+export default function Step2({ data, onChange, onFileChange, onNext, onBack, error }) {
   const secteurs = ['public', 'prive'];
   const categories = ['media audio', 'media ecrit', 'electronique'];
   const specialites = ['Culturel', 'Economique', 'publique', 'sport', 'Santé', 'Touristique', 'Agricole', 'Technologique', 'Automobile'];
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Log form data for debugging
     console.log('Step2 form data:', data);
     onNext();
   };
@@ -17,30 +16,36 @@ export default function Step2({ data, onChange, onNext, onBack }) {
       onSubmit={handleSubmit}
       className="space-y-6 w-full max-w-5xl bg-white shadow-md rounded-lg p-8"
     >
+      {error && <div className="text-red-500 mb-4">{error}</div>}
       <div className="grid gap-6 mb-6 md:grid-cols-2">
-      <div >
-        <label className="block mb-2 text-sm font-medium text-gray-900">N° carte professionnelle</label>
-        <input
-          name="id_professional_card"
-          value={data.id_professional_card || ''}
-          onChange={onChange}
-          placeholder="N° carte professionnelle"
-          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-          required
-        />
-      </div>
-      <div >
-        <label className="block mb-2 text-sm font-medium text-gray-900">N° atestation de travail</label>
-        <input
-          name="id_professional_card"
-          value={data.id_professional_card || ''}
-          onChange={onChange}
-          placeholder="N° carte professionnelle"
-          className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-          required
-        />
-      </div>
-      
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900" htmlFor="id_professional_card">
+            N° carte professionnelle
+          </label>
+          <input
+            type="number"
+            name="id_professional_card"
+            value={data.id_professional_card || ''}
+            onChange={onChange}
+            placeholder="Numéro de la carte professionnelle"
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            required
+          />
+        </div>
+        <div>
+          <label className="block mb-2 text-sm font-medium text-gray-900" htmlFor="num_attes">
+            Référence attestation de travail
+          </label>
+          <input
+            type="text"
+            name="num_attes"
+            value={data.num_attes || ''}
+            onChange={onChange}
+            placeholder="Référence de l'attestation de travail"
+            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            required
+          />
+        </div>
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">Fonction (FR)</label>
           <input
@@ -52,9 +57,8 @@ export default function Step2({ data, onChange, onNext, onBack }) {
             required
           />
         </div>
-
         <div>
-          <label className="block mb-2 text-sm font-medium text-gray-900 ">Fonction (AR)</label>
+          <label className="block mb-2 text-sm font-medium text-gray-900">Fonction (AR)</label>
           <input
             name="fonction_ar"
             value={data.fonction_ar || ''}
@@ -65,7 +69,6 @@ export default function Step2({ data, onChange, onNext, onBack }) {
           />
         </div>
       </div>
-
       <div className="mb-6 w-full">
         <label className="block mb-2 text-sm font-medium text-gray-900">Secteur de travail</label>
         <select
@@ -83,7 +86,6 @@ export default function Step2({ data, onChange, onNext, onBack }) {
           ))}
         </select>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {data.secteur_travail === 'public' && (
           <>
@@ -103,7 +105,6 @@ export default function Step2({ data, onChange, onNext, onBack }) {
                 ))}
               </select>
             </div>
-
             {data.categorie === 'media audio' && (
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-900">Type Média</label>
@@ -119,7 +120,6 @@ export default function Step2({ data, onChange, onNext, onBack }) {
                 </select>
               </div>
             )}
-
             {data.type_media === 'tv' && (
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-900">TV</label>
@@ -135,7 +135,6 @@ export default function Step2({ data, onChange, onNext, onBack }) {
                 </select>
               </div>
             )}
-
             {data.type_media === 'radio' && (
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-900">Radio</label>
@@ -151,7 +150,6 @@ export default function Step2({ data, onChange, onNext, onBack }) {
                 </select>
               </div>
             )}
-
             {(data.categorie === 'media ecrit' || data.categorie === 'electronique') && (
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-900">Type</label>
@@ -169,7 +167,6 @@ export default function Step2({ data, onChange, onNext, onBack }) {
             )}
           </>
         )}
-
         {data.secteur_travail === 'prive' && (
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-900">Langue</label>
@@ -185,7 +182,6 @@ export default function Step2({ data, onChange, onNext, onBack }) {
             </select>
           </div>
         )}
-
         {(data.type_media === 'tv' || data.media || data.secteur_travail === 'prive') && (
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-900">Spécialité</label>
@@ -205,7 +201,6 @@ export default function Step2({ data, onChange, onNext, onBack }) {
           </div>
         )}
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">Nom établissement (FR)</label>
@@ -252,20 +247,19 @@ export default function Step2({ data, onChange, onNext, onBack }) {
           />
         </div>
       </div>
-            <div>
-        <label className="block mb-2 text-sm font-medium text-gray-900" htmlFor="carte_nationale">
+      <div>
+        <label className="block mb-2 text-sm font-medium text-gray-900" htmlFor="attestation_travail">
           Attestation de travail
         </label>
         <input
           type="file"
-          name="carte_nationale"
-          //onChange={onFileChange}
+          name="attestation_travail"
+          onChange={onFileChange}
           accept="application/pdf"
           className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
           required
         />
       </div>
-
       <div className="flex justify-between mt-6">
         <button
           type="button"

@@ -55,27 +55,34 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
   const isFormComplete = () => {
     const checks = {
       id_nin_personne: data.id_nin_personne && data.id_nin_personne.length === 18 && /^[0-9]{18}$/.test(data.id_nin_personne),
-      nom_personne_fr: !!data.nom_personne_fr && data.nom_personne_fr.trim().length > 0,
-      prenom_personne_fr: !!data.prenom_personne_fr && data.prenom_personne_fr.trim().length > 0,
-      nom_personne_ar: !!data.nom_personne_ar && data.nom_personne_ar.trim().length > 0,
-      prenom_personne_ar: !!data.prenom_personne_ar && data.prenom_personne_ar.trim().length > 0,
+      nom_personne_fr: data.nom_personne_fr?.trim(),
+      prenom_personne_fr: data.prenom_personne_fr?.trim(),
+      nom_personne_ar: data.nom_personne_ar?.trim(),
+      prenom_personne_ar: data.prenom_personne_ar?.trim(),
       date_naissance: !!data.date_naissance,
       lieu_naissance_fr: !!data.lieu_naissance_fr,
       lieu_naissance_ar: !!data.lieu_naissance_ar,
       nationalite_fr: !!data.nationalite_fr,
       nationalite_ar: !!data.nationalite_ar,
-      num_tlf_personne: !!data.num_tlf_personne && /^[0-9]{10}$/.test(data.num_tlf_personne),
-      adresse_fr: !!data.adresse_fr && data.adresse_fr.trim().length > 0,
-      adresse_ar: !!data.adresse_ar && data.adresse_ar.trim().length > 0,
+      num_tlf_personne: data.num_tlf_personne && /^[0-9]{10}$/.test(data.num_tlf_personne),
+      adresse_fr: data.adresse_fr?.trim(),
+      adresse_ar: data.adresse_ar?.trim(),
       sexe_personne_fr: !!data.sexe_personne_fr,
       sexe_personne_ar: !!data.sexe_personne_ar,
       groupage: !!data.groupage,
-      carte_nationale: !!data.carte_nationale,
-      photo: !!data.photo,
+      carte_nationale: data.carte_nationale instanceof File,
+      photo: data.photo instanceof File,
       isLoadingWilayas: !isLoadingWilayas,
     };
 
-    const isComplete = Object.values(checks).every(check => check === true);
+    const isComplete = Object.entries(checks).every(([key, value]) => {
+      const isValid = !!value;
+      if (!isValid) {
+        console.log(`Champ non valide : ${key}`, value);
+      }
+      return isValid;
+    });
+
     console.log('isFormComplete :', { isComplete, checks });
     return isComplete && !ninError;
   };
@@ -83,6 +90,10 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!validateNin(data.id_nin_personne)) return;
+    if (!isFormComplete()) {
+      console.error('Formulaire incomplet, vérifiez les champs.');
+      return;
+    }
     onNext();
   };
 
@@ -93,9 +104,9 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
           {error}
         </div>
       )}
-      {/* {isLoadingWilayas && (
+      {isLoadingWilayas && (
         <div className="text-center text-gray-600">Chargement des wilayas...</div>
-      )} */}
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
