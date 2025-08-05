@@ -1,11 +1,11 @@
 <?php
-
 namespace Database\Seeders;
 
 use App\Models\User;
 // use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 class DatabaseSeeder extends Seeder
 {
@@ -13,23 +13,44 @@ class DatabaseSeeder extends Seeder
      * Seed the application's database.
      */
 
-public function run(): void
-{
-    // Supprimer les utilisateurs sans casser les clés étrangères
-    DB::table('users')->delete();
+    public function run(): void
+    {
+        // Supprimer les utilisateurs (si nécessaire)
+        DB::table('users')->delete();
+        DB::table('comptes')->delete(); // Supprime aussi les comptes pour éviter les doublons
 
-   
+        // Créer un utilisateur administrateur
+        $user = User::create([
+            'name'              => 'Admin',
+            'email'             => 'sayahhouda06@gmail.com',
+            'password'          => bcrypt('11111111'),
+            'email_verified_at' => now(),
+        ]);
 
-    $this->call([
-        SecteurTravailSeeder::class,
-        CategorieEtatSeeder::class,
-        ThemeSeeder::class,
-        SpecialiteSeeder::class,
-        TypeMediaSeeder::class,
-        CategorieSeeder::class,
-        WilayaSeeder::class,
+        // Créer un compte lié à l'utilisateur
+        DB::table('comptes')->insert([
+            'username'                  => 'Admin',
+            'email'                     => 'sayahhouda06@gmail.com',
+            'mot_passe_hash'            => bcrypt('11111111'),
+            'email_verification_code'   => 'ABC123',  // à personnaliser
+            'statut_email'              => 'verifie', // ou 'non_verifie'
+            'code_forget_pass_generate' => '',
+            'date_creation_cmpt'        => Carbon::now(),
+            'date_update_cmpt'          => null,
+            'date_verification_email'   => Carbon::now(),
+            'id'                        => $user->id, // correspond à la clé étrangère vers `users`
+        ]);
 
-    ]);
-}
+        // Appeler les autres seeders
+        $this->call([
+            SecteurTravailSeeder::class,
+            CategorieEtatSeeder::class,
+            ThemeSeeder::class,
+            SpecialiteSeeder::class,
+            TypeMediaSeeder::class,
+            CategorieSeeder::class,
+            WilayaSeeder::class,
+        ]);
+    }
 
 }

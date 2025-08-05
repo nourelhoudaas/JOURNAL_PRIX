@@ -10,12 +10,16 @@ return new class extends Migration
     public function up()
     {
         Schema::create('occuper', function (Blueprint $table) {
-            $table->id();
+            $table->integer('id_occup')->primary()->autoIncrement();
             $table->date('date_recrut');
+            $table->unsignedBigInteger('id_etab');
+            $table->unsignedBigInteger('id_personne');
+            $table->unsignedBigInteger('id_fichier');
+
             $table->string('num_attes', 191)->unique();
-            $table->foreignId('id_etab')->constrained('etablissement', 'id_etab')->onDelete('cascade');
-            $table->foreignId('id_personne')->constrained('personnes', 'id_personne')->onDelete('cascade');
-            $table->foreignId('id_fichier')->nullable()->constrained('fichiers', 'id_fichier')->onDelete('set null');
+            $table->foreign('id_etab')->references('id_etab')->on('etablissement')->onDelete('cascade');
+            $table->foreign('id_personne')->references('id_personne')->on('personnes')->onDelete('cascade');
+            $table->foreign('id_fichier')->references('id_fichier')->on('fichiers')->onDelete('cascade');
             $table->timestamps();
             $table->charset = 'utf8mb4';
             $table->collation = 'utf8mb4_unicode_ci';

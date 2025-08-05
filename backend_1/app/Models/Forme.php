@@ -1,17 +1,28 @@
 <?php
+
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Model;
 
-class Forme extends Pivot
+class Forme extends Model
 {
     protected $table = 'forme';
-    protected $primaryKey = null;
-    public $incrementing = false;
-    protected $fillable = ['id_equipe', 'id_personne', 'role', 'date_integration'];
+    protected $primaryKey = 'id_form';
+    public $timestamps = true;
+
+    protected $fillable = [
+        'id_equipe',
+        'id_personne',
+        'date_forme_equipe',
+        'situation_forme_equipe',
+        'role',
+        'date_integration',
+    ];
+
     protected $casts = [
-        'role' => 'string',
+        'date_forme_equipe' => 'datetime',
         'date_integration' => 'date',
+        'role' => 'string', // Enum casté en string
     ];
 
     public function equipe()

@@ -12,10 +12,10 @@ return new class extends Migration
   public function up()
 {
     Schema::create('type_media', function (Blueprint $table) {
-        $table->id('id_type_media');
+        $table->integer('id_type_media')->primary()->autoIncrement();
         $table->string('nom_ar_type_media');
         $table->string('nom_fr_type_media');
-        $table->unsignedBigInteger('id_cat_etat');
+        $table->Integer('id_cat_etat');
         $table->foreign('id_cat_etat')->references('id_cat_etat')->on('categorie_etat')->onDelete('cascade');
         $table->timestamps();
     });

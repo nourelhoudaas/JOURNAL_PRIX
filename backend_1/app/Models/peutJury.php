@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class peutJury extends Model
 {
   
-    protected $table = 'peut-etre-juries';
+    protected $table = 'peut_etre_juries';
     protected $primaryKey = 'id_peut_etre_jury';
     public $incrementing = true;
     protected $keyType = 'integer';  

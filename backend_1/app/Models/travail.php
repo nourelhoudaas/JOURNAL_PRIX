@@ -4,40 +4,52 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class travail extends Model
+class Travail extends Model
 {
     protected $table = 'travails';
     protected $primaryKey = 'id_oeuvre';
-    public $incrementing = true;
-    protected $keyType = 'integer';  
-    public $timestamps = false; 
-    protected $fillable = ['id_oeuvre','titre_oeuvre_ar','titre_oeuvre_fr','Duree_nbr_signes','date_publication','description_oeuvre_ar','description_oeuvre_fr','statut_oeuvre_ar',
-    'statut_oeuvre_fr','valider_oeuvre','date_creation_oeuvre','annee_gain','classement','id_fichier',
+    public $timestamps = true;
+
+    protected $fillable = [
+        'titre_oeuvre_ar',
+        'titre_oeuvre_fr',
+        'Duree_nbr_signes',
+        'date_publication',
+        'description_oeuvre_ar',
+        'description_oeuvre_fr',
+        'statut_oeuvre_ar',
+        'statut_oeuvre_fr',
+        'valider_oeuvre',
+        'id_fichier',
     ];
 
-      public function contienttravail()
+    protected $casts = [
+        'Duree_nbr_signes' => 'datetime:H:i:s', // Peut-être à revoir si c'est un nombre de signes
+        'date_publication' => 'date',
+    ];
+
+    public function fichier()
     {
-        return $this->hasMany(contient::class,'id_oeuvre','id_oeuvre');
+        return $this->belongsTo(Fichier::class, 'id_fichier', 'id_fichier');
     }
 
-     public function associetravail()
+    public function contients()
     {
-        return $this->hasMany(associe::class,'id_oeuvre','id_oeuvre');
+        return $this->hasMany(Contient::class, 'id_oeuvre', 'id_oeuvre');
     }
 
-     public function equipetravail()
+    public function equipes()
     {
-        return $this->hasMany(equipe::class,'id_oeuvre','id_oeuvre');
+        return $this->hasMany(Equipe::class, 'id_oeuvre', 'id_oeuvre');
     }
 
-        public function travailEquipe()
+    public function participations()
     {
-        return $this->hasMany(equipe::class,'id_oeuvre','id_oeuvre');
+        return $this->hasMany(Participer::class, 'id_oeuvre', 'id_oeuvre');
     }
 
-        public function travailfichier()
+    public function associes()
     {
-        return $this->belongsTo(fichier::class,'id_fichier','id_fichier');
+        return $this->hasMany(Associe::class, 'id_oeuvre', 'id_oeuvre');
     }
 }
-

@@ -23,6 +23,7 @@ return new class extends Migration
             $table->unsignedBigInteger('id');
             $table->foreign('id')->references('id')->on('users')->onDelete('cascade');
         });
+        
     }
 
     public function down(): void

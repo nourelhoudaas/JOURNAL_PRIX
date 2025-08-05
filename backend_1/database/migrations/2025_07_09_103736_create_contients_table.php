@@ -4,33 +4,25 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
+class CreateContientsTable extends Migration
 {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+    public function up()
     {
         Schema::create('contients', function (Blueprint $table) {
-         
-                $table->engine = 'InnoDB';
-            $table->integer('id_contient')->primary()->autoIncrement();
-
-            $table->integer('id_oeuvre');
-            $table->foreign('id_oeuvre')->references('id_oeuvre')->on('travails')->onDelete('cascade');
-
-        
-
-            $table->integer('id_categorie');
-            $table->foreign('id_categorie')->references('id_categorie')->on('categories')->onDelete('cascade');
+            $table->engine = 'InnoDB'; // Ajout pour cohérence
+            $table->id('id_contient');
+            $table->foreignId('id_oeuvre')->constrained('travails', 'id_oeuvre')->onDelete('cascade');
+            $table->foreignId('id_categorie')->constrained('categories', 'id_categorie')->onDelete('cascade');
+            $table->date('annee_gain')->nullable();
+            $table->integer('classement')->nullable();
+            $table->timestamps();
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('contients');
     }
-};
+}

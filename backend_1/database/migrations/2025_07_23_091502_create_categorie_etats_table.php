@@ -12,10 +12,10 @@ return new class extends Migration
 public function up()
 {
     Schema::create('categorie_etat', function (Blueprint $table) {
-        $table->id('id_cat_etat');
+        $table->integer('id_cat_etat')->primary()->autoIncrement();
         $table->string('nom_ar_etat');
         $table->string('nom_fr_etat');
-        $table->unsignedBigInteger('id_sect');
+        $table->Integer('id_sect');
         $table->foreign('id_sect')->references('id_sect')->on('secteur_travail')->onDelete('cascade');
         $table->timestamps();
     });

@@ -4,25 +4,31 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class contient extends Model
+class Contient extends Model
 {
     protected $table = 'contients';
     protected $primaryKey = 'id_contient';
-    public $incrementing = true;
-    protected $keyType = 'integer';  
-    public $timestamps = false; 
-    protected $fillable = ['id_contient','id_oeuvre','id_categorie',
-   
+    public $timestamps = true;
+
+    protected $fillable = [
+        'id_oeuvre',
+        'id_categorie',
+        'annee_gain',
+        'classement',
     ];
 
-      public function contienttravail ()
+    protected $casts = [
+        'annee_gain' => 'date',
+        'classement' => 'integer',
+    ];
+
+    public function oeuvre()
     {
-        return $this->belongsTo(travail::class,'id_oeuvre','id_oeuvre');
+        return $this->belongsTo(Travail::class, 'id_oeuvre', 'id_oeuvre');
     }
 
-       public function contientcategorie ()
+    public function categorie()
     {
-        return $this->belongsTo(categories::class,'id_oeuvre','id_oeuvre');
+        return $this->belongsTo(categories::class, 'id_categorie', 'id_categorie');
     }
 }
- 

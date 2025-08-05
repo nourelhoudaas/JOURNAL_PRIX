@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class peutParticipant extends Model
 {
-    protected $table = 'peut-etre-participants';
+    protected $table = 'peut_etre_participants';
     protected $primaryKey = 'id_peut_etre_participant';
     public $incrementing = true;
     protected $keyType = 'integer';  

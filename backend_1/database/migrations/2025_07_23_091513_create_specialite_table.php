@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('specialite', function (Blueprint $table) {
-    $table->id();
-    $table->string('name_ar');
-    $table->string('name_fr');
-    $table->timestamps();
-});
+            $table->integer('id_specialite')->primary()->autoIncrement();
+            $table->string('name_ar');
+            $table->string('name_fr');
+            $table->timestamps();
+        });
     }
 
     /**

@@ -14,9 +14,9 @@ return new class extends Migration
         Schema::create('associes', function (Blueprint $table) {
                 $table->engine = 'InnoDB';
    
-             $table->integer('id_associe')->primary()->autoIncrement();
+             $table->id('id_associe');
 
-            $table->integer('id_oeuvre');
+            $table->unsignedBigInteger('id_oeuvre');
             $table->foreign('id_oeuvre')->references('id_oeuvre')->on('travails')->onDelete('cascade');
 
         

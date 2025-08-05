@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('peut-etre-juries', function (Blueprint $table) {
+        Schema::create('peut_etre_juries', function (Blueprint $table) {
                 $table->engine = 'InnoDB';
             $table->integer('id_peut_etre_jury')->primary()->autoIncrement();
 
@@ -30,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('peut-etre-juries');
+        Schema::dropIfExists('peut_etre_juries');
     }
 };

@@ -18,12 +18,13 @@ public function up()
         $table->string('email_etab');
         $table->string('tel_etab');
         $table->string('langue')->nullable();
-        $table->string('specialite')->nullable();
         $table->string('tv')->nullable();
         $table->string('radio')->nullable();
         $table->string('media')->nullable();
-        $table->unsignedBigInteger('id_type_media');
-         $table->foreignId('id_specialite')->nullable()->constrained('specialite')->onDelete('set null');
+        $table->Integer('id_type_media');
+        $table->Integer('id_specialite');
+        
+        $table->foreign('id_specialite')->references('id_specialite')->on('specialite')->onDelete('cascade');
         $table->foreign('id_type_media')->references('id_type_media')->on('type_media')->onDelete('cascade');
         $table->timestamps();
     });

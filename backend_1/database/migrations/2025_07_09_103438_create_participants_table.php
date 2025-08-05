@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('participants', function (Blueprint $table) {
                 $table->engine = 'InnoDB';
-            $table->integer('id_participant')->primary()->autoIncrement();
+            $table->id('id_participant');
             $table->date('date_debut_activité');
          
         });

@@ -6,26 +6,22 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('equipes', function (Blueprint $table) {
             $table->engine = 'InnoDB';
-            $table->unsignedBigInteger('id_equipe')->primary()->autoIncrement(); // Changed to unsignedBigInteger
-            $table->string('nom_equipe_ar');
-            $table->string('nom_equipe_fr');
-            $table->unsignedBigInteger('id_personne');
+            $table->id('id_equipe'); // bigint unsigned for primary key
+            $table->string('nom_equipe_ar', 191);
+            $table->string('nom_equipe_fr', 191);
+            $table->unsignedBigInteger('id_personne'); // Changed to integer to match personnes table
             $table->foreign('id_personne')->references('id_personne')->on('personnes')->onDelete('cascade');
-            $table->integer('id_oeuvre');
+            $table->unsignedBigInteger('id_oeuvre'); // Matches travails table
             $table->foreign('id_oeuvre')->references('id_oeuvre')->on('travails')->onDelete('cascade');
+            $table->charset = 'utf8mb4';
+            $table->collation = 'utf8mb4_unicode_ci';
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('equipes');

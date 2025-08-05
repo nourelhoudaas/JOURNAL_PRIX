@@ -7,6 +7,7 @@ use App\Models\CategorieEtat;
 use App\Models\Dossier;
 use App\Models\Etablissement;
 use App\Models\Forme;
+use App\Models\participant;
 use App\Models\Personne;
 use App\Models\Theme;
 use App\Models\Travail;
@@ -14,6 +15,7 @@ use App\Models\SecteurTravail;
 use App\Models\TypeMedia;
 use App\Models\Specialite;
 use App\Models\Fichier;
+use App\Models\peutParticipant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -110,7 +112,8 @@ class SoumissionController extends Controller
                 'date_upload' => now(),
                 'id_dossier' => $dossier->id_dossier,
             ]);
-
+            
+         
             // Préparer les données pour l'insertion dans la table personnes
             $data = [
                 'id_nin_personne'      => $validated['id_nin_personne'],
@@ -140,6 +143,18 @@ class SoumissionController extends Controller
             $personne = Personne::create($data);
 
             DB::commit();
+
+            // Enregistrer le participant dans la table participant
+            $participant = participant::create([
+                'date_debut_activité' =>now(),
+                
+            ]);
+            // Enregistrer le participant dans la table peut_etre_participant
+           $peut_etre = peutParticipant::create([
+                'id_participant' => $participant->id_participant,
+                'id_personne' => $personne->id_personne,
+            ]);
+
 
             return response()->json([
                 'message'     => 'Étape 1 enregistrée avec succès',
@@ -240,9 +255,9 @@ class SoumissionController extends Controller
                     Log::error('Spécialité non trouvée dans la table specialite pour name_fr : ' . $validated['specialite']);
                     return response()->json(['error' => 'Spécialité non trouvée.'], 400);
                 }
-                $id_specialite = $specialite->id;
+                $id_specialite =  $specialite->id_specialite;
             }
-
+//dd($id_specialite);
             // Stocker l'attestation de travail dans la table fichiers, liée au dossier de la personne
             $attestationFile = $request->file('attestation_travail');
             $pathAttestation = $attestationFile->store('attestations', 'public');
@@ -271,7 +286,7 @@ class SoumissionController extends Controller
                 'email_etab' => $validated['email'],
                 'tel_etab' => $validated['tel'],
                 'langue' => $validated['langue'] ?? null,
-                'specialite' => $validated['specialite'] ?? null,
+                //'specialite' => $validated['specialite'] ?? null,
                 'tv' => $validated['tv'] ?? null,
                 'radio' => $validated['radio'] ?? null,
                 'media' => $validated['media'] ?? null,

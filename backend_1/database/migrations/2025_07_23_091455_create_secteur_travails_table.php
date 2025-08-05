@@ -12,7 +12,8 @@ return new class extends Migration
  public function up()
 {
     Schema::create('secteur_travail', function (Blueprint $table) {
-        $table->id('id_sect');
+        $table->integer('id_sect')->primary()->autoIncrement();
+        $table->engine = 'InnoDB';
         $table->string('nom_ar_sect');
         $table->string('nom_fr_sect');
         $table->timestamps();

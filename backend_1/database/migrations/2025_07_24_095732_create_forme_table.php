@@ -1,4 +1,5 @@
 <?php
+
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -8,11 +9,15 @@ class CreateFormeTable extends Migration
     public function up()
     {
         Schema::create('forme', function (Blueprint $table) {
+            $table->engine = 'InnoDB'; // Ajout pour cohérence
+            $table->id('id_form');
             $table->foreignId('id_equipe')->constrained('equipes', 'id_equipe')->onDelete('cascade');
             $table->foreignId('id_personne')->constrained('personnes', 'id_personne')->onDelete('cascade');
+            $table->dateTime('date_forme_equipe')->default(DB::raw('CURRENT_TIMESTAMP'));
+            $table->string('situation_forme_equipe', 191);
             $table->enum('role', ['principal', 'membre'])->default('membre');
             $table->date('date_integration')->nullable();
-            $table->primary(['id_equipe', 'id_personne']);
+            $table->timestamps();
             $table->charset = 'utf8mb4';
             $table->collation = 'utf8mb4_unicode_ci';
         });
