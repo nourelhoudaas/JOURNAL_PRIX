@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/soumission/store-step2', [SoumissionController::class, 'storeStep2']);
     Route::post('/soumission/store-step3', [SoumissionController::class, 'storeStep3']);
     Route::get('/soumission/collaborateurs', [SoumissionController::class, 'getCollaborateursEligibles']);
+    Route::get('/check-nin/{nin}', [SoumissionController::class, 'checkNin']);
 });
 //Route::post('/soumission/store-step1', [SoumissionController::class, 'storeStep1']);
 
