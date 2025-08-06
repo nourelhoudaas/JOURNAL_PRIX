@@ -9,7 +9,7 @@
         {
             Schema::create('dossiers', function (Blueprint $table) {
                 $table->engine = 'InnoDB';
-                $table->integer('id_dossier')->primary()->autoIncrement();
+                $table->id('id_dossier');
                 $table->dateTime('date_create_dossier');
                 $table->string('statut_dossier', 191);
                 $table->charset = 'utf8mb4';

@@ -1,14 +1,13 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
 class Travail extends Model
 {
-    protected $table = 'travails';
+    protected $table      = 'travails';
     protected $primaryKey = 'id_oeuvre';
-    public $timestamps = true;
+    public $timestamps    = true;
 
     protected $fillable = [
         'titre_oeuvre_ar',
@@ -28,9 +27,9 @@ class Travail extends Model
         'date_publication' => 'date',
     ];
 
-    public function fichier()
+    public function fichiers()
     {
-        return $this->belongsTo(Fichier::class, 'id_fichier', 'id_fichier');
+        return $this->hasMany(Fichier::class, 'id_oeuvre', 'id_oeuvre');
     }
 
     public function contients()

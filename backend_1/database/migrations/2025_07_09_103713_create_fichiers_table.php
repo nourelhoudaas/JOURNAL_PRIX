@@ -15,9 +15,9 @@ class CreateFichiersTable extends Migration
             $table->string('file_path', 191);
             $table->string('type', 191);
             $table->integer('size');
-            $table->integer('id_dossier');
+            $table->foreignId('id_dossier')->constrained('dossiers', 'id_dossier')->onDelete('cascade');
+            $table->foreignId('id_oeuvre')->nullable()->constrained('travails', 'id_oeuvre')->onDelete('cascade');
             $table->dateTime('date_upload');
-            $table->foreign('id_dossier')->references( 'id_dossier')->on('dossiers')->onDelete('cascade');
             $table->charset = 'utf8mb4';
             $table->collation = 'utf8mb4_unicode_ci';
         });

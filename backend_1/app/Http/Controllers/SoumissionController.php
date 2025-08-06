@@ -24,24 +24,70 @@ use Illuminate\Validation\Rule;
 
 class SoumissionController extends Controller
 {
-    // Vérifier si le NIN a été nominé dans les 3 dernières éditions
-    public function checkNin($nin)
-{
-    $ninExists = DB::table('personnes')
-        ->join('contients', 'contients.id_oeuvre', '=', 'travails.id_oeuvre')
-        ->join('travails', 'travails.id_oeuvre', '=', 'contients.id_oeuvre')
-        ->join('associes', 'associes.id_oeuvre', '=', 'travails.id_oeuvre')
-        ->join('editions', 'editions.id_edition', '=', 'appartients.id_edition')
-        ->join('appartients', 'appartients.id_theme', '=', 'associes.id_theme')
-        ->where('personnes.id_nin_personne', $nin)
-        ->where('contients.classement', '<=', 3)
-        ->where('editions.annee_edition', '>=', now()->subYears(3)->format('Y-m-d'))
-        ->exists();
+// Check if NIN exists and return person data
+    public function checkNin(Request $request)
+    {
+        $nin = $request->query('nin');
 
-    return response()->json([
-        'nominated' => $ninExists,
-    ]);
-}
+        if (! preg_match('/^[0-9]{18}$/', $nin)) {
+            return response()->json([
+                'exists'  => false,
+                'message' => 'Format NIN invalide',
+                'data'    => null,
+            ], 422);
+        }
+
+        $person = Personne::where('id_nin_personne', $nin)
+            ->with(['dossier.fichiers' => function ($query) {
+                $query->select('id_fichier', 'nom_fichier', 'chemin_fichier', 'type_fichier', 'id_dossier')
+                    ->whereIn('type_fichier', ['carte_nationale', 'photo']);
+            }])
+            ->first();
+
+        if ($person) {
+            $fichiers = $person->dossier ? $person->dossier->fichiers->map(function ($fichier) {
+                return [
+                    'id_fichier'     => $fichier->id_fichier,
+                    'nom_fichier'    => $fichier->nom_fichier,
+                    'chemin_fichier' => $fichier->chemin_fichier,
+                    'type_fichier'   => $fichier->type_fichier,
+                ];
+            })->toArray() : [];
+
+            return response()->json([
+                'exists'  => true,
+                'message' => 'NIN existe dans la base de données',
+                'data'    => [
+                    'id_nin_personne'      => $person->id_nin_personne,
+                    'nom_personne_fr'      => $person->nom_personne_fr,
+                    'prenom_personne_fr'   => $person->prenom_personne_fr,
+                    'nom_personne_ar'      => $person->nom_personne_ar,
+                    'prenom_personne_ar'   => $person->prenom_personne_ar,
+                    'date_naissance'       => $person->date_naissance->format('Y-m-d'),
+                    'lieu_naissance_fr'    => $person->lieu_naissance_fr,
+                    'lieu_naissance_ar'    => $person->lieu_naissance_ar,
+                    'nationalite_fr'       => $person->nationalite_fr,
+                    'nationalite_ar'       => $person->nationalite_ar,
+                    'num_tlf_personne'     => $person->num_tlf_personne,
+                    'adresse_fr'           => $person->adresse_fr,
+                    'adresse_ar'           => $person->adresse_ar,
+                    'sexe_personne_fr'     => $person->sexe_personne_fr,
+                    'sexe_personne_ar'     => $person->sexe_personne_ar,
+                    'groupage'             => $person->groupage,
+                    'id_professional_card' => $person->id_professional_card,
+                    'fonction_fr'          => $person->fonction_fr,
+                    'fonction_ar'          => $person->fonction_ar,
+                    'fichiers'             => $fichiers, // Fichiers filtrés (carte_nationale, photo)
+                ],
+            ], 200);
+        }
+
+        return response()->json([
+            'exists'  => false,
+            'message' => 'NIN non trouvé',
+            'data'    => null,
+        ], 200);
+    }
 
     // 🟢 ÉTAPE 1 - Données personnelles + création du dossier et fichiers associés
     public function storeStep1(Request $request)
@@ -58,24 +104,6 @@ class SoumissionController extends Controller
         if (! DB::table('comptes')->where('id_compte', $userId)->exists()) {
             return response()->json([
                 'error' => 'Aucun compte trouvé pour cet utilisateur. ID compte : ' . $userId,
-            ], 400);
-        }
-
-        // Vérification si le NIN a été nominé dans les 3 dernières éditions
-        $ninExists = DB::table('personnes')
-            ->join('contients', 'contients.id_oeuvre', '=', 'travails.id_oeuvre')
-            ->join('travails', 'travails.id_oeuvre', '=', 'contients.id_oeuvre')
-            ->join('associes', 'associes.id_oeuvre', '=', 'travails.id_oeuvre')
-            ->join('editions', 'editions.id_edition', '=', 'appartients.id_edition')
-            ->join('appartients', 'appartients.id_theme', '=', 'associes.id_theme')
-            ->where('personnes.id_nin_personne', $request->id_nin_personne)
-            ->where('contients.classement', '<=', 3) // Top 3 classés
-            ->where('editions.annee_edition', '>=', now()->subYears(3)->format('Y-m-d'))
-            ->exists();
-
-        if ($ninExists) {
-            return response()->json([
-                'error' => 'Ce numéro NIN a été nominé dans les 3 dernières éditions et ne peut pas participer à nouveau.',
             ], 400);
         }
 

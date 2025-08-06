@@ -24,6 +24,9 @@ export default function MultiStepForm() {
     groupage: '',
     carte_nationale: null,
     photo: null,
+    id_professional_card: '',
+    fonction_fr: '',
+    fonction_ar: '',
   });
   const [formData, setFormData] = useState({
     userId: null,
@@ -282,19 +285,7 @@ export default function MultiStepForm() {
       return false;
     }
     if ((formData.categorie === 'media ecrit' || formData.categorie === 'electronique') && !formData.media) {
-      setError('Veuillez sélectionner un type de média écrit/électronique.');
-      return false;
-    }
-    if ((formData.type_media === 'tv' || formData.media || formData.secteur_travail === 'prive') && !formData.specialite) {
-      setError('Veuillez sélectionner une spécialité.');
-      return false;
-    }
-    if (!formData.nom_etablissement) {
-      setError('Veuillez entrer le nom de l’établissement (FR).');
-      return false;
-    }
-    if (!formData.nom_etablissement_ar) {
-      setError('Veuillez entrer le nom de l’établissement (AR).');
+      setError('Veuillez sélectionner un média.');
       return false;
     }
     if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {

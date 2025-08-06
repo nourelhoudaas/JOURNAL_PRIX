@@ -2,6 +2,14 @@ import React, { useEffect, useState } from 'react';
 
 const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoadingWilayas }) => {
   const [ninError, setNinError] = useState('');
+  const [ninExistsMessage, setNinExistsMessage] = useState('');
+  const [isNinDisabled, setIsNinDisabled] = useState(false);
+
+  // Fonction pour formater la date ISO en yyyy-MM-dd
+  const formatDateForInput = (isoDate) => {
+    if (!isoDate) return '';
+    return isoDate.split('T')[0]; // Extrait yyyy-MM-dd de 1990-01-01T00:00:00.000000Z
+  };
 
   useEffect(() => {
     console.log('État de Step1 :', {
@@ -29,27 +37,78 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
     });
   }, [data, isLoadingWilayas, wilayas]);
 
-  const validateNin = (value) => {
+  const validateNin = async (value) => {
     if (!value) {
       setNinError('Le numéro NIN est requis.');
+      setNinExistsMessage('');
       return false;
     }
     if (value.length !== 18) {
       setNinError('Le numéro NIN doit contenir exactement 18 chiffres.');
+      setNinExistsMessage('');
       return false;
     }
     if (!/^[0-9]{18}$/.test(value)) {
       setNinError('Le numéro NIN doit être composé uniquement de chiffres.');
+      setNinExistsMessage('');
       return false;
     }
-    setNinError('');
-    return true;
+
+    try {
+      const response = await fetch(`http://localhost:8000/check-nin?nin=${value}`, {
+        headers: { Accept: 'application/json' },
+      });
+      const result = await response.json();
+
+      if (response.ok) {
+        if (result.exists) {
+          setNinExistsMessage('Ce numéro NIN existe déjà dans la base de données.');
+          setIsNinDisabled(true);
+          // Update form data with retrieved data
+          if (result.data) {
+            onChange({ target: { name: 'id_nin_personne', value: result.data.id_nin_personne } });
+            onChange({ target: { name: 'nom_personne_fr', value: result.data.nom_personne_fr } });
+            onChange({ target: { name: 'prenom_personne_fr', value: result.data.prenom_personne_fr } });
+            onChange({ target: { name: 'nom_personne_ar', value: result.data.nom_personne_ar } });
+            onChange({ target: { name: 'prenom_personne_ar', value: result.data.prenom_personne_ar } });
+            onChange({ target: { name: 'date_naissance', value: formatDateForInput(result.data.date_naissance) } }); // Formater la date
+            onChange({ target: { name: 'lieu_naissance_fr', value: result.data.lieu_naissance_fr } });
+            onChange({ target: { name: 'lieu_naissance_ar', value: result.data.lieu_naissance_ar } });
+            onChange({ target: { name: 'nationalite_fr', value: result.data.nationalite_fr } });
+            onChange({ target: { name: 'nationalite_ar', value: result.data.nationalite_ar } });
+            onChange({ target: { name: 'num_tlf_personne', value: result.data.num_tlf_personne } });
+            onChange({ target: { name: 'adresse_fr', value: result.data.adresse_fr } });
+            onChange({ target: { name: 'adresse_ar', value: result.data.adresse_ar } });
+            onChange({ target: { name: 'sexe_personne_fr', value: result.data.sexe_personne_fr } });
+            onChange({ target: { name: 'sexe_personne_ar', value: result.data.sexe_personne_ar } });
+            onChange({ target: { name: 'groupage', value: result.data.groupage } });
+            onChange({ target: { name: 'id_professional_card', value: result.data.id_professional_card } });
+            onChange({ target: { name: 'fonction_fr', value: result.data.fonction_fr } });
+            onChange({ target: { name: 'fonction_ar', value: result.data.fonction_ar } });
+          }
+        } else {
+          setNinExistsMessage('');
+          setIsNinDisabled(false);
+        }
+        setNinError('');
+        return true;
+      } else {
+        setNinError(result.message || 'Erreur lors de la vérification du NIN.');
+        setNinExistsMessage('');
+        return false;
+      }
+    } catch (error) {
+      console.error('Erreur lors de la vérification du NIN :', error);
+      setNinError('Erreur lors de la vérification du NIN.');
+      setNinExistsMessage('');
+      return false;
+    }
   };
 
-  const handleNinChange = (e) => {
+  const handleNinChange = async (e) => {
     const { value } = e.target;
     onChange(e);
-    validateNin(value);
+    await validateNin(value);
   };
 
   const isFormComplete = () => {
@@ -104,6 +163,11 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
           {error}
         </div>
       )}
+      {ninExistsMessage && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative">
+          {ninExistsMessage}
+        </div>
+      )}
       {isLoadingWilayas && (
         <div className="text-center text-gray-600">Chargement des wilayas...</div>
       )}
@@ -117,7 +181,8 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
             value={data.id_nin_personne || ''}
             onChange={handleNinChange}
             maxLength={18}
-            className={`bg-gray-50 border ${ninError ? 'border-red-500' : 'border-gray-300'} text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5`}
+            disabled={isNinDisabled}
+            className={`bg-gray-50 border ${ninError ? 'border-red-500' : 'border-gray-300'} text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${isNinDisabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
             placeholder="18 chiffres"
             required
           />

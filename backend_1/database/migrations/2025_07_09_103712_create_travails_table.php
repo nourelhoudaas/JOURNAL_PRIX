@@ -20,7 +20,6 @@ class CreateTravailsTable extends Migration
             $table->string('statut_oeuvre_ar', 191);
             $table->string('statut_oeuvre_fr', 191);
             $table->string('valider_oeuvre', 191);
-            $table->foreignId('id_fichier')->constrained('fichiers', 'id_fichier')->onDelete('cascade');
             $table->timestamps();
             $table->charset = 'utf8mb4';
             $table->collation = 'utf8mb4_unicode_ci';

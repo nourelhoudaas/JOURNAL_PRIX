@@ -1,6 +1,6 @@
 <?php
 namespace App\Models;
-
+App\\Models\\Dossier;
 use Illuminate\Database\Eloquent\Model;
 
 class Fichier extends Model
@@ -9,7 +9,7 @@ class Fichier extends Model
     public $incrementing = true;
     public $timestamps = false;
     protected $fillable = [
-        'nom_fichier_ar', 'nom_fichier_fr', 'file_path', 'type', 'size', 'date_upload', 'id_dossier'
+        'nom_fichier_ar', 'nom_fichier_fr', 'file_path', 'type', 'size', 'date_upload', 'id_dossier', 'id_oeuvre'
     ];
     protected $casts = [
         'date_upload' => 'datetime',
@@ -22,7 +22,7 @@ class Fichier extends Model
 
     public function travail()
     {
-        return $this->hasOne(Travail::class, 'id_fichier', 'id_fichier');
+        return $this->belongsTo(Travail::class, 'id_oeuvre', 'id_oeuvre');
     }
 
     public function occuper()
