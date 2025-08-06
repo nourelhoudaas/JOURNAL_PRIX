@@ -27,6 +27,7 @@ export default function MultiStepForm() {
     id_professional_card: '',
     fonction_fr: '',
     fonction_ar: '',
+    fichiers: [], // Ajout pour gérer les fichiers existants
   });
   const [formData, setFormData] = useState({
     userId: null,
@@ -122,8 +123,17 @@ export default function MultiStepForm() {
   }, []);
 
   const handleStep1Change = (e) => {
-    const { name, value } = e.target;
-    setStep1Data((prev) => ({ ...prev, [name]: value }));
+    if (e.target.name === 'batch') {
+      // Mise à jour groupée pour les données de l'API
+      setStep1Data((prev) => ({
+        ...prev,
+        ...e.target.value,
+      }));
+    } else {
+      // Mise à jour individuelle pour les champs du formulaire
+      const { name, value } = e.target;
+      setStep1Data((prev) => ({ ...prev, [name]: value }));
+    }
     setError('');
   };
 
@@ -236,12 +246,12 @@ export default function MultiStepForm() {
       setError('Veuillez sélectionner un groupe sanguin.');
       return false;
     }
-    if (!(step1Data.carte_nationale instanceof File)) {
-      setError('Veuillez télécharger la carte nationale.');
+    if (!(step1Data.carte_nationale instanceof File) && !(step1Data.fichiers && step1Data.fichiers.some(f => f.type === 'carte_nationale'))) {
+      setError('Veuillez télécharger la carte nationale ou utiliser un fichier existant.');
       return false;
     }
-    if (!(step1Data.photo instanceof File)) {
-      setError('Veuillez télécharger une photo.');
+    if (!(step1Data.photo instanceof File) && !(step1Data.fichiers && step1Data.fichiers.some(f => f.type === 'photo'))) {
+      setError('Veuillez télécharger une photo ou utiliser un fichier existant.');
       return false;
     }
     return true;
@@ -309,7 +319,7 @@ export default function MultiStepForm() {
 
       const form = new FormData();
       for (const key in step1Data) {
-        if (step1Data[key] !== null && step1Data[key] !== undefined && step1Data[key] !== '') {
+        if (step1Data[key] !== null && step1Data[key] !== undefined && step1Data[key] !== '' && key !== 'fichiers') {
           form.append(key, step1Data[key]);
         }
       }

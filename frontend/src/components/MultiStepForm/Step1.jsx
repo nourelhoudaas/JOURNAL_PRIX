@@ -1,43 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 
 const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoadingWilayas }) => {
   const [ninError, setNinError] = useState('');
   const [ninExistsMessage, setNinExistsMessage] = useState('');
   const [isNinDisabled, setIsNinDisabled] = useState(false);
+  const [formErrors, setFormErrors] = useState([]);
 
   // Fonction pour formater la date ISO en yyyy-MM-dd
-  const formatDateForInput = (isoDate) => {
+  const formatDateForInput = useCallback((isoDate) => {
     if (!isoDate) return '';
-    return isoDate.split('T')[0]; // Extrait yyyy-MM-dd de 1990-01-01T00:00:00.000000Z
-  };
+    return isoDate.split('T')[0];
+  }, []);
 
-  useEffect(() => {
-    console.log('État de Step1 :', {
-      id_nin_personne: data.id_nin_personne,
-      id_nin_personne_length: data.id_nin_personne?.length,
-      nom_personne_fr: data.nom_personne_fr,
-      prenom_personne_fr: data.prenom_personne_fr,
-      nom_personne_ar: data.nom_personne_ar,
-      prenom_personne_ar: data.prenom_personne_ar,
-      date_naissance: data.date_naissance,
-      lieu_naissance_fr: data.lieu_naissance_fr,
-      lieu_naissance_ar: data.lieu_naissance_ar,
-      nationalite_fr: data.nationalite_fr,
-      nationalite_ar: data.nationalite_ar,
-      num_tlf_personne: data.num_tlf_personne,
-      adresse_fr: data.adresse_fr,
-      adresse_ar: data.adresse_ar,
-      sexe_personne_fr: data.sexe_personne_fr,
-      sexe_personne_ar: data.sexe_personne_ar,
-      groupage: data.groupage,
-      carte_nationale: data.carte_nationale ? `${data.carte_nationale.name} (${data.carte_nationale.size} bytes)` : null,
-      photo: data.photo ? `${data.photo.name} (${data.photo.size} bytes)` : null,
-      isLoadingWilayas: isLoadingWilayas,
-      wilayas_length: wilayas.length,
-    });
-  }, [data, isLoadingWilayas, wilayas]);
-
-  const validateNin = async (value) => {
+  // Valider le NIN
+  const validateNin = useCallback(async (value) => {
     if (!value) {
       setNinError('Le numéro NIN est requis.');
       setNinExistsMessage('');
@@ -64,31 +40,68 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
         if (result.exists) {
           setNinExistsMessage('Ce numéro NIN existe déjà dans la base de données.');
           setIsNinDisabled(true);
-          // Update form data with retrieved data
           if (result.data) {
-            onChange({ target: { name: 'id_nin_personne', value: result.data.id_nin_personne } });
-            onChange({ target: { name: 'nom_personne_fr', value: result.data.nom_personne_fr } });
-            onChange({ target: { name: 'prenom_personne_fr', value: result.data.prenom_personne_fr } });
-            onChange({ target: { name: 'nom_personne_ar', value: result.data.nom_personne_ar } });
-            onChange({ target: { name: 'prenom_personne_ar', value: result.data.prenom_personne_ar } });
-            onChange({ target: { name: 'date_naissance', value: formatDateForInput(result.data.date_naissance) } }); // Formater la date
-            onChange({ target: { name: 'lieu_naissance_fr', value: result.data.lieu_naissance_fr } });
-            onChange({ target: { name: 'lieu_naissance_ar', value: result.data.lieu_naissance_ar } });
-            onChange({ target: { name: 'nationalite_fr', value: result.data.nationalite_fr } });
-            onChange({ target: { name: 'nationalite_ar', value: result.data.nationalite_ar } });
-            onChange({ target: { name: 'num_tlf_personne', value: result.data.num_tlf_personne } });
-            onChange({ target: { name: 'adresse_fr', value: result.data.adresse_fr } });
-            onChange({ target: { name: 'adresse_ar', value: result.data.adresse_ar } });
-            onChange({ target: { name: 'sexe_personne_fr', value: result.data.sexe_personne_fr } });
-            onChange({ target: { name: 'sexe_personne_ar', value: result.data.sexe_personne_ar } });
-            onChange({ target: { name: 'groupage', value: result.data.groupage } });
-            onChange({ target: { name: 'id_professional_card', value: result.data.id_professional_card } });
-            onChange({ target: { name: 'fonction_fr', value: result.data.fonction_fr } });
-            onChange({ target: { name: 'fonction_ar', value: result.data.fonction_ar } });
+            onChange({
+              target: {
+                name: 'batch',
+                value: {
+                  id_nin_personne: result.data.id_nin_personne || '',
+                  nom_personne_fr: result.data.nom_personne_fr || '',
+                  prenom_personne_fr: result.data.prenom_personne_fr || '',
+                  nom_personne_ar: result.data.nom_personne_ar || '',
+                  prenom_personne_ar: result.data.prenom_personne_ar || '',
+                  date_naissance: formatDateForInput(result.data.date_naissance) || '',
+                  lieu_naissance_fr: result.data.lieu_naissance_fr || '',
+                  lieu_naissance_ar: result.data.lieu_naissance_ar || '',
+                  nationalite_fr: result.data.nationalite_fr || 'Algerienne',
+                  nationalite_ar: result.data.nationalite_ar || 'جزائرية',
+                  num_tlf_personne: result.data.num_tlf_personne || '',
+                  adresse_fr: result.data.adresse_fr || '',
+                  adresse_ar: result.data.adresse_ar || '',
+                  sexe_personne_fr: result.data.sexe_personne_fr || '',
+                  sexe_personne_ar: result.data.sexe_personne_ar || '',
+                  groupage: result.data.groupage || '',
+                  id_professional_card: result.data.id_professional_card || '',
+                  fonction_fr: result.data.fonction_fr || '',
+                  fonction_ar: result.data.fonction_ar || '',
+                  fichiers: result.data.fichiers || [],
+                },
+              },
+            });
           }
         } else {
           setNinExistsMessage('');
           setIsNinDisabled(false);
+          // Réinitialiser les champs si le NIN n'existe pas
+          onChange({
+            target: {
+              name: 'batch',
+              value: {
+                id_nin_personne: value,
+                nom_personne_fr: '',
+                prenom_personne_fr: '',
+                nom_personne_ar: '',
+                prenom_personne_ar: '',
+                date_naissance: '',
+                lieu_naissance_fr: '',
+                lieu_naissance_ar: '',
+                nationalite_fr: 'Algerienne',
+                nationalite_ar: 'جزائرية',
+                num_tlf_personne: '',
+                adresse_fr: '',
+                adresse_ar: '',
+                sexe_personne_fr: '',
+                sexe_personne_ar: '',
+                groupage: '',
+                carte_nationale: null,
+                photo: null,
+                id_professional_card: '',
+                fonction_fr: '',
+                fonction_ar: '',
+                fichiers: [],
+              },
+            },
+          });
         }
         setNinError('');
         return true;
@@ -103,15 +116,21 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
       setNinExistsMessage('');
       return false;
     }
-  };
+  }, [onChange, formatDateForInput]);
 
-  const handleNinChange = async (e) => {
-    const { value } = e.target;
-    onChange(e);
-    await validateNin(value);
-  };
+  // Gérer le changement du NIN
+  const handleNinChange = useCallback(
+    async (e) => {
+      const { value } = e.target;
+      if (value === data.id_nin_personne) return; // Éviter les appels inutiles
+      onChange(e);
+      await validateNin(value);
+    },
+    [data.id_nin_personne, onChange, validateNin]
+  );
 
-  const isFormComplete = () => {
+  // Vérifier si le formulaire est complet
+  const isFormComplete = useCallback(() => {
     const checks = {
       id_nin_personne: data.id_nin_personne && data.id_nin_personne.length === 18 && /^[0-9]{18}$/.test(data.id_nin_personne),
       nom_personne_fr: data.nom_personne_fr?.trim(),
@@ -129,27 +148,97 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
       sexe_personne_fr: !!data.sexe_personne_fr,
       sexe_personne_ar: !!data.sexe_personne_ar,
       groupage: !!data.groupage,
-      carte_nationale: data.carte_nationale instanceof File,
-      photo: data.photo instanceof File,
+      carte_nationale: data.carte_nationale instanceof File || (data.fichiers && data.fichiers.some(f => f.type === 'carte_nationale')),
+      photo: data.photo instanceof File || (data.fichiers && data.fichiers.some(f => f.type === 'photo')),
       isLoadingWilayas: !isLoadingWilayas,
     };
 
-    const isComplete = Object.entries(checks).every(([key, value]) => {
-      const isValid = !!value;
-      if (!isValid) {
-        console.log(`Champ non valide : ${key}`, value);
-      }
-      return isValid;
+    return Object.values(checks).every(value => !!value) && !ninError;
+  }, [data, isLoadingWilayas, ninError]);
+
+  // Valider les erreurs uniquement lors de la soumission
+  const validateFormErrors = useCallback(() => {
+    const checks = {
+      id_nin_personne: data.id_nin_personne && data.id_nin_personne.length === 18 && /^[0-9]{18}$/.test(data.id_nin_personne),
+      nom_personne_fr: data.nom_personne_fr?.trim(),
+      prenom_personne_fr: data.prenom_personne_fr?.trim(),
+      nom_personne_ar: data.nom_personne_ar?.trim(),
+      prenom_personne_ar: data.prenom_personne_ar?.trim(),
+      date_naissance: !!data.date_naissance,
+      lieu_naissance_fr: !!data.lieu_naissance_fr,
+      lieu_naissance_ar: !!data.lieu_naissance_ar,
+      nationalite_fr: !!data.nationalite_fr,
+      nationalite_ar: !!data.nationalite_ar,
+      num_tlf_personne: data.num_tlf_personne && /^[0-9]{10}$/.test(data.num_tlf_personne),
+      adresse_fr: data.adresse_fr?.trim(),
+      adresse_ar: data.adresse_ar?.trim(),
+      sexe_personne_fr: !!data.sexe_personne_fr,
+      sexe_personne_ar: !!data.sexe_personne_ar,
+      groupage: !!data.groupage,
+      carte_nationale: data.carte_nationale instanceof File || (data.fichiers && data.fichiers.some(f => f.type === 'carte_nationale')),
+      photo: data.photo instanceof File || (data.fichiers && data.fichiers.some(f => f.type === 'photo')),
+      isLoadingWilayas: !isLoadingWilayas,
+    };
+
+    const errors = [];
+    if (!checks.id_nin_personne) errors.push('Le numéro NIN est invalide.');
+    if (!checks.nom_personne_fr) errors.push('Le nom (FR) est requis.');
+    if (!checks.prenom_personne_fr) errors.push('Le prénom (FR) est requis.');
+    if (!checks.nom_personne_ar) errors.push('Le nom (AR) est requis.');
+    if (!checks.prenom_personne_ar) errors.push('Le prénom (AR) est requis.');
+    if (!checks.date_naissance) errors.push('La date de naissance est requise.');
+    if (!checks.lieu_naissance_fr) errors.push('Le lieu de naissance (FR) est requis.');
+    if (!checks.lieu_naissance_ar) errors.push('Le lieu de naissance (AR) est requis.');
+    if (!checks.nationalite_fr) errors.push('La nationalité (FR) est requise.');
+    if (!checks.nationalite_ar) errors.push('La nationalité (AR) est requise.');
+    if (!checks.num_tlf_personne) errors.push('Le numéro de téléphone est invalide.');
+    if (!checks.adresse_fr) errors.push('L\'adresse (FR) est requise.');
+    if (!checks.adresse_ar) errors.push('L\'adresse (AR) est requise.');
+    if (!checks.sexe_personne_fr) errors.push('Le sexe (FR) est requis.');
+    if (!checks.sexe_personne_ar) errors.push('Le sexe (AR) est requis.');
+    if (!checks.groupage) errors.push('Le groupe sanguin est requis.');
+    if (!checks.carte_nationale) errors.push('La carte nationale est requise (téléchargez un fichier ou utilisez un fichier existant).');
+    if (!checks.photo) errors.push('La photo est requise (téléchargez un fichier ou utilisez un fichier existant).');
+    if (!checks.isLoadingWilayas) errors.push('Les wilayas sont en cours de chargement.');
+
+    setFormErrors(errors);
+    return errors.length === 0 && !ninError;
+  }, [data, isLoadingWilayas, ninError]);
+
+  // Débogage avec useEffect
+  useEffect(() => {
+    console.log('État de Step1 :', {
+      id_nin_personne: data.id_nin_personne,
+      id_nin_personne_length: data.id_nin_personne?.length,
+      nom_personne_fr: data.nom_personne_fr,
+      prenom_personne_fr: data.prenom_personne_fr,
+      nom_personne_ar: data.nom_personne_ar,
+      prenom_personne_ar: data.prenom_personne_ar,
+      date_naissance: data.date_naissance,
+      lieu_naissance_fr: data.lieu_naissance_fr,
+      lieu_naissance_ar: data.lieu_naissance_ar,
+      nationalite_fr: data.nationalite_fr,
+      nationalite_ar: data.nationalite_ar,
+      num_tlf_personne: data.num_tlf_personne,
+      adresse_fr: data.adresse_fr,
+      adresse_ar: data.adresse_ar,
+      sexe_personne_fr: data.sexe_personne_fr,
+      sexe_personne_ar: data.sexe_personne_ar,
+      groupage: data.groupage,
+      carte_nationale: data.carte_nationale ? `${data.carte_nationale.name} (${data.carte_nationale.size} bytes)` : null,
+      photo: data.photo ? `${data.photo.name} (${data.photo.size} bytes)` : null,
+      fichiers: data.fichiers,
+      isLoadingWilayas: isLoadingWilayas,
+      wilayas_length: wilayas.length,
     });
+  }, [data, isLoadingWilayas, wilayas]);
 
-    console.log('isFormComplete :', { isComplete, checks });
-    return isComplete && !ninError;
-  };
-
-  const handleSubmit = (e) => {
+  // Gérer la soumission
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateNin(data.id_nin_personne)) return;
-    if (!isFormComplete()) {
+    const ninValid = await validateNin(data.id_nin_personne);
+    if (!ninValid) return;
+    if (!validateFormErrors()) {
       console.error('Formulaire incomplet, vérifiez les champs.');
       return;
     }
@@ -166,6 +255,15 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
       {ninExistsMessage && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative">
           {ninExistsMessage}
+        </div>
+      )}
+      {formErrors.length > 0 && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          <ul>
+            {formErrors.map((err, index) => (
+              <li key={index}>{err}</li>
+            ))}
+          </ul>
         </div>
       )}
       {isLoadingWilayas && (
@@ -416,25 +514,57 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
         <label className="block mb-2 text-sm font-medium text-gray-900" htmlFor="carte_nationale">
           Carte nationale
         </label>
+        {data.fichiers && data.fichiers.some(f => f.type === 'carte_nationale') && (
+          <div className="mb-2">
+            <p className="text-sm text-gray-600">
+              Fichier existant :{' '}
+              {data.fichiers.find(f => f.type === 'carte_nationale').nom_fichier_fr}{' '}
+              <a
+                href={`http://localhost:8000/storage/${data.fichiers.find(f => f.type === 'carte_nationale').file_path}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                (Voir)
+              </a>
+            </p>
+          </div>
+        )}
         <input
           type="file"
           name="carte_nationale"
           onChange={onFileChange}
           accept="application/pdf"
           className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-          required
+          required={!data.fichiers || !data.fichiers.some(f => f.type === 'carte_nationale')}
         />
       </div>
 
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-900">Photo</label>
+        {data.fichiers && data.fichiers.some(f => f.type === 'photo') && (
+          <div className="mb-2">
+            <p className="text-sm text-gray-600">
+              Fichier existant :{' '}
+              {data.fichiers.find(f => f.type === 'photo').nom_fichier_fr}{' '}
+              <a
+                href={`http://localhost:8000/storage/${data.fichiers.find(f => f.type === 'photo').file_path}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 hover:underline"
+              >
+                (Voir)
+              </a>
+            </p>
+          </div>
+        )}
         <input
           type="file"
           name="photo"
           onChange={onFileChange}
           accept="image/jpeg,image/png,image/jpg"
           className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-          required
+          required={!data.fichiers || !data.fichiers.some(f => f.type === 'photo')}
         />
       </div>
 

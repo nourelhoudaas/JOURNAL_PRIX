@@ -1,6 +1,5 @@
 <?php
 namespace App\Models;
-App\\Models\\Dossier;
 use Illuminate\Database\Eloquent\Model;
 
 class Fichier extends Model

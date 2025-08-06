@@ -25,67 +25,70 @@ use Illuminate\Validation\Rule;
 class SoumissionController extends Controller
 {
 // Check if NIN exists and return person data
+        // Check if NIN exists and return person data
     public function checkNin(Request $request)
     {
         $nin = $request->query('nin');
 
-        if (! preg_match('/^[0-9]{18}$/', $nin)) {
+        if (!preg_match('/^[0-9]{18}$/', $nin)) {
             return response()->json([
-                'exists'  => false,
+                'exists' => false,
                 'message' => 'Format NIN invalide',
-                'data'    => null,
+                'data' => null,
             ], 422);
         }
 
         $person = Personne::where('id_nin_personne', $nin)
             ->with(['dossier.fichiers' => function ($query) {
-                $query->select('id_fichier', 'nom_fichier', 'chemin_fichier', 'type_fichier', 'id_dossier')
-                    ->whereIn('type_fichier', ['carte_nationale', 'photo']);
+                $query->select('id_fichier', 'nom_fichier_ar', 'nom_fichier_fr', 'file_path', 'type', 'id_dossier')
+                    ->whereIn('type', ['carte_nationale', 'photo'])
+                    ->whereNull('id_oeuvre');
             }])
             ->first();
 
         if ($person) {
             $fichiers = $person->dossier ? $person->dossier->fichiers->map(function ($fichier) {
                 return [
-                    'id_fichier'     => $fichier->id_fichier,
-                    'nom_fichier'    => $fichier->nom_fichier,
-                    'chemin_fichier' => $fichier->chemin_fichier,
-                    'type_fichier'   => $fichier->type_fichier,
+                    'id_fichier' => $fichier->id_fichier,
+                    'nom_fichier_ar' => $fichier->nom_fichier_ar,
+                    'nom_fichier_fr' => $fichier->nom_fichier_fr,
+                    'file_path' => $fichier->file_path,
+                    'type' => $fichier->type,
                 ];
             })->toArray() : [];
 
             return response()->json([
-                'exists'  => true,
+                'exists' => true,
                 'message' => 'NIN existe dans la base de données',
-                'data'    => [
-                    'id_nin_personne'      => $person->id_nin_personne,
-                    'nom_personne_fr'      => $person->nom_personne_fr,
-                    'prenom_personne_fr'   => $person->prenom_personne_fr,
-                    'nom_personne_ar'      => $person->nom_personne_ar,
-                    'prenom_personne_ar'   => $person->prenom_personne_ar,
-                    'date_naissance'       => $person->date_naissance->format('Y-m-d'),
-                    'lieu_naissance_fr'    => $person->lieu_naissance_fr,
-                    'lieu_naissance_ar'    => $person->lieu_naissance_ar,
-                    'nationalite_fr'       => $person->nationalite_fr,
-                    'nationalite_ar'       => $person->nationalite_ar,
-                    'num_tlf_personne'     => $person->num_tlf_personne,
-                    'adresse_fr'           => $person->adresse_fr,
-                    'adresse_ar'           => $person->adresse_ar,
-                    'sexe_personne_fr'     => $person->sexe_personne_fr,
-                    'sexe_personne_ar'     => $person->sexe_personne_ar,
-                    'groupage'             => $person->groupage,
+                'data' => [
+                    'id_nin_personne' => $person->id_nin_personne,
+                    'nom_personne_fr' => $person->nom_personne_fr,
+                    'prenom_personne_fr' => $person->prenom_personne_fr,
+                    'nom_personne_ar' => $person->nom_personne_ar,
+                    'prenom_personne_ar' => $person->prenom_personne_ar,
+                    'date_naissance' => $person->date_naissance->format('Y-m-d'),
+                    'lieu_naissance_fr' => $person->lieu_naissance_fr,
+                    'lieu_naissance_ar' => $person->lieu_naissance_ar,
+                    'nationalite_fr' => $person->nationalite_fr,
+                    'nationalite_ar' => $person->nationalite_ar,
+                    'num_tlf_personne' => $person->num_tlf_personne,
+                    'adresse_fr' => $person->adresse_fr,
+                    'adresse_ar' => $person->adresse_ar,
+                    'sexe_personne_fr' => $person->sexe_personne_fr,
+                    'sexe_personne_ar' => $person->sexe_personne_ar,
+                    'groupage' => $person->groupage,
                     'id_professional_card' => $person->id_professional_card,
-                    'fonction_fr'          => $person->fonction_fr,
-                    'fonction_ar'          => $person->fonction_ar,
-                    'fichiers'             => $fichiers, // Fichiers filtrés (carte_nationale, photo)
+                    'fonction_fr' => $person->fonction_fr,
+                    'fonction_ar' => $person->fonction_ar,
+                    'fichiers' => $fichiers,
                 ],
             ], 200);
         }
 
         return response()->json([
-            'exists'  => false,
+            'exists' => false,
             'message' => 'NIN non trouvé',
-            'data'    => null,
+            'data' => null,
         ], 200);
     }
 
@@ -93,143 +96,97 @@ class SoumissionController extends Controller
     public function storeStep1(Request $request)
     {
         // Vérifier si l'utilisateur est authentifié
-        if (! Auth::check()) {
+        if (!Auth::check()) {
             return response()->json([
                 'error' => 'Utilisateur non authentifié. Veuillez vous connecter.',
             ], 401);
         }
 
-        $userId = Auth::id();
-        // Vérifier si l'id_compte existe dans la table comptes
-        if (! DB::table('comptes')->where('id_compte', $userId)->exists()) {
-            return response()->json([
-                'error' => 'Aucun compte trouvé pour cet utilisateur. ID compte : ' . $userId,
-            ], 400);
-        }
-
         $validated = $request->validate([
-            'id_nin_personne'      => ['required', 'string', 'size:18', 'regex:/^[0-9]{18}$/', 'unique:personnes,id_nin_personne'],
-            'nom_personne_fr'      => 'required|string|max:191',
-            'prenom_personne_fr'   => 'required|string|max:191',
-            'nom_personne_ar'      => 'required|string|max:191',
-            'prenom_personne_ar'   => 'required|string|max:191',
-            'date_naissance'       => 'required|date',
-            'lieu_naissance_fr'    => ['required', 'string', 'max:191', Rule::exists('wilayas', 'name_fr')],
-            'lieu_naissance_ar'    => ['required', 'string', 'max:191', Rule::exists('wilayas', 'name_ar')],
-            'nationalite_fr'       => ['required', 'string', 'max:191', Rule::in(['Algerienne'])],
-            'nationalite_ar'       => ['required', 'string', 'max:191', Rule::in(['جزائرية'])],
-            'num_tlf_personne'     => ['required', 'string', 'regex:/^[0-9]{10}$/'],
-            'adresse_fr'           => 'required|string|max:191',
-            'adresse_ar'           => 'required|string|max:191',
-            'sexe_personne_fr'     => ['required', 'string', 'max:191', Rule::in(['Masculin', 'Féminin'])],
-            'sexe_personne_ar'     => ['required', 'string', 'max:191', Rule::in(['ذكر', 'أنثى'])],
-            'groupage'             => ['required', 'string', 'max:191', Rule::in(['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'])],
-            'id_professional_card' => 'nullable|integer',
-            'fonction_ar'          => 'nullable|string|max:191',
-            'fonction_fr'          => 'nullable|string|max:191',
-            'carte_nationale'      => 'required|file|mimes:pdf|max:10240',
-            'photo'                => 'required|image|mimes:jpeg,png,jpg|max:5120',
-        ], [
-            'id_nin_personne.size'     => 'Le numéro NIN doit contenir exactement 18 chiffres.',
-            'id_nin_personne.regex'    => 'Le numéro NIN doit être composé de 18 chiffres.',
-            'id_nin_personne.unique'   => 'Ce numéro NIN est déjà utilisé.',
-            'lieu_naissance_fr.exists' => 'Le lieu de naissance (français) doit être une wilaya valide.',
-            'lieu_naissance_ar.exists' => 'Le lieu de naissance (arabe) doit être une wilaya valide.',
-            'sexe_personne_fr.in'      => 'Le sexe (français) doit être Masculin ou Féminin.',
-            'sexe_personne_ar.in'      => 'Le sexe (arabe) doit être ذكر ou أنثى.',
-            'nationalite_fr.in'        => 'La nationalité (français) doit être Algerienne.',
-            'nationalite_ar.in'        => 'La nationalité (arabe) doit être جزائرية.',
-            'num_tlf_personne.regex'   => 'Le numéro de téléphone doit contenir exactement 10 chiffres.',
-            'groupage.in'              => 'Le groupe sanguin doit être l’un des suivants : A+, A-, B+, B-, AB+, AB-, O+, O-.',
+            'id_nin_personne' => ['required', 'string', 'size:18', 'regex:/^[0-9]{18}$/'],
+            'nom_personne_fr' => ['required', 'string', 'max:191'],
+            'prenom_personne_fr' => ['required', 'string', 'max:191'],
+            'nom_personne_ar' => ['required', 'string', 'max:191'],
+            'prenom_personne_ar' => ['required', 'string', 'max:191'],
+            'date_naissance' => ['required', 'date'],
+            'lieu_naissance_fr' => ['required', 'string', 'max:191'],
+            'lieu_naissance_ar' => ['required', 'string', 'max:191'],
+            'nationalite_fr' => ['required', 'string', 'max:191'],
+            'nationalite_ar' => ['required', 'string', 'max:191'],
+            'num_tlf_personne' => ['required', 'string', 'size:10', 'regex:/^[0-9]{10}$/'],
+            'adresse_fr' => ['required', 'string', 'max:191'],
+            'adresse_ar' => ['required', 'string', 'max:191'],
+            'sexe_personne_fr' => ['required', 'string', 'in:Masculin,Féminin'],
+            'sexe_personne_ar' => ['required', 'string', 'in:ذكر,أنثى'],
+            'groupage' => ['required', 'string', 'in:A+,A-,B+,B-,AB+,AB-,O+,O-'],
+            'id_professional_card' => ['nullable', 'string', 'max:191'],
+            'fonction_fr' => ['nullable', 'string', 'max:191'],
+            'fonction_ar' => ['nullable', 'string', 'max:191'],
+            'carte_nationale' => ['nullable', 'file', 'mimes:pdf', 'max:2048'],
+            'photo' => ['nullable', 'file', 'mimes:jpeg,png,jpg', 'max:2048'],
         ]);
 
         DB::beginTransaction();
         try {
-            // Créer un dossier unique pour la personne
-            $dossier = Dossier::create([
-                'date_create_dossier' => now(),
-                'statut_dossier'      => 'en attente',
-            ]);
+            $person = Personne::where('id_nin_personne', $validated['id_nin_personne'])->first();
 
-            // Stocker les fichiers dans la table fichiers, liés au dossier
-            $photoFile          = $request->file('photo');
-            $carteNationaleFile = $request->file('carte_nationale');
+            if ($person) {
+                $person->update($validated);
+                $dossier = Dossier::find($person->id_dossier);
+            } else {
+                $dossier = Dossier::create([
+                    'date_create_dossier' => now(),
+                    'statut_dossier' => 'en_attente',
+                ]);
+                $validated['id_dossier'] = $dossier->id_dossier;
+                $validated['id_compte'] = Auth::id();
+                $person = Personne::create($validated);
+            }
 
-            $pathPhoto          = $photoFile->store('photos', 'public');
-            $pathCarteNationale = $carteNationaleFile->store('cartes_nationales', 'public');
+            if ($request->hasFile('carte_nationale')) {
+                $file = $request->file('carte_nationale');
+                $path = $file->store('documents', 'public');
+                Fichier::updateOrCreate(
+                    [
+                        'id_dossier' => $dossier->id_dossier,
+                        'type' => 'carte_nationale',
+                        'id_oeuvre' => null,
+                    ],
+                    [
+                        'nom_fichier_fr' => $file->getClientOriginalName(),
+                        'nom_fichier_ar' => $file->getClientOriginalName(),
+                        'file_path' => $path,
+                        'size' => $file->getSize(),
+                        'date_upload' => now(),
+                    ]
+                );
+            }
 
-            $fichierPhoto = Fichier::create([
-                'nom_fichier_ar' => 'صورة شخصية',
-                'nom_fichier_fr' => 'Photo personnelle',
-                'file_path'      => $pathPhoto,
-                'type'           => $photoFile->getClientOriginalExtension(),
-                'size'           => $photoFile->getSize(),
-                'date_upload'    => now(),
-                'id_dossier'     => $dossier->id_dossier,
-            ]);
-
-            $fichierCarteNationale = Fichier::create([
-                'nom_fichier_ar' => 'بطاقة وطنية',
-                'nom_fichier_fr' => 'Carte nationale',
-                'file_path'      => $pathCarteNationale,
-                'type'           => $carteNationaleFile->getClientOriginalExtension(),
-                'size'           => $carteNationaleFile->getSize(),
-                'date_upload'    => now(),
-                'id_dossier'     => $dossier->id_dossier,
-            ]);
-
-            // Préparer les données pour l'insertion dans la table personnes
-            $data = [
-                'id_nin_personne'      => $validated['id_nin_personne'],
-                'nom_personne_fr'      => $validated['nom_personne_fr'],
-                'prenom_personne_fr'   => $validated['prenom_personne_fr'],
-                'nom_personne_ar'      => $validated['nom_personne_ar'],
-                'prenom_personne_ar'   => $validated['prenom_personne_ar'],
-                'date_naissance'       => $validated['date_naissance'],
-                'lieu_naissance_fr'    => $validated['lieu_naissance_fr'],
-                'lieu_naissance_ar'    => $validated['lieu_naissance_ar'],
-                'nationalite_fr'       => $validated['nationalite_fr'],
-                'nationalite_ar'       => $validated['nationalite_ar'],
-                'num_tlf_personne'     => $validated['num_tlf_personne'],
-                'adresse_fr'           => $validated['adresse_fr'],
-                'adresse_ar'           => $validated['adresse_ar'],
-                'sexe_personne_fr'     => $validated['sexe_personne_fr'],
-                'sexe_personne_ar'     => $validated['sexe_personne_ar'],
-                'groupage'             => $validated['groupage'],
-                'id_professional_card' => $validated['id_professional_card'] ?? null,
-                'fonction_ar'          => $validated['fonction_ar'] ?? null,
-                'fonction_fr'          => $validated['fonction_fr'] ?? null,
-                'id_compte'            => $userId,
-                'id_dossier'           => $dossier->id_dossier, // Lier la personne au dossier
-            ];
-
-            // Créer l'enregistrement personne
-            $personne = Personne::create($data);
+            if ($request->hasFile('photo')) {
+                $file = $request->file('photo');
+                $path = $file->store('photos', 'public');
+                Fichier::updateOrCreate(
+                    [
+                        'id_dossier' => $dossier->id_dossier,
+                        'type' => 'photo',
+                        'id_oeuvre' => null,
+                    ],
+                    [
+                        'nom_fichier_fr' => $file->getClientOriginalName(),
+                        'nom_fichier_ar' => $file->getClientOriginalName(),
+                        'file_path' => $path,
+                        'size' => $file->getSize(),
+                        'date_upload' => now(),
+                    ]
+                );
+            }
 
             DB::commit();
-
-            // Enregistrer le participant dans la table participant
-            $participant = participant::create([
-                'date_debut_activité' => now(),
-
-            ]);
-            // Enregistrer le participant dans la table peut_etre_participant
-            $peut_etre = peutParticipant::create([
-                'id_participant' => $participant->id_participant,
-                'id_personne'    => $personne->id_personne,
-            ]);
-
-            return response()->json([
-                'message'     => 'Étape 1 enregistrée avec succès',
-                'id_personne' => $personne->id_personne,
-                'id_dossier'  => $dossier->id_dossier,
-            ], 201);
+            return response()->json(['message' => 'Étape 1 enregistrée avec succès'], 200);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Erreur lors de l\'enregistrement de l\'étape 1 : ' . $e->getMessage());
-            return response()->json([
-                'error' => 'Erreur serveur interne : ' . $e->getMessage(),
-            ], 500);
+            return response()->json(['message' => 'Erreur lors de l\'enregistrement'], 500);
         }
     }
 

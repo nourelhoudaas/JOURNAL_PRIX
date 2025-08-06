@@ -20,4 +20,11 @@ class Dossier extends Model
     protected $casts = [
         'date_create_dossier' => 'datetime',
     ];
+
+    public function fichiers()
+    {
+        return $this->hasMany(Fichier::class, 'id_dossier', 'id_dossier');
+    }
 }
+
+
