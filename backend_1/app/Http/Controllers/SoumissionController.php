@@ -145,7 +145,7 @@ class SoumissionController extends Controller
 
             if ($request->hasFile('carte_nationale')) {
                 $file = $request->file('carte_nationale');
-                $path = $file->store('documents', 'public');
+                $path = $file->store('carte_nationale', 'public');
                 Fichier::updateOrCreate(
                     [
                         'id_dossier' => $dossier->id_dossier,
