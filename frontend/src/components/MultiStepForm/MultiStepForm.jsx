@@ -50,6 +50,7 @@ export default function MultiStepForm() {
     email: '',
     tel: '',
     attestation_travail: null,
+    fichiers: [], // Ajout pour gérer les fichiers existants
   });
   const [wilayas, setWilayas] = useState([]);
   const [error, setError] = useState('');
@@ -138,8 +139,17 @@ export default function MultiStepForm() {
   };
 
   const handleStep2Change = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (e.target.name === 'batch') {
+      // Mise à jour groupée pour les données de l'API
+      setFormData((prev) => ({
+        ...prev,
+        ...e.target.value,
+      }));
+    } else {
+      // Mise à jour individuelle pour les champs du formulaire
+      const { name, value } = e.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
     setError('');
   };
 
@@ -306,8 +316,8 @@ export default function MultiStepForm() {
       setError('Veuillez entrer un numéro de téléphone valide (10 chiffres).');
       return false;
     }
-    if (!(formData.attestation_travail instanceof File)) {
-      setError('Veuillez télécharger l\'attestation de travail.');
+    if (!(formData.attestation_travail instanceof File) && !(formData.fichiers && formData.fichiers.some(f => f.type === 'attestation_travail'))) {
+      setError('Veuillez télécharger l\'attestation de travail ou utiliser un fichier existant.');
       return false;
     }
     return true;
@@ -368,7 +378,7 @@ export default function MultiStepForm() {
 
       const form = new FormData();
       for (const key in formData) {
-        if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
+        if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '' && key !== 'fichiers') {
           form.append(key, formData[key]);
         }
       }

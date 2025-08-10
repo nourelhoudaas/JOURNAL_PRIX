@@ -48,6 +48,8 @@ Route::middleware('auth:sanctum')->get('/infosPerso', [ProfileController::class,
 // ✅ Check NIN (accessible sans authentification)
 Route::get('/check-nin', [SoumissionController::class, 'checkNin'])->middleware('throttle:60,1'); //Cela limiterait les requêtes à 60 par minute par IP.
 
+//Route::get('/check-num-attes', [SoumissionController::class, 'checkNumAttes'])->middleware('throttle:60,1'); //Cela limiterait les requêtes à 60 par minute par IP.
+
 // ✅ Soumission multi-étapes (sécurisées)
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/soumission/store-step1', [SoumissionController::class, 'storeStep1']);

@@ -11,7 +11,8 @@ class Specialite extends Model
 
     // Nom de la table (facultatif si le nom du modèle correspond à celui de la table au pluriel)
     protected $table = 'specialite';
-
+     protected $primaryKey = 'id_specialite';
+     
     // Champs remplissables (mass assignable)
     protected $fillable = [
         'name_ar',

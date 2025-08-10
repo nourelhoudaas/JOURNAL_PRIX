@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Models;
-
+use App\Models\TypeMedia;
+use App\Models\SecteurTravail;
 use Illuminate\Database\Eloquent\Model;
 
 class CategorieEtat extends Model
