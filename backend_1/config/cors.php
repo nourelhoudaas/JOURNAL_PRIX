@@ -4,7 +4,7 @@ return [
     'paths'                    => ['api/*', 'login', 'logout', 'register', 'profile', '/infosPerso', 'sanctum/csrf-cookie', 'csrf-token',
                                      'soumission/*', 'form-data', 'soumission/store-step1',
                                       'soumission/store-step2', 'soumission/store-step3', 
-                                      'wilayas', 'check-nin'/*, 'check-num-attes'*/],
+                                      'wilayas', 'check-nin', 'check-professional-card'],
 
     'allowed_methods'          => ['*'],
 

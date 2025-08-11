@@ -63,7 +63,7 @@ class SoumissionController extends Controller
                     'prenom_personne_fr'   => $person->prenom_personne_fr,
                     'nom_personne_ar'      => $person->nom_personne_ar,
                     'prenom_personne_ar'   => $person->prenom_personne_ar,
-                    'date_naissance'       => $person->date_naissance->format('Y-m-d'),
+                    'date_naissance'       => $person->date_naissance instanceof \Carbon\Carbon ? $person->date_naissance->format('Y-m-d') : (string)$person->date_naissance,
                     'lieu_naissance_fr'    => $person->lieu_naissance_fr,
                     'lieu_naissance_ar'    => $person->lieu_naissance_ar,
                     'nationalite_fr'       => $person->nationalite_fr,
@@ -187,116 +187,83 @@ class SoumissionController extends Controller
         }
     }
 
- /*   // Vérification de la référence de l'attestation de travail
-    public function checkNumAttes(Request $request)
-{
-    $num_attes = $request->query('num_attes');
+// Vérifier si la carte professionnelle existe et retourner les données
+    public function checkProfessionalCard(Request $request)
+    {
+        $id_professional_card = $request->query('id_professional_card');
+        $userId               = $request->query('userId');
 
-    if (empty($num_attes)) {
-        return response()->json([
-            'exists'  => false,
-            'message' => 'Référence invalide',
-            'data'    => null,
-        ], 422);
-    }
-
-    $occuper = DB::table('occuper')->where('num_attes', $num_attes)->first();
-
-    if ($occuper) {
-        $person = Personne::find($occuper->id_personne);
-        if (! $person) {
+        if (empty($id_professional_card)) {
             return response()->json([
-                'exists'  => false,
-                'message' => 'Personne non trouvée',
-                'data'    => null,
-            ], 404);
+                'exists' => false,
+                'step'   => 2,
+            ]);
         }
 
-        $etab    = Etablissement::find($occuper->id_etab);
-        $fichier = Fichier::find($occuper->id_fichier);
+        $personne = Personne::where('id_professional_card', $id_professional_card)
+            ->with(['dossier.fichiers' => function ($query) {
+                $query->whereIn('type', ['attestation_travail'])
+                    ->whereNull('id_oeuvre');
+            }])
+            ->with(['occupers.etablissement'])
+            ->first();
 
-        $secteur_travail = '';
-        $categorie       = '';
-        $type_media      = '';
-        $tv              = $etab->tv;
-        $radio           = $etab->radio;
-        $media           = $etab->media;
-        $langue          = $etab->langue;
-        $specialite      = '';
+        if ($personne) {
+            // 🔹 Récupération du dernier établissement par date_recrut
+            $dernier = $personne->occupers
+                ->sortByDesc('date_recrut')
+                ->first();
 
-        // Logique corrigée pour déterminer le secteur
-        if ($etab->id_type_media) {
-            // Cas secteur public : logique existante
-            $typeMedia = TypeMedia::find($etab->id_type_media);
-            if ($typeMedia) {
-                $type_media = $typeMedia->nom_fr_type_media;
-                $cat        = CategorieEtat::find($typeMedia->id_cat_etat);
-                if ($cat) {
-                    $categorie = $cat->nom_fr_etat;
-                    $sect      = SecteurTravail::find($cat->id_sect);
-                    if ($sect) {
-                        $secteur_travail = $sect->nom_fr_sect;
-                    }
-                }
+            if ($userId && $personne->id_personne == $userId) {
+                return response()->json([
+                    'exists'  => true,
+                    'step'    => 3,
+                    'message' => 'Cette carte est déjà associée à votre dossier.',
+                    'data'    => [
+                        'id_professional_card' => $personne->id_professional_card,
+                        'num_attes'            => $personne->num_attes,
+                        'fonction_fr'          => $personne->fonction_fr,
+                        'fonction_ar'          => $personne->fonction_ar,
+                        'secteur_travail'      => $personne->secteur_travail,
+                        'categorie'            => $personne->categorie,
+                        'type_media'           => $personne->type_media,
+                        'tv'                   => $personne->tv,
+                        'radio'                => $personne->radio,
+                        'media'                => $personne->media,
+                        'langue'               => $personne->langue,
+                        'specialite'           => $personne->specialite,
+                        'nom_etablissement'    => $dernier?->etablissement->nom_etablissement ?? '',
+                        'nom_etablissement_ar' => $dernier?->etablissement->nom_etablissement_ar ?? '',
+                        'email'                => $personne->email,
+                        'tel'                  => $personne->tel,
+                        'fichiers'             => $personne->dossier && $personne->dossier->fichiers
+                        ? $personne->dossier->fichiers->map(function ($fichier) {
+                            return [
+                                'id'   => $fichier->id_fichier,
+                                'nom'  => $fichier->nom,
+                                'type' => $fichier->type,
+                                'url'  => asset('uploads/' . $fichier->nom),
+                            ];
+                        })
+                        : [],
+                    ],
+                ]);
             }
-        } else {
-            // Cas secteur privé : définir explicitement
-            $secteur_travail = 'prive';
-            // Les autres champs comme categorie et type_media restent vides
-        }
 
-        if ($etab->id_specialite) {
-            $spec = Specialite::find($etab->id_specialite);
-            if ($spec) {
-                $specialite = $spec->name_fr;
-            }
-        }
-
-        $fichiers = [];
-        if ($fichier) {
-            $fichiers = [[
-                'id_fichier'     => $fichier->id_fichier,
-                'nom_fichier_ar' => $fichier->nom_fichier_ar,
-                'nom_fichier_fr' => $fichier->nom_fichier_fr,
-                'file_path'      => $fichier->file_path,
-                'type'           => 'attestation_travail',
-            ]];
+            return response()->json([
+                'exists' => true,
+                'step'   => null,
+                'error'  => 'Cette carte professionnelle appartient déjà à une autre personne.',
+            ]);
         }
 
         return response()->json([
-            'exists'  => true,
-            'message' => 'Référence existe dans la base de données',
-            'data'    => [
-                'id_professional_card' => $person->id_professional_card,
-                'num_attes'            => $num_attes,
-                'fonction_fr'          => $person->fonction_fr,
-                'fonction_ar'          => $person->fonction_ar,
-                'secteur_travail'      => $secteur_travail,
-                'categorie'            => $categorie,
-                'type_media'           => $type_media,
-                'tv'                   => $tv,
-                'radio'                => $radio,
-                'media'                => $media,
-                'langue'               => $langue,
-                'specialite'           => $specialite,
-                'nom_etablissement'    => $etab->nom_fr_etab,
-                'nom_etablissement_ar' => $etab->nom_ar_etab,
-                'email'                => $etab->email_etab,
-                'tel'                  => $etab->tel_etab,
-                'fichiers'             => $fichiers,
-            ],
-        ], 200);
+            'exists' => false,
+            'step'   => 2,
+        ]);
     }
 
-    return response()->json([
-        'exists'  => false,
-        'message' => 'Référence non trouvée',
-        'data'    => null,
-    ], 200);
-}*/
-
-
-    // 🟢 ÉTAPE 2 - Établissement + mise à jour de la personne + attestation de travail
+    // ÉTAPE 2 - Établissement + mise à jour de la personne + attestation de travail
     public function storeStep2(Request $request)
     {
         Log::info('Request data:', $request->all());
@@ -305,7 +272,7 @@ class SoumissionController extends Controller
             'userId'               => 'required|exists:personnes,id_personne',
             'fonction_fr'          => 'required|string|max:191',
             'fonction_ar'          => 'required|string|max:191',
-            'id_professional_card' => 'required|integer',
+            'id_professional_card' => 'required|string|max:191',
             'num_attes'            => ['required', 'string', 'max:191'],
             'attestation_travail'  => 'nullable|file|mimes:pdf|max:10240',
             'secteur_travail'      => 'required|string|in:public,prive',
@@ -322,16 +289,12 @@ class SoumissionController extends Controller
             'tel'                  => 'required|string|max:191',
         ], [
             'num_attes.required'            => 'La référence de l\'attestation de travail est requise.',
-            'num_attes.string'              => 'La référence de l\'attestation doit être une chaîne de caractères.',
-            'num_attes.max'                 => 'La référence de l\'attestation ne doit pas dépasser 191 caractères.',
-            'specialite.in'                 => 'Le champ spécialité doit être l’un des suivants : Culturel, Economique, publique, sport, Santé, Touristique, Agricole, Technologique, Automobile.',
+            'specialite.in'                 => 'Le champ spécialité doit être l\'un des suivants : Culturel, Economique, publique, sport, Santé, Touristique, Agricole, Technologique, Automobile.',
             'nom_etablissement.required'    => 'Le nom de l\'établissement (français) est requis.',
             'nom_etablissement_ar.required' => 'Le nom de l\'établissement (arabe) est requis.',
             'email.required'                => 'L\'email de l\'établissement est requis.',
             'tel.required'                  => 'Le téléphone de l\'établissement est requis.',
         ]);
-
-        Log::info('Validated data:', $validated);
 
         DB::beginTransaction();
         try {
@@ -342,11 +305,11 @@ class SoumissionController extends Controller
             }
 
             // Vérifier si c'est une mise à jour
-            $occuper    = DB::table('occuper')->where('num_attes', $validated['num_attes'])->first();
+            $occuper    = DB::table('occuper')->where('id_personne', $validated['userId'])->first();
             $updateMode = $occuper ? true : false;
 
             if ($updateMode && $occuper->id_personne != $validated['userId']) {
-                return response()->json(['error' => 'Cette référence appartient à une autre personne.'], 403);
+                return response()->json(['error' => 'Cette carte professionnelle appartient à une autre personne.'], 403);
             }
 
             if (! $updateMode && ! $request->hasFile('attestation_travail')) {
@@ -359,7 +322,7 @@ class SoumissionController extends Controller
                 return response()->json(['error' => 'Secteur de travail non trouvé.'], 400);
             }
 
-            // Récupérer id_cat_etat pour Récupérer id_type_media
+            // Récupérer id_cat_etat
             $id_cat_etat = null;
             if (isset($validated['categorie']) && $validated['categorie']) {
                 $categorie = CategorieEtat::where('nom_fr_etat', $validated['categorie'])
@@ -371,7 +334,7 @@ class SoumissionController extends Controller
                 $id_cat_etat = $categorie->id_cat_etat;
             }
 
-            // Récupérer id_type_media mettre dans etab
+            // Récupérer id_type_media
             $id_type_media = null;
             if ($validated['type_media']) {
                 $typeMedia = TypeMedia::where('nom_fr_type_media', $validated['type_media'])
@@ -383,7 +346,7 @@ class SoumissionController extends Controller
                 $id_type_media = $typeMedia->id_type_media;
             }
 
-            // Récupérer id_specialite mettre dans etab
+            // Récupérer id_specialite
             $id_specialite = null;
             if ($validated['specialite']) {
                 $specialite = Specialite::where('name_fr', $validated['specialite'])->first();
@@ -391,7 +354,7 @@ class SoumissionController extends Controller
                     Log::error('Spécialité non trouvée dans la table specialite pour name_fr : ' . $validated['specialite']);
                     return response()->json(['error' => 'Spécialité non trouvée.'], 400);
                 }
-                $id_specialite = $specialite->id_specialite; // Assurez-vous que c'est le bon nom de colonne
+                $id_specialite = $specialite->id_specialite;
             }
 
             // Gérer le fichier d'attestation
@@ -435,7 +398,7 @@ class SoumissionController extends Controller
                 'id_professional_card' => $validated['id_professional_card'],
             ]);
 
-            // Gérer l’établissement
+            // Gérer l'établissement
             if ($updateMode) {
                 $etablissement = Etablissement::find($occuper->id_etab);
                 $etablissement->update([
@@ -470,9 +433,10 @@ class SoumissionController extends Controller
 
             // Gérer la relation dans la table occuper
             if ($updateMode) {
-                DB::table('occuper')->where('num_attes', $validated['num_attes'])->update([
+                DB::table('occuper')->where('id_personne', $validated['userId'])->update([
                     'id_etab'     => $etablissement->id_etab,
                     'date_recrut' => now()->toDateString(),
+                    'num_attes'   => $validated['num_attes'],
                     'id_fichier'  => $fichierAttestation->id_fichier,
                     'updated_at'  => now(),
                 ]);

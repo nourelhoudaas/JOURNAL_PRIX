@@ -5,7 +5,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Occuper extends Model
 {
-    protected $primaryKey = 'id';
+    protected $table = 'occuper';
+    protected $primaryKey = 'id_occup';
     public $incrementing = true;
     protected $fillable = ['date_recrut', 'num_attes', 'id_etab', 'id_personne', 'id_fichier'];
     protected $casts = [

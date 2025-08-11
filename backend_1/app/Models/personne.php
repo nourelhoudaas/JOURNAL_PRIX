@@ -6,14 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 class Personne extends Model
 {
     protected $primaryKey = 'id_personne';
-    public $incrementing = true;
-    public $timestamps = true;
-    protected $fillable = [
+    public $incrementing  = true;
+    public $timestamps    = true;
+    protected $fillable   = [
         'id_nin_personne', 'nom_personne_ar', 'nom_personne_fr', 'prenom_personne_ar',
         'prenom_personne_fr', 'date_naissance', 'lieu_naissance_ar', 'lieu_naissance_fr',
         'nationalite_ar', 'nationalite_fr', 'id_professional_card', 'num_tlf_personne',
         'adresse_ar', 'adresse_fr', 'fonction_ar', 'fonction_fr', 'sexe_personne_ar',
-        'sexe_personne_fr', 'groupage', 'id_compte', 'id_dossier','updated_at','created_at'
+        'sexe_personne_fr', 'groupage', 'id_compte', 'id_dossier', 'updated_at', 'created_at',
     ];
     protected $casts = [
         'date_naissance' => 'date',
@@ -32,7 +32,7 @@ class Personne extends Model
     public function equipes()
     {
         return $this->belongsToMany(Equipe::class, 'forme', 'id_personne', 'id_equipe')
-                    ->withPivot('role', 'date_integration');
+            ->withPivot('role', 'date_integration');
     }
 
     public function occupers()
