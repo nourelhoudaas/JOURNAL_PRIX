@@ -45,19 +45,23 @@ Route::get('/csrf-token', fn() => response()->json([
 Route::middleware('auth:sanctum')->get('/profile', [ProfileController::class, 'dashboard']);
 Route::middleware('auth:sanctum')->get('/infosPerso', [ProfileController::class, 'infoPerso']);//ssssssss
 
+
+
 // ✅ Check NIN (accessible sans authentification)
 Route::get('/check-nin', [SoumissionController::class, 'checkNin'])->middleware('throttle:60,1'); //Cela limiterait les requêtes à 60 par minute par IP.
 
 // ✅ Check Id Pro (accessible sans authentification)
 Route::get('/check-professional-card', [SoumissionController::class, 'checkProfessionalCard'])->middleware('throttle:60,1'); //Cela limiterait les requêtes à 60 par minute par IP.
 
-// ✅ Soumission multi-étapes (sécurisées)
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/soumission/store-step1', [SoumissionController::class, 'storeStep1']);
-    Route::post('/soumission/store-step2', [SoumissionController::class, 'storeStep2']);
-    Route::post('/soumission/store-step3', [SoumissionController::class, 'storeStep3']);
-    Route::get('/soumission/collaborateurs', [SoumissionController::class, 'getCollaborateursEligibles']);
-});
+// ✅ Step 1 : enregistrement des infos personnelles
+Route::middleware('auth:sanctum')->post('/soumission/step1', [SoumissionController::class, 'storeStep1']);
+
+// ✅ Step 2 : enregistrement des infos de compte / établissement
+Route::middleware('auth:sanctum')->post('/soumission/step2', [SoumissionController::class, 'storeStep2']);
+
+// ✅ Step 3 : enregistrement de la confirmation / finalisation
+Route::middleware('auth:sanctum')->post('/soumission/step3', [SoumissionController::class, 'storeStep3']);
+
 //Route::post('/soumission/store-step1', [SoumissionController::class, 'storeStep1']);
 
 // ✅ Récupération des données pour le formulaire (thèmes, catégories, userId)

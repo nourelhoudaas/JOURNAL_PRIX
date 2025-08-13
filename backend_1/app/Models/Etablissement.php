@@ -15,8 +15,13 @@ class Etablissement extends Model
         return $this->belongsTo(TypeMedia::class, 'id_type_media');
     }
 
-    public function travaille()
+    public function ccuper()
     {
-        return $this->hasMany(Travaille::class, 'id_etab');
+        return $this->hasMany(Occuper::class, 'id_etab');
+    }
+
+    public function specialite()
+    {
+        return $this->belongsTo(Specialite::class, 'id_specialite');
     }
 }

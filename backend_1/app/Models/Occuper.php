@@ -28,4 +28,6 @@ class Occuper extends Model
     {
         return $this->belongsTo(Fichier::class, 'id_fichier', 'id_fichier');
     }
+
+    
 }

@@ -8,6 +8,7 @@ use App\Models\Dossier;
 use App\Models\Etablissement;
 use App\Models\Fichier;
 use App\Models\Forme;
+use App\Models\Occuper;
 use App\Models\Personne;
 use App\Models\SecteurTravail;
 use App\Models\Specialite;
@@ -18,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
 class SoumissionController extends Controller
 {
@@ -63,7 +65,7 @@ class SoumissionController extends Controller
                     'prenom_personne_fr'   => $person->prenom_personne_fr,
                     'nom_personne_ar'      => $person->nom_personne_ar,
                     'prenom_personne_ar'   => $person->prenom_personne_ar,
-                    'date_naissance'       => $person->date_naissance instanceof \Carbon\Carbon ? $person->date_naissance->format('Y-m-d') : (string)$person->date_naissance,
+                    'date_naissance'       => $person->date_naissance instanceof \Carbon\Carbon  ? $person->date_naissance->format('Y-m-d') : (string) $person->date_naissance,
                     'lieu_naissance_fr'    => $person->lieu_naissance_fr,
                     'lieu_naissance_ar'    => $person->lieu_naissance_ar,
                     'nationalite_fr'       => $person->nationalite_fr,
@@ -150,8 +152,8 @@ class SoumissionController extends Controller
                         'id_oeuvre'  => null,
                     ],
                     [
-                        'nom_fichier_fr' => $file->getClientOriginalName(),
-                        'nom_fichier_ar' => $file->getClientOriginalName(),
+                        'nom_fichier_fr' => 'Carte nationale',//$file->getClientOriginalName(),
+                        'nom_fichier_ar' => 'البطاقة الوطنية',//$file->getClientOriginalName(),
                         'file_path'      => $path,
                         'size'           => $file->getSize(),
                         'date_upload'    => now(),
@@ -169,8 +171,8 @@ class SoumissionController extends Controller
                         'id_oeuvre'  => null,
                     ],
                     [
-                        'nom_fichier_fr' => $file->getClientOriginalName(),
-                        'nom_fichier_ar' => $file->getClientOriginalName(),
+                        'nom_fichier_fr' => 'Photo',//$file->getClientOriginalName(),
+                        'nom_fichier_ar' => 'صورة',//$file->getClientOriginalName(),
                         'file_path'      => $path,
                         'size'           => $file->getSize(),
                         'date_upload'    => now(),
@@ -179,227 +181,337 @@ class SoumissionController extends Controller
             }
 
             DB::commit();
-            return response()->json(['message' => 'Étape 1 enregistrée avec succès'], 200);
+            return response()->json([
+                'message'     => 'Étape 1 enregistrée avec succès',
+                'id_personne' => $person->id_personne,
+            ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Erreur lors de l\'enregistrement de l\'étape 1 : ' . $e->getMessage());
             return response()->json(['message' => 'Erreur lors de l\'enregistrement'], 500);
         }
     }
-
-// Vérifier si la carte professionnelle existe et retourner les données
+// Check if professional card exists and return associated data
     public function checkProfessionalCard(Request $request)
     {
+        // Log des paramètres reçus
+        Log::info('🟢 Début checkProfessionalCard', [
+            'id_professional_card' => $request->query('id_professional_card'),
+            'userId'               => $request->query('userId'),
+        ]);
+
         $id_professional_card = $request->query('id_professional_card');
         $userId               = $request->query('userId');
 
-        if (empty($id_professional_card)) {
+        if (! $id_professional_card) {
+            Log::warning('🚫 id_professional_card manquant');
             return response()->json([
-                'exists' => false,
-                'step'   => 2,
-            ]);
+                'exists'  => false,
+                'message' => 'Numéro de carte professionnelle requis.',
+            ], 422);
         }
 
-        $personne = Personne::where('id_professional_card', $id_professional_card)
-            ->with(['dossier.fichiers' => function ($query) {
-                $query->whereIn('type', ['attestation_travail'])
-                    ->whereNull('id_oeuvre');
-            }])
-            ->with(['occupers.etablissement'])
-            ->first();
+        $person = Personne::where('id_professional_card', $id_professional_card)->first();
 
-        if ($personne) {
-            // 🔹 Récupération du dernier établissement par date_recrut
-            $dernier = $personne->occupers
-                ->sortByDesc('date_recrut')
-                ->first();
-
-            if ($userId && $personne->id_personne == $userId) {
+        if ($person) {
+            if ($person->id_personne != $userId) {
+                Log::warning('🚫 Carte professionnelle associée à un autre utilisateur', [
+                    'id_personne' => $person->id_personne,
+                    'userId'      => $userId,
+                ]);
                 return response()->json([
-                    'exists'  => true,
-                    'step'    => 3,
-                    'message' => 'Cette carte est déjà associée à votre dossier.',
-                    'data'    => [
-                        'id_professional_card' => $personne->id_professional_card,
-                        'num_attes'            => $personne->num_attes,
-                        'fonction_fr'          => $personne->fonction_fr,
-                        'fonction_ar'          => $personne->fonction_ar,
-                        'secteur_travail'      => $personne->secteur_travail,
-                        'categorie'            => $personne->categorie,
-                        'type_media'           => $personne->type_media,
-                        'tv'                   => $personne->tv,
-                        'radio'                => $personne->radio,
-                        'media'                => $personne->media,
-                        'langue'               => $personne->langue,
-                        'specialite'           => $personne->specialite,
-                        'nom_etablissement'    => $dernier?->etablissement->nom_etablissement ?? '',
-                        'nom_etablissement_ar' => $dernier?->etablissement->nom_etablissement_ar ?? '',
-                        'email'                => $personne->email,
-                        'tel'                  => $personne->tel,
-                        'fichiers'             => $personne->dossier && $personne->dossier->fichiers
-                        ? $personne->dossier->fichiers->map(function ($fichier) {
-                            return [
-                                'id'   => $fichier->id_fichier,
-                                'nom'  => $fichier->nom,
-                                'type' => $fichier->type,
-                                'url'  => asset('uploads/' . $fichier->nom),
-                            ];
-                        })
-                        : [],
-                    ],
+                    'exists' => true,
+                    'error'  => 'Cette carte professionnelle appartient déjà à une autre personne.',
+                ], 422);
+            }
+
+            $occupation    = Occuper::where('id_personne', $person->id_personne)->first();
+            $etablissement = $occupation ? Etablissement::with(['typeMedia.categorieEtat.secteur', 'specialite'])->find($occupation->id_etab) : null;
+
+            Log::info('🔍 Données Occupation et Etablissement', [
+                'occupation'    => $occupation ? $occupation->toArray() : null,
+                'etablissement' => $etablissement ? $etablissement->toArray() : null,
+            ]);
+
+            $secteur_travail = $etablissement && $etablissement->typeMedia && $etablissement->typeMedia->categorieEtat && $etablissement->typeMedia->categorieEtat->secteur
+            ? $etablissement->typeMedia->categorieEtat->secteur->nom_fr_sect
+            : 'unknown';
+
+            if ($secteur_travail === 'unknown') {
+                Log::warning('⚠️ Secteur de travail non récupéré', [
+                    'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
+                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
                 ]);
             }
 
+            $categorie = $secteur_travail === 'Privé' ? 'Privé' :
+            ($etablissement && $etablissement->typeMedia && $etablissement->typeMedia->categorieEtat
+                ? $etablissement->typeMedia->categorieEtat->nom_fr_etat ?? 'unknown'
+                : 'unknown');
+
+            if ($categorie === 'unknown' && $secteur_travail !== 'Privé') {
+                Log::warning('⚠️ Catégorie non récupérée', [
+                    'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
+                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
+                ]);
+            }
+
+            $type_media = $secteur_travail === 'Privé' ? 'Privé' :
+            ($etablissement && $etablissement->typeMedia
+                ? $etablissement->typeMedia->nom_fr_type_media ?? ''
+                : '');
+
+            if ($type_media === '' && $secteur_travail !== 'Privé') {
+                Log::warning('⚠️ Type média non récupéré', [
+                    'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
+                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
+                ]);
+            }
+
+            $specialite_name = $etablissement && $etablissement->specialite ? $etablissement->specialite->name_fr : '';
+
+            $fichiers = $person->dossier ? Fichier::where('id_dossier', $person->id_dossier)
+                ->where('type', 'attestation_travail')
+                ->whereNull('id_oeuvre')
+                ->get()
+                ->map(function ($fichier) {
+                    return [
+                        'id_fichier'     => $fichier->id_fichier,
+                        'nom_fichier_ar' => $fichier->nom_fichier_ar,
+                        'nom_fichier_fr' => $fichier->nom_fichier_fr,
+                        'file_path'      => $fichier->file_path,
+                        'type'           => $fichier->type,
+                    ];
+                })->toArray() : [];
+
+            $data = [
+                'id_professional_card' => $person->id_professional_card,
+                'num_attes'            => $occupation ? $occupation->num_attes : '',
+                'fonction_fr'          => $person->fonction_fr ?? '',
+                'fonction_ar'          => $person->fonction_ar ?? '',
+                'secteur_travail'      => $secteur_travail,
+                'categorie'            => $categorie,
+                'type_media'           => $type_media,
+                'tv'                   => $etablissement ? $etablissement->tv : null,
+                'radio'                => $etablissement ? $etablissement->radio : null,
+                'media'                => $etablissement ? $etablissement->media : null,
+                'langue'               => $etablissement ? $etablissement->langue : null,
+                'specialite'           => $specialite_name,
+                'nom_etablissement'    => $etablissement ? $etablissement->nom_fr_etab : '',
+                'nom_etablissement_ar' => $etablissement ? $etablissement->nom_ar_etab : '',
+                'email'                => $etablissement ? $etablissement->email_etab : '',
+                'tel'                  => $etablissement ? $etablissement->tel_etab : '',
+                'fichiers'             => $fichiers,
+            ];
+
+            Log::info('📤 Données envoyées pour la carte professionnelle', $data);
+
             return response()->json([
-                'exists' => true,
-                'step'   => null,
-                'error'  => 'Cette carte professionnelle appartient déjà à une autre personne.',
-            ]);
+                'exists'  => true,
+                'message' => 'Carte professionnelle trouvée pour cet utilisateur.',
+                'data'    => $data,
+            ], 200);
         }
 
+        Log::info('🔎 Carte professionnelle non trouvée', ['id_professional_card' => $id_professional_card]);
         return response()->json([
-            'exists' => false,
-            'step'   => 2,
-        ]);
+            'exists'  => false,
+            'message' => 'Carte professionnelle non trouvée.',
+            'data'    => null,
+        ], 200);
     }
 
-    // ÉTAPE 2 - Établissement + mise à jour de la personne + attestation de travail
+    //🟢 ÉTAPE 2 - Établissement + mise à jour de la personne + attestation de travail
     public function storeStep2(Request $request)
     {
-        Log::info('Request data:', $request->all());
+        Log::info('🟢 Début storeStep2', ['request_data' => $request->all()]);
 
-        $validated = $request->validate([
+        $rules = [
             'userId'               => 'required|exists:personnes,id_personne',
+            'id_professional_card' => 'required|string|max:191',
+            'num_attes'            => 'required|string|max:191',
             'fonction_fr'          => 'required|string|max:191',
             'fonction_ar'          => 'required|string|max:191',
-            'id_professional_card' => 'required|string|max:191',
-            'num_attes'            => ['required', 'string', 'max:191'],
-            'attestation_travail'  => 'nullable|file|mimes:pdf|max:10240',
-            'secteur_travail'      => 'required|string|in:public,prive',
-            'categorie'            => 'nullable|string|in:media audio,media ecrit,electronique',
-            'type_media'           => 'nullable|string|in:tv,radio',
-            'tv'                   => 'nullable|string|in:regionale,nationale',
-            'radio'                => 'nullable|string|in:publique,locale',
-            'media'                => 'nullable|string|in:ecrit,electronique',
-            'langue'               => 'nullable|string|in:arabe,français',
-            'specialite'           => 'nullable|string|in:Culturel,Economique,publique,sport,Santé,Touristique,Agricole,Technologique,Automobile',
+            'secteur_travail'      => 'required|string|in:Public,Privé',
+            'categorie'            => 'required_if:secteur_travail,Public|string|in:Média audio,Média écrit et électronique,Privé',
+            'type_media'           => 'nullable|string|in:TV,Radio,Privé',
+            'tv'                   => 'nullable|string|in:Régionale,Nationale',
+            'radio'                => 'nullable|string|in:Publique,Locale',
+            'media'                => 'nullable|string|in:Écrit,Électronique',
+            'langue'               => 'nullable|string|in:Arabe,Français',
+            'specialite'           => 'nullable|string|in:Culturel,Economique,Publique,Sport,Santé,Touristique,Agricole,Technologique,Automobile',
             'nom_etablissement'    => 'required|string|max:191',
             'nom_etablissement_ar' => 'required|string|max:191',
             'email'                => 'required|email|max:191',
-            'tel'                  => 'required|string|max:191',
-        ], [
-            'num_attes.required'            => 'La référence de l\'attestation de travail est requise.',
-            'specialite.in'                 => 'Le champ spécialité doit être l\'un des suivants : Culturel, Economique, publique, sport, Santé, Touristique, Agricole, Technologique, Automobile.',
-            'nom_etablissement.required'    => 'Le nom de l\'établissement (français) est requis.',
-            'nom_etablissement_ar.required' => 'Le nom de l\'établissement (arabe) est requis.',
-            'email.required'                => 'L\'email de l\'établissement est requis.',
-            'tel.required'                  => 'Le téléphone de l\'établissement est requis.',
+            'tel'                  => 'required|string|regex:/^(\+?\d{8,15})$/',
+            'attestation_travail'  => 'nullable|file|mimes:pdf|max:10240',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, [
+            'radio.in' => 'Le champ radio est invalide.',
+            'tv.in'    => 'Le champ TV est invalide.',
+            'media.in' => 'Le champ média est invalide.',
         ]);
+
+        if ($validator->fails()) {
+            Log::error('🚫 Erreur de validation dans storeStep2', ['errors' => $validator->errors()->toArray()]);
+            return response()->json([
+                'error' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        if ($validated['secteur_travail'] === 'Privé' && $validated['categorie'] !== 'Privé') {
+            Log::warning('🚫 Catégorie incorrecte pour secteur privé', ['categorie' => $validated['categorie']]);
+            return response()->json([
+                'error' => 'La catégorie doit être "Privé" pour le secteur privé.',
+            ], 422);
+        }
+
+        if ($validated['secteur_travail'] === 'Public' && ! in_array($validated['categorie'], ['Média audio', 'Média écrit et électronique'])) {
+            Log::warning('🚫 Catégorie incorrecte pour secteur public', ['categorie' => $validated['categorie']]);
+            return response()->json([
+                'error' => 'La catégorie doit être "Média audio" ou "Média écrit et électronique" pour le secteur public.',
+            ], 422);
+        }
+
+        if ($validated['categorie'] === 'Média audio' && ! empty($validated['type_media']) && ! in_array($validated['type_media'], ['TV', 'Radio'])) {
+            Log::warning('🚫 type_media incorrect pour Média audio', ['type_media' => $validated['type_media']]);
+            return response()->json([
+                'error' => 'Le type de média doit être "TV" ou "Radio" pour la catégorie "Média audio".',
+            ], 422);
+        }
+
+        if ($validated['categorie'] === 'Média écrit et électronique' && ! empty($validated['media']) && ! in_array($validated['media'], ['Écrit', 'Électronique'])) {
+            Log::warning('🚫 media incorrect pour Média écrit et électronique', ['media' => $validated['media']]);
+            return response()->json([
+                'error' => 'Le type de média doit être "Écrit" ou "Électronique" pour la catégorie "Média écrit et électronique".',
+            ], 422);
+        }
+
+        if ($validated['type_media'] === 'TV' && ! empty($validated['Radio'])) {
+            Log::warning('🚫 Champ radio non vide pour type_media TV', ['Radio' => $validated['Radio']]);
+            return response()->json([
+                'error' => 'Le champ radio doit être vide lorsque le type de média est "TV".',
+            ], 422);
+        }
+
+        if ($validated['type_media'] === 'Radio' && ! empty($validated['tv'])) {
+            Log::warning('🚫 Champ tv non vide pour type_media Radio', ['tv' => $validated['tv']]);
+            return response()->json([
+                'error' => 'Le champ TV doit être vide lorsque le type de média est "Radio".',
+            ], 422);
+        }
 
         DB::beginTransaction();
         try {
-            // Récupérer la personne et vérifier l'existence de l'id_dossier
-            $personne = Personne::find($validated['userId']);
-            if (! $personne || ! $personne->id_dossier) {
-                return response()->json(['error' => 'Personne ou dossier non trouvé.'], 400);
+            $existingPerson = Personne::where('id_professional_card', $validated['id_professional_card'])->first();
+            if ($existingPerson && $existingPerson->id_personne != $validated['userId']) {
+                Log::warning('🚫 Carte professionnelle déjà utilisée', ['id_professional_card' => $validated['id_professional_card'], 'userId' => $validated['userId']]);
+                return response()->json([
+                    'error' => 'Cette carte professionnelle appartient déjà à une autre personne.',
+                ], 422);
             }
 
-            // Vérifier si c'est une mise à jour
-            $occuper    = DB::table('occuper')->where('id_personne', $validated['userId'])->first();
-            $updateMode = $occuper ? true : false;
-
-            if ($updateMode && $occuper->id_personne != $validated['userId']) {
-                return response()->json(['error' => 'Cette carte professionnelle appartient à une autre personne.'], 403);
+            $secteur = SecteurTravail::firstOrCreate(['nom_fr_sect' => $validated['secteur_travail']]);
+            if (! $secteur->id_sect) {
+                throw new \Exception('Échec de la création ou récupération du secteur.');
             }
+            $id_secteur = $secteur->id_sect;
 
-            if (! $updateMode && ! $request->hasFile('attestation_travail')) {
-                return response()->json(['error' => 'L\'attestation de travail est requise pour une nouvelle entrée.'], 400);
+            Log::info('✅ Secteur récupéré', ['nom_fr_sect' => $secteur->nom_fr_sect, 'id_sect' => $id_secteur]);
+
+            $categorie_etat = null;
+            if ($validated['secteur_travail'] === 'Privé') {
+                $categorie_etat = CategorieEtat::firstOrCreate([
+                    'nom_fr_etat' => 'Privé',
+                    'id_sect'     => $id_secteur,
+                ]);
+            } else {
+                $categorie_etat = CategorieEtat::firstOrCreate([
+                    'nom_fr_etat' => $validated['categorie'],
+                    'id_sect'     => $id_secteur,
+                ]);
             }
-
-            // Récupérer id_sect
-            $secteur = SecteurTravail::where('nom_fr_sect', $validated['secteur_travail'])->first();
-            if (! $secteur) {
-                return response()->json(['error' => 'Secteur de travail non trouvé.'], 400);
+            if (! $categorie_etat->id_cat_etat) {
+                throw new \Exception('Échec de la création ou récupération de la catégorie état.');
             }
+            $id_cat_etat = $categorie_etat->id_cat_etat;
 
-            // Récupérer id_cat_etat
-            $id_cat_etat = null;
-            if (isset($validated['categorie']) && $validated['categorie']) {
-                $categorie = CategorieEtat::where('nom_fr_etat', $validated['categorie'])
-                    ->where('id_sect', $secteur->id_sect)
-                    ->first();
-                if (! $categorie) {
-                    return response()->json(['error' => 'Catégorie non trouvée.'], 400);
-                }
-                $id_cat_etat = $categorie->id_cat_etat;
-            }
+            Log::info('✅ Catégorie état récupérée', ['nom_fr_etat' => $categorie_etat->nom_fr_etat, 'id_cat_etat' => $id_cat_etat]);
 
-            // Récupérer id_type_media
             $id_type_media = null;
-            if ($validated['type_media']) {
-                $typeMedia = TypeMedia::where('nom_fr_type_media', $validated['type_media'])
-                    ->where('id_cat_etat', $id_cat_etat)
-                    ->first();
-                if (! $typeMedia) {
-                    return response()->json(['error' => 'Type de média non trouvé.'], 400);
-                }
+            if ($validated['secteur_travail'] === 'Privé') {
+                $typeMedia = TypeMedia::firstOrCreate([
+                    'nom_fr_type_media' => 'Privé',
+                    'id_cat_etat'       => $id_cat_etat,
+                ]);
+                $id_type_media = $typeMedia->id_type_media;
+            } elseif ($validated['categorie'] === 'Média audio' && ! empty($validated['type_media'])) {
+                $typeMedia = TypeMedia::firstOrCreate([
+                    'nom_fr_type_media' => $validated['type_media'],
+                    'id_cat_etat'       => $id_cat_etat,
+                ]);
+                $id_type_media = $typeMedia->id_type_media;
+            } elseif ($validated['categorie'] === 'Média écrit et électronique' && ! empty($validated['media'])) {
+                $typeMedia = TypeMedia::firstOrCreate([
+                    'nom_fr_type_media' => $validated['media'],
+                    'id_cat_etat'       => $id_cat_etat,
+                ]);
                 $id_type_media = $typeMedia->id_type_media;
             }
 
-            // Récupérer id_specialite
+            if ($id_type_media) {
+                Log::info('✅ Type média récupéré', ['nom_fr_type_media' => $typeMedia->nom_fr_type_media, 'id_type_media' => $id_type_media]);
+            } else {
+                Log::warning('⚠️ Type média non défini', ['categorie' => $validated['categorie'], 'type_media' => $validated['type_media'], 'media' => $validated['media']]);
+            }
+
             $id_specialite = null;
             if ($validated['specialite']) {
-                $specialite = Specialite::where('name_fr', $validated['specialite'])->first();
-                if (! $specialite) {
-                    Log::error('Spécialité non trouvée dans la table specialite pour name_fr : ' . $validated['specialite']);
-                    return response()->json(['error' => 'Spécialité non trouvée.'], 400);
-                }
+                $specialite    = Specialite::firstOrCreate(['name_fr' => $validated['specialite']]);
                 $id_specialite = $specialite->id_specialite;
+                Log::info('✅ Spécialité récupérée', ['name_fr' => $specialite->name_fr, 'id_specialite' => $id_specialite]);
             }
 
-            // Gérer le fichier d'attestation
+            // Récupérer la personne pour obtenir son id_dossier
+            $personne = Personne::findOrFail($validated['userId']);
+            if (! $personne->id_dossier) {
+                Log::error('🚫 Personne sans dossier associé', ['id_personne' => $validated['userId']]);
+                throw new \Exception('Aucun dossier associé à cette personne. Veuillez vérifier l\'étape 1.');
+            }
+            Log::info('✅ Dossier de la personne récupéré', ['id_personne' => $personne->id_personne, 'id_dossier' => $personne->id_dossier]);
+
+            // Vérifier si un fichier d'attestation de travail est fourni
             $fichierAttestation = null;
-            if ($updateMode) {
-                $fichierAttestation = Fichier::find($occuper->id_fichier);
-            }
-
             if ($request->hasFile('attestation_travail')) {
-                $attestationFile = $request->file('attestation_travail');
-                $pathAttestation = $attestationFile->store('attestations_travail', 'public');
-
-                if ($updateMode && $fichierAttestation) {
-                    $fichierAttestation->update([
-                        'nom_fichier_ar' => 'شهادة عمل',
-                        'nom_fichier_fr' => 'Attestation de travail',
-                        'file_path'      => $pathAttestation,
-                        'type'           => 'attestation_travail',
-                        'size'           => $attestationFile->getSize(),
-                        'date_upload'    => now(),
-                    ]);
-                } else {
-                    $fichierAttestation = Fichier::create([
-                        'nom_fichier_ar' => 'شهادة عمل',
-                        'nom_fichier_fr' => 'Attestation de travail',
-                        'file_path'      => $pathAttestation,
-                        'type'           => 'attestation_travail',
-                        'size'           => $attestationFile->getSize(),
-                        'date_upload'    => now(),
-                        'id_dossier'     => $personne->id_dossier,
-                    ]);
-                }
-            } elseif (! $updateMode || ! $fichierAttestation) {
-                return response()->json(['error' => 'Fichier d\'attestation manquant.'], 400);
+                $file               = $request->file('attestation_travail');
+                $path               = $file->store('attestations', 'public');
+                $fichierAttestation = Fichier::create([
+                    'nom_fichier_fr' =>  'Attestation de travail',//$file->getClientOriginalName(),
+                    'nom_fichier_ar' => 'شهادة عمل',//$file->getClientOriginalName(),
+                    'file_path'      => $path,
+                    'type'           => 'attestation_travail',
+                    'size'           => $file->getSize(),
+                    'id_dossier'     => $personne->id_dossier, // Correction : Associer au dossier de la personne
+                    'date_upload'    => now(),
+                ]);
+                Log::info('✅ Fichier attestation créé', ['id_fichier' => $fichierAttestation->id_fichier, 'file_path' => $path]);
+            } else {
+                Log::warning('⚠️ Aucun fichier d\'attestation de travail fourni');
             }
 
-            // Mettre à jour la personne
-            $personne->update([
+            Personne::where('id_personne', $validated['userId'])->update([
                 'fonction_fr'          => $validated['fonction_fr'],
                 'fonction_ar'          => $validated['fonction_ar'],
                 'id_professional_card' => $validated['id_professional_card'],
             ]);
+            Log::info('✅ Mise à jour de Personne', ['id_personne' => $validated['userId']]);
 
-            // Gérer l'établissement
-            if ($updateMode) {
+            $occuper = Occuper::where('id_personne', $validated['userId'])->first();
+
+            if ($occuper) {
                 $etablissement = Etablissement::find($occuper->id_etab);
                 $etablissement->update([
                     'nom_fr_etab'   => $validated['nom_etablissement'],
@@ -407,13 +519,27 @@ class SoumissionController extends Controller
                     'email_etab'    => $validated['email'],
                     'tel_etab'      => $validated['tel'],
                     'langue'        => $validated['langue'] ?? null,
-                    'tv'            => $validated['tv'] ?? null,
-                    'radio'         => $validated['radio'] ?? null,
-                    'media'         => $validated['media'] ?? null,
+                    'tv'            => $validated['type_media'] === 'TV' ? $validated['tv'] : null,
+                    'radio'         => $validated['type_media'] === 'Radio' ? $validated['radio'] : null,
+                    'media'         => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
                     'id_type_media' => $id_type_media,
                     'id_specialite' => $id_specialite,
                     'updated_at'    => now(),
                 ]);
+                Log::info('✅ Mise à jour de Etablissement', ['id_etab' => $etablissement->id_etab]);
+
+                // Mise à jour de Occuper uniquement avec id_fichier si un nouveau fichier est téléchargé
+                $occuperData = [
+                    'id_etab'     => $etablissement->id_etab,
+                    'date_recrut' => now()->toDateString(),
+                    'num_attes'   => $validated['num_attes'],
+                    'updated_at'  => now(),
+                ];
+                if ($fichierAttestation) {
+                    $occuperData['id_fichier'] = $fichierAttestation->id_fichier;
+                }
+                $occuper->update($occuperData);
+                Log::info('✅ Mise à jour de Occuper', ['id_occup' => $occuper->id_occup, 'data' => $occuperData]);
             } else {
                 $etablissement = Etablissement::create([
                     'nom_fr_etab'   => $validated['nom_etablissement'],
@@ -421,46 +547,34 @@ class SoumissionController extends Controller
                     'email_etab'    => $validated['email'],
                     'tel_etab'      => $validated['tel'],
                     'langue'        => $validated['langue'] ?? null,
-                    'tv'            => $validated['tv'] ?? null,
-                    'radio'         => $validated['radio'] ?? null,
-                    'media'         => $validated['media'] ?? null,
+                    'tv'            => $validated['type_media'] === 'TV' ? $validated['tv'] : null,
+                    'radio'         => $validated['type_media'] === 'Radio' ? $validated['radio'] : null,
+                    'media'         => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
                     'id_type_media' => $id_type_media,
                     'id_specialite' => $id_specialite,
                     'created_at'    => now(),
                     'updated_at'    => now(),
                 ]);
-            }
+                Log::info('✅ Création de Etablissement', ['id_etab' => $etablissement->id_etab]);
 
-            // Gérer la relation dans la table occuper
-            if ($updateMode) {
-                DB::table('occuper')->where('id_personne', $validated['userId'])->update([
-                    'id_etab'     => $etablissement->id_etab,
-                    'date_recrut' => now()->toDateString(),
-                    'num_attes'   => $validated['num_attes'],
-                    'id_fichier'  => $fichierAttestation->id_fichier,
-                    'updated_at'  => now(),
-                ]);
-            } else {
-                DB::table('occuper')->insert([
+                Occuper::create([
                     'id_personne' => $validated['userId'],
                     'id_etab'     => $etablissement->id_etab,
                     'date_recrut' => now()->toDateString(),
                     'num_attes'   => $validated['num_attes'],
-                    'id_fichier'  => $fichierAttestation->id_fichier,
+                    'id_fichier'  => $fichierAttestation ? $fichierAttestation->id_fichier : null,
                     'created_at'  => now(),
                     'updated_at'  => now(),
                 ]);
+                Log::info('✅ Création de Occuper', ['id_personne' => $validated['userId'], 'id_etab' => $etablissement->id_etab]);
             }
 
             DB::commit();
-            return response()->json([
-                'message' => 'Étape 2 enregistrée avec succès',
-                'id_etab' => $etablissement->id_etab,
-            ], 201);
-
+            Log::info('✅ Étape 2 enregistrée avec succès');
+            return response()->json(['message' => 'Étape 2 enregistrée avec succès'], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::error('Erreur lors de l\'enregistrement de l\'étape 2 : ' . $e->getMessage());
+            Log::error('🚫 Erreur lors de l\'enregistrement de l\'étape 2', ['message' => $e->getMessage()]);
             return response()->json([
                 'error' => 'Erreur lors de l\'enregistrement : ' . $e->getMessage(),
             ], 500);
