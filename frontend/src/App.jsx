@@ -1,27 +1,65 @@
-import React from 'react';
+import React, { useState } from 'react';
 import MultiStepForm from './components/MultiStepForm/MultiStepForm';
 
 function App() {
+  // Ajouter le state pour la langue
+  const [langue, setLangue] = useState('fr'); // 'fr' par défaut
+
+  // Fonction pour gérer le changement de langue
+  const handleLangueChange = (newLangue) => {
+    setLangue(newLangue);
+  };
+
   return (
     <div className="w-full mx-auto py-11 max-w-7xl">
-
-      {/* <h1 className="text-2xl font-bold mb-6">Participation au concours</h1> */}
       <nav className="w-full bg-white shadow px-8 py-4 flex items-center justify-between fixed top-0 z-50">
         <div className="flex items-center space-x-4">
-          <img src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500" className="h-6 w-auto" alt="Logo" />
-          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">Product</a>
-          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">Features</a>
-          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">Marketplace</a>
-          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">Company</a>
+          <img
+            src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500"
+            className="h-6 w-auto"
+            alt="Logo"
+          />
+          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
+            Product
+          </a>
+          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
+            Features
+          </a>
+          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
+            Marketplace
+          </a>
+          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
+            Company
+          </a>
         </div>
-        <a href="/login" className="text-sm font-semibold text-gray-700 hover:text-indigo-600 flex items-center space-x-1">
-          <span>Log in</span>
-          <svg className="h-4 w-4 ml-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
-          </svg>
-        </a>
+        <div className="flex items-center space-x-4">
+          {/* Sélecteur de langue */}
+          <select
+            value={langue}
+            onChange={(e) => handleLangueChange(e.target.value)}
+            className="p-2 border rounded bg-white text-gray-900 text-sm"
+          >
+            <option value="fr">Français</option>
+            <option value="ar">عربي</option>
+          </select>
+          <a
+            href="/login"
+            className="text-sm font-semibold text-gray-700 hover:text-indigo-600 flex items-center space-x-1"
+          >
+            <span>Log in</span>
+            <svg
+              className="h-4 w-4 ml-1"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
+            </svg>
+          </a>
+        </div>
       </nav>
-      <MultiStepForm />
+      <MultiStepForm langue={langue} setLangue={handleLangueChange} />
     </div>
   );
 }

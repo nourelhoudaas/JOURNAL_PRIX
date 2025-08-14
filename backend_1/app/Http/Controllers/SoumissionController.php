@@ -27,12 +27,15 @@ class SoumissionController extends Controller
     // Check if NIN exists and return person data
     public function checkNin(Request $request)
     {
+        $langue = $request->input('langue', 'fr'); // Récupérer la langue, par défaut 'fr'
+        app()->setLocale($langue);                 // Définir la locale pour les traductions
+
         $nin = $request->query('nin');
 
         if (! preg_match('/^[0-9]{18}$/', $nin)) {
             return response()->json([
                 'exists'  => false,
-                'message' => 'Format NIN invalide',
+                'message' => trans('formulaire.nin_invalid'),
                 'data'    => null,
             ], 422);
         }
@@ -58,7 +61,7 @@ class SoumissionController extends Controller
 
             return response()->json([
                 'exists'  => true,
-                'message' => 'NIN existe dans la base de données',
+                'message' => trans('formulaire.nin_exists'),
                 'data'    => [
                     'id_nin_personne'      => $person->id_nin_personne,
                     'nom_personne_fr'      => $person->nom_personne_fr,
@@ -86,7 +89,7 @@ class SoumissionController extends Controller
 
         return response()->json([
             'exists'  => false,
-            'message' => 'NIN non trouvé',
+            'message' => trans('formulaire.nin_not_found'),
             'data'    => null,
         ], 200);
     }
@@ -94,45 +97,123 @@ class SoumissionController extends Controller
     // 🟢 ÉTAPE 1 - Données personnelles + création du dossier et fichiers associés
     public function storeStep1(Request $request)
     {
+        $langue = $request->input('langue', 'fr'); // Récupérer la langue, par défaut 'fr'
+        app()->setLocale($langue);                 // Définir la locale pour les traductions
+        Log::info('🟢 Début storeStep1', ['langue' => $langue, 'request_data' => $request->all()]);
         // Vérifier si l'utilisateur est authentifié
         if (! Auth::check()) {
             return response()->json([
-                'error' => 'Utilisateur non authentifié. Veuillez vous connecter.',
+                'error' => trans('formulaire.unauthenticated'),
             ], 401);
         }
 
-        $validated = $request->validate([
-            'id_nin_personne'      => ['required', 'string', 'size:18', 'regex:/^[0-9]{18}$/'],
+        // Définir les règles de validation de base
+        $rules = [
+            'id_nin_personne'      => ['required', 'string', 'size:18', 'regex:/^[0-9]{18}$/', 'unique:personnes,id_nin_personne'],
             'nom_personne_fr'      => ['required', 'string', 'max:191'],
             'prenom_personne_fr'   => ['required', 'string', 'max:191'],
             'nom_personne_ar'      => ['required', 'string', 'max:191'],
             'prenom_personne_ar'   => ['required', 'string', 'max:191'],
-            'date_naissance'       => ['required', 'date'],
-            'lieu_naissance_fr'    => ['required', 'string', 'max:191'],
-            'lieu_naissance_ar'    => ['required', 'string', 'max:191'],
+            'date_naissance'       => ['required', 'date', 'before_or_equal:today'],
             'nationalite_fr'       => ['required', 'string', 'max:191'],
             'nationalite_ar'       => ['required', 'string', 'max:191'],
             'num_tlf_personne'     => ['required', 'string', 'size:10', 'regex:/^[0-9]{10}$/'],
             'adresse_fr'           => ['required', 'string', 'max:191'],
             'adresse_ar'           => ['required', 'string', 'max:191'],
-            'sexe_personne_fr'     => ['required', 'string', 'in:Masculin,Féminin'],
-            'sexe_personne_ar'     => ['required', 'string', 'in:ذكر,أنثى'],
             'groupage'             => ['required', 'string', 'in:A+,A-,B+,B-,AB+,AB-,O+,O-'],
             'id_professional_card' => ['nullable', 'string', 'max:191'],
             'fonction_fr'          => ['nullable', 'string', 'max:191'],
             'fonction_ar'          => ['nullable', 'string', 'max:191'],
             'carte_nationale'      => ['nullable', 'file', 'mimes:pdf', 'max:2048'],
             'photo'                => ['nullable', 'file', 'mimes:jpeg,png,jpg', 'max:2048'],
-        ]);
+        ];
+
+        // Règles conditionnelles basées sur la langue
+        if ($langue === 'fr') {
+            $rules['lieu_naissance_fr'] = ['required', 'string', 'max:191', 'exists:wilayas,name_fr'];
+            $rules['sexe_personne_fr']  = ['required', 'string', 'in:Masculin,Féminin'];
+        } elseif ($langue === 'ar') {
+            $rules['lieu_naissance_ar'] = ['required', 'string', 'max:191', 'exists:wilayas,name_ar'];
+            $rules['sexe_personne_ar']  = ['required', 'string', 'in:ذكر,أنثى'];
+        } else {
+            // Par sécurité, si langue invalide, exiger tous les champs
+            $rules['lieu_naissance_fr'] = ['required', 'string', 'max:191', 'exists:wilayas,name_fr'];
+            $rules['lieu_naissance_ar'] = ['required', 'string', 'max:191', 'exists:wilayas,name_ar'];
+            $rules['sexe_personne_fr']  = ['required', 'string', 'in:Masculin,Féminin'];
+            $rules['sexe_personne_ar']  = ['required', 'string', 'in:ذكر,أنثى'];
+        }
+
+        // Définir les labels de traduction pour les messages d'erreur
+        $customAttributes = [
+            'id_nin_personne'    => trans('formulaire.id_nin_personne'),
+            'nom_personne_fr'    => trans('formulaire.nom_personne_fr'),
+            'prenom_personne_fr' => trans('formulaire.prenom_personne_fr'),
+            'nom_personne_ar'    => trans('formulaire.nom_personne_ar'),
+            'prenom_personne_ar' => trans('formulaire.prenom_personne_ar'),
+            'date_naissance'     => trans('formulaire.date_naissance'),
+            'lieu_naissance_fr'  => trans('formulaire.lieu_naissance_fr'),
+            'lieu_naissance_ar'  => trans('formulaire.lieu_naissance_ar'),
+            'nationalite_fr'     => trans('formulaire.nationalite_fr'),
+            'nationalite_ar'     => trans('formulaire.nationalite_ar'),
+            'num_tlf_personne'   => trans('formulaire.num_tlf_personne'),
+            'adresse_fr'         => trans('formulaire.adresse_fr'),
+            'adresse_ar'         => trans('formulaire.adresse_ar'),
+            'sexe_personne_fr'   => trans('formulaire.sexe_personne_fr'),
+            'sexe_personne_ar'   => trans('formulaire.sexe_personne_ar'),
+            'groupage'           => trans('formulaire.groupage'),
+            'carte_nationale'    => trans('formulaire.carte_nationale'),
+            'photo'              => trans('formulaire.photo'),
+        ];
+
+        $validated = $request->validate($rules, [], $customAttributes);
+
+        // Mapper automatiquement sexe et lieu de naissance
+        $sexeMap = [
+            'Masculin' => 'ذكر',
+            'Féminin'  => 'أنثى',
+            'ذكر'      => 'Masculin',
+            'أنثى'     => 'Féminin',
+        ];
+
+        // Déduire les champs manquants en fonction de la langue
+        if ($langue === 'fr') {
+            // Déduire sexe_personne_ar depuis sexe_personne_fr
+            $validated['sexe_personne_ar'] = $sexeMap[$validated['sexe_personne_fr']] ?? $validated['sexe_personne_fr'];
+            // Déduire lieu_naissance_ar depuis lieu_naissance_fr
+            $wilaya                         = DB::table('wilayas')->where('name_fr', $validated['lieu_naissance_fr'])->first();
+            $validated['lieu_naissance_ar'] = $wilaya ? $wilaya->name_ar : $validated['lieu_naissance_fr'];
+        } elseif ($langue === 'ar') {
+            // Déduire sexe_personne_fr depuis sexe_personne_ar
+            $validated['sexe_personne_fr'] = $sexeMap[$validated['sexe_personne_ar']] ?? $validated['sexe_personne_ar'];
+            // Déduire lieu_naissance_fr depuis lieu_naissance_ar
+            $wilaya                         = DB::table('wilayas')->where('name_ar', $validated['lieu_naissance_ar'])->first();
+            $validated['lieu_naissance_fr'] = $wilaya ? $wilaya->name_fr : $validated['lieu_naissance_ar'];
+        } else {
+            // Par sécurité, si langue invalide, s'assurer que les champs sont cohérents
+            if (! empty($validated['sexe_personne_fr']) && empty($validated['sexe_personne_ar'])) {
+                $validated['sexe_personne_ar'] = $sexeMap[$validated['sexe_personne_fr']] ?? $validated['sexe_personne_fr'];
+            } elseif (! empty($validated['sexe_personne_ar']) && empty($validated['sexe_personne_fr'])) {
+                $validated['sexe_personne_fr'] = $sexeMap[$validated['sexe_personne_ar']] ?? $validated['sexe_personne_ar'];
+            }
+            if (! empty($validated['lieu_naissance_fr']) && empty($validated['lieu_naissance_ar'])) {
+                $wilaya                         = DB::table('wilayas')->where('name_fr', $validated['lieu_naissance_fr'])->first();
+                $validated['lieu_naissance_ar'] = $wilaya ? $wilaya->name_ar : $validated['lieu_naissance_fr'];
+            } elseif (! empty($validated['lieu_naissance_ar']) && empty($validated['lieu_naissance_fr'])) {
+                $wilaya                         = DB::table('wilayas')->where('name_ar', $validated['lieu_naissance_ar'])->first();
+                $validated['lieu_naissance_fr'] = $wilaya ? $wilaya->name_fr : $validated['lieu_naissance_ar'];
+            }
+        }
 
         DB::beginTransaction();
         try {
             $person = Personne::where('id_nin_personne', $validated['id_nin_personne'])->first();
 
             if ($person) {
+                // Mettre à jour la personne existante
                 $person->update($validated);
                 $dossier = Dossier::find($person->id_dossier);
             } else {
+                // Créer un nouveau dossier et une nouvelle personne
                 $dossier = Dossier::create([
                     'date_create_dossier' => now(),
                     'statut_dossier'      => 'en_attente',
@@ -152,8 +233,8 @@ class SoumissionController extends Controller
                         'id_oeuvre'  => null,
                     ],
                     [
-                        'nom_fichier_fr' => 'Carte nationale',//$file->getClientOriginalName(),
-                        'nom_fichier_ar' => 'البطاقة الوطنية',//$file->getClientOriginalName(),
+                        'nom_fichier_fr' => trans('formulaire.carte_nationale'),
+                        'nom_fichier_ar' => trans('formulaire.carte_nationale'),
                         'file_path'      => $path,
                         'size'           => $file->getSize(),
                         'date_upload'    => now(),
@@ -171,8 +252,8 @@ class SoumissionController extends Controller
                         'id_oeuvre'  => null,
                     ],
                     [
-                        'nom_fichier_fr' => 'Photo',//$file->getClientOriginalName(),
-                        'nom_fichier_ar' => 'صورة',//$file->getClientOriginalName(),
+                        'nom_fichier_fr' => trans('formulaire.photo'),
+                        'nom_fichier_ar' => trans('formulaire.photo'),
                         'file_path'      => $path,
                         'size'           => $file->getSize(),
                         'date_upload'    => now(),
@@ -182,15 +263,18 @@ class SoumissionController extends Controller
 
             DB::commit();
             return response()->json([
-                'message'     => 'Étape 1 enregistrée avec succès',
+                'message'     => trans('formulaire.step1_saved'),
                 'id_personne' => $person->id_personne,
             ], 200);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Erreur lors de l\'enregistrement de l\'étape 1 : ' . $e->getMessage());
-            return response()->json(['message' => 'Erreur lors de l\'enregistrement'], 500);
+            return response()->json([
+                'error' => trans('formulaire.save_error', ['message' => $e->getMessage()]),
+            ], 500);
         }
     }
+
 // Check if professional card exists and return associated data
     public function checkProfessionalCard(Request $request)
     {
@@ -489,8 +573,8 @@ class SoumissionController extends Controller
                 $file               = $request->file('attestation_travail');
                 $path               = $file->store('attestations', 'public');
                 $fichierAttestation = Fichier::create([
-                    'nom_fichier_fr' =>  'Attestation de travail',//$file->getClientOriginalName(),
-                    'nom_fichier_ar' => 'شهادة عمل',//$file->getClientOriginalName(),
+                    'nom_fichier_fr' => 'Attestation de travail', //$file->getClientOriginalName(),
+                    'nom_fichier_ar' => 'شهادة عمل',      //$file->getClientOriginalName(),
                     'file_path'      => $path,
                     'type'           => 'attestation_travail',
                     'size'           => $file->getSize(),

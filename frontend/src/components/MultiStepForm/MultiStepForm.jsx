@@ -1,10 +1,9 @@
-// MultiStepForm.jsx
 import React, { useState, useEffect } from 'react';
 import Step1 from './Step1';
 import Step2 from './Step2';
 import Step3 from './Step3';
 
-export default function MultiStepForm() {
+export default function MultiStepForm({ langue, setLangue }) {
   const [step, setStep] = useState(1);
   const [step1Data, setStep1Data] = useState({
     id_nin_personne: '',
@@ -59,6 +58,54 @@ export default function MultiStepForm() {
   const [isLoadingWilayas, setIsLoadingWilayas] = useState(true);
   const [isProfessionalCardValidated, setIsProfessionalCardValidated] = useState(false);
 
+  // Définir les traductions
+  const translations = {
+    fr: {
+      id_nin_personne: 'Numéro NIN',
+      nom_personne_fr: 'Nom (FR)',
+      prenom_personne_fr: 'Prénom (FR)',
+      nom_personne_ar: 'Nom (AR)',
+      prenom_personne_ar: 'Prénom (AR)',
+      date_naissance: 'Date de naissance',
+      lieu_naissance_fr: 'Lieu de naissance (FR)',
+      sexe_personne_fr: 'Sexe (FR)',
+      nationalite_fr: 'Nationalité (FR)',
+      nationalite_ar: 'Nationalité (AR)',
+      num_tlf_personne: 'Téléphone',
+      adresse_fr: 'Adresse (FR)',
+      adresse_ar: 'Adresse (AR)',
+      groupage: 'Groupe sanguin',
+      carte_nationale: 'Carte nationale',
+      photo: 'Photo',
+      required: 'Le champ :attribute est requis.',
+      nin_invalid: 'Le numéro NIN doit contenir 18 chiffres.',
+      phone_invalid: 'Le numéro de téléphone doit contenir 10 chiffres.',
+      next_step: 'Étape suivante →',
+    },
+    ar: {
+      id_nin_personne: 'رقم الهوية الوطنية',
+      nom_personne_fr: 'الاسم (فرنسي)',
+      prenom_personne_fr: 'اللقب (فرنسي)',
+      nom_personne_ar: 'الاسم (عربي)',
+      prenom_personne_ar: 'اللقب (عربي)',
+      date_naissance: 'تاريخ الميلاد',
+      lieu_naissance_ar: 'مكان الولادة (عربي)',
+      sexe_personne_ar: 'الجنس (عربي)',
+      nationalite_fr: 'الجنسية (فرنسي)',
+      nationalite_ar: 'الجنسية (عربي)',
+      num_tlf_personne: 'الهاتف',
+      adresse_fr: 'العنوان (فرنسي)',
+      adresse_ar: 'العنوان (عربي)',
+      groupage: 'فصيلة الدم',
+      carte_nationale: 'البطاقة الوطنية',
+      photo: 'الصورة',
+      required: 'الحقل :attribute مطلوب.',
+      nin_invalid: 'رقم الهوية الوطنية يجب أن يحتوي على 18 رقمًا.',
+      phone_invalid: 'رقم الهاتف يجب أن يحتوي على 10 أرقام.',
+      next_step: 'الخطوة التالية ←',
+    },
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -69,11 +116,11 @@ export default function MultiStepForm() {
         if (!response.ok) throw new Error('Erreur d\'authentification');
       } catch (error) {
         console.error('❌ Erreur d\'authentification :', error);
-        setError('Erreur lors de la vérification de l\'authentification.');
+        setError(translations[langue].required.replace(':attribute', 'authentification'));
       }
     };
     checkAuth();
-  }, []);
+  }, [langue]);
 
   useEffect(() => {
     const fetchFormData = async () => {
@@ -92,11 +139,11 @@ export default function MultiStepForm() {
         }));
       } catch (error) {
         console.error('❌ Erreur chargement des données :', error);
-        setError('Erreur lors du chargement des données du formulaire.');
+        setError(translations[langue].required.replace(':attribute', 'données du formulaire'));
       }
     };
     fetchFormData();
-  }, []);
+  }, [langue]);
 
   useEffect(() => {
     const fetchWilayas = async () => {
@@ -115,12 +162,12 @@ export default function MultiStepForm() {
         setIsLoadingWilayas(false);
       } catch (error) {
         console.error('❌ Erreur chargement des wilayas :', error);
-        setWilayasError('Impossible de charger les wilayas. Veuillez réessayer.');
+        setWilayasError(translations[langue].required.replace(':attribute', 'wilayas'));
         setIsLoadingWilayas(false);
       }
     };
     fetchWilayas();
-  }, []);
+  }, [langue]);
 
   const handleStep1Change = (e) => {
     if (e.target.name === 'batch') {
@@ -146,7 +193,7 @@ export default function MultiStepForm() {
       setFormData((prev) => ({
         ...prev,
         [name]: value,
-        ...(name === 'secteur_travail' && value === 'Privé' ? { categorie: 'Privé' } : {}), // Utilisation exacte de "Privé" comme dans le schéma SQL
+        ...(name === 'secteur_travail' && value === 'Privé' ? { categorie: 'Privé' } : {}),
         ...(name === 'secteur_travail' && value === 'Public' ? { categorie: '' } : {}),
       }));
     }
@@ -158,15 +205,15 @@ export default function MultiStepForm() {
     const { name, files } = e.target;
     if (files[0]) {
       if (name === 'carte_nationale' && files[0].size > 10 * 1024 * 1024) {
-        setError('La carte nationale ne doit pas dépasser 10 Mo.');
+        setError(translations[langue].required.replace(':attribute', 'carte nationale (taille max 10 Mo)'));
         return;
       }
       if (name === 'photo' && files[0].size > 5 * 1024 * 1024) {
-        setError('La photo ne doit pas dépasser 5 Mo.');
+        setError(translations[langue].required.replace(':attribute', 'photo (taille max 5 Mo)'));
         return;
       }
       if (name === 'attestation_travail' && files[0].size > 10 * 1024 * 1024) {
-        setError('L\'attestation de travail ne doit pas dépasser 10 Mo.');
+        setError(translations[langue].required.replace(':attribute', 'attestation de travail (taille max 10 Mo)'));
         return;
       }
       if (name === 'carte_nationale' || name === 'photo') {
@@ -186,83 +233,83 @@ export default function MultiStepForm() {
 
   const validateStep1 = () => {
     if (!step1Data.id_nin_personne) {
-      setError('Le numéro NIN est requis.');
+      setError(translations[langue].required.replace(':attribute', translations[langue].id_nin_personne));
       return false;
     }
     if (step1Data.id_nin_personne.length !== 18) {
-      setError('Le numéro NIN doit contenir exactement 18 chiffres.');
+      setError(translations[langue].nin_invalid);
       return false;
     }
     if (!/^[0-9]{18}$/.test(step1Data.id_nin_personne)) {
-      setError('Le numéro NIN doit être composé uniquement de chiffres.');
+      setError(translations[langue].nin_invalid);
       return false;
     }
     if (!step1Data.nom_personne_fr) {
-      setError('Veuillez entrer le nom (FR).');
+      setError(translations[langue].required.replace(':attribute', translations[langue].nom_personne_fr));
       return false;
     }
     if (!step1Data.prenom_personne_fr) {
-      setError('Veuillez entrer le prénom (FR).');
+      setError(translations[langue].required.replace(':attribute', translations[langue].prenom_personne_fr));
       return false;
     }
     if (!step1Data.nom_personne_ar) {
-      setError('Veuillez entrer le nom (AR).');
+      setError(translations[langue].required.replace(':attribute', translations[langue].nom_personne_ar));
       return false;
     }
     if (!step1Data.prenom_personne_ar) {
-      setError('Veuillez entrer le prénom (AR).');
+      setError(translations[langue].required.replace(':attribute', translations[langue].prenom_personne_ar));
       return false;
     }
     if (!step1Data.date_naissance) {
-      setError('Veuillez entrer la date de naissance.');
+      setError(translations[langue].required.replace(':attribute', translations[langue].date_naissance));
       return false;
     }
     if (!step1Data.lieu_naissance_fr) {
-      setError('Veuillez sélectionner le lieu de naissance (FR).');
+      setError(translations[langue].required.replace(':attribute', translations[langue].lieu_naissance_fr));
       return false;
     }
     if (!step1Data.lieu_naissance_ar) {
-      setError('Veuillez sélectionner le lieu de naissance (AR).');
+      setError(translations[langue].required.replace(':attribute', translations[langue].lieu_naissance_ar));
       return false;
     }
     if (!step1Data.nationalite_fr) {
-      setError('Le champ nationalité (FR) est requis.');
+      setError(translations[langue].required.replace(':attribute', translations[langue].nationalite_fr));
       return false;
     }
     if (!step1Data.nationalite_ar) {
-      setError('Le champ nationalité (AR) est requis.');
+      setError(translations[langue].required.replace(':attribute', translations[langue].nationalite_ar));
       return false;
     }
     if (!step1Data.num_tlf_personne || !/^[0-9]{10}$/.test(step1Data.num_tlf_personne)) {
-      setError('Veuillez entrer un numéro de téléphone valide (10 chiffres).');
+      setError(translations[langue].phone_invalid);
       return false;
     }
     if (!step1Data.adresse_fr) {
-      setError('Veuillez entrer l’adresse (FR).');
+      setError(translations[langue].required.replace(':attribute', translations[langue].adresse_fr));
       return false;
     }
     if (!step1Data.adresse_ar) {
-      setError('Veuillez entrer l’adresse (AR).');
+      setError(translations[langue].required.replace(':attribute', translations[langue].adresse_ar));
       return false;
     }
     if (!step1Data.sexe_personne_fr) {
-      setError('Veuillez sélectionner le sexe (FR).');
+      setError(translations[langue].required.replace(':attribute', translations[langue].sexe_personne_fr));
       return false;
     }
     if (!step1Data.sexe_personne_ar) {
-      setError('Veuillez sélectionner le sexe (AR).');
+      setError(translations[langue].required.replace(':attribute', translations[langue].sexe_personne_ar));
       return false;
     }
     if (!step1Data.groupage) {
-      setError('Veuillez sélectionner le groupe sanguin.');
+      setError(translations[langue].required.replace(':attribute', translations[langue].groupage));
       return false;
     }
     if (!step1Data.carte_nationale && (!step1Data.fichiers || !step1Data.fichiers.some(f => f.type === 'carte_nationale'))) {
-      setError('Veuillez uploader la carte nationale.');
+      setError(translations[langue].required.replace(':attribute', translations[langue].carte_nationale));
       return false;
     }
     if (!step1Data.photo && (!step1Data.fichiers || !step1Data.fichiers.some(f => f.type === 'photo'))) {
-      setError('Veuillez uploader la photo.');
+      setError(translations[langue].required.replace(':attribute', translations[langue].photo));
       return false;
     }
     return true;
@@ -270,83 +317,7 @@ export default function MultiStepForm() {
 
   const validateStep2 = async () => {
     if (!formData.id_professional_card) {
-      setError('Le numéro de carte professionnelle est requis.');
-      return false;
-    }
-    if (!formData.num_attes) {
-      setError("La référence de l'attestation de travail est requise.");
-      return false;
-    }
-    if (!formData.fonction_fr) {
-      setError('La fonction (FR) est requise.');
-      return false;
-    }
-    if (!formData.fonction_ar) {
-      setError('La fonction (AR) est requise.');
-      return false;
-    }
-    if (!formData.secteur_travail) {
-      setError('Le secteur de travail est requis.');
-      return false;
-    }
-    if (formData.secteur_travail === 'Public') {
-      if (!formData.categorie) {
-        setError('La catégorie est requise.');
-        return false;
-      }
-      if (formData.categorie === 'Média audio' && !formData.type_media) {
-        setError('Le type de média est requis.');
-        return false;
-      }
-      if (formData.type_media === 'TV' && !formData.tv) {
-        setError('Le TV est requis.');
-        return false;
-      }
-      if (formData.type_media === 'Radio' && !formData.radio) {
-        setError('Le radio est requis.');
-        return false;
-      }
-      if (formData.categorie === 'Média écrit et électronique' && !formData.media) {
-        setError('Le type de média écrit est requis.');
-        return false;
-      }
-      if ((formData.type_media === 'TV' || formData.media) && !formData.specialite) {
-        setError('La spécialité est requise.');
-        return false;
-      }
-    }
-    if (formData.secteur_travail === 'Privé') {
-      if (formData.categorie !== 'Privé') {
-        setError('La catégorie doit être "Privé" pour le secteur privé.');
-        return false;
-      }
-      if (!formData.langue) {
-        setError('La langue est requise.');
-        return false;
-      }
-      if (!formData.specialite) {
-        setError('La spécialité est requise.');
-        return false;
-      }
-    }
-    if (!formData.nom_etablissement) {
-      setError("Le nom de l'établissement (FR) est requis.");
-      return false;
-    }
-    if (!formData.nom_etablissement_ar) {
-      setError("Le nom de l'établissement (AR) est requis.");
-      return false;
-    }
-    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      setError("L'email est invalide.");
-      return false;
-    }
-    if (!formData.tel || !/^(\+?\d{8,15})$/.test(formData.tel)) {
-      setError('Le téléphone est invalide.');
-      return false;
-    }
-    if (!formData.attestation_travail && (!formData.fichiers || !formData.fichiers.some(f => f.type === 'attestation_travail'))) {
-      setError("L'attestation de travail est requise.");
+      setError(translations[langue].required.replace(':attribute', 'numéro de carte professionnelle'));
       return false;
     }
     return true;
@@ -365,6 +336,7 @@ export default function MultiStepForm() {
           form.append(key, step1Data[key]);
         }
       }
+      form.append('langue', langue);
 
       try {
         await fetch('http://localhost:8000/sanctum/csrf-cookie', {
@@ -398,7 +370,7 @@ export default function MultiStepForm() {
         setStep(2);
       } catch (error) {
         console.error('Erreur fetch :', error);
-        setError(error.message || 'Erreur de soumission.');
+        setError(error.message || translations[langue].required.replace(':attribute', 'soumission'));
       }
     } else if (step === 2) {
       if (!validateStep2()) return;
@@ -409,6 +381,7 @@ export default function MultiStepForm() {
           form.append(key, formData[key]);
         }
       }
+      form.append('langue', langue);
 
       try {
         await fetch('http://localhost:8000/sanctum/csrf-cookie', {
@@ -443,7 +416,7 @@ export default function MultiStepForm() {
         setStep(3);
       } catch (error) {
         console.error('Erreur fetch :', error);
-        setError(error.message || 'Erreur de soumission.');
+        setError(error.message || translations[langue].required.replace(':attribute', 'soumission'));
       }
     } else {
       setStep((prev) => prev + 1);
@@ -462,7 +435,9 @@ export default function MultiStepForm() {
           <div className="p-6 border-b border-gray-200">
             <ol className="flex items-center w-full text-sm font-medium text-center text-gray-500 dark:text-gray-400 sm:text-base">
               <li
-                className={`flex md:w-full items-center ${step === 1 || step > 1 ? 'text-blue-600 dark:text-blue-500' : ''} sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block after:mx-6 xl:after:mx-10 dark:after:border-gray-700`}
+                className={`flex md:w-full items-center ${
+                  step === 1 || step > 1 ? 'text-blue-600 dark:text-blue-500' : ''
+                } sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block after:mx-6 xl:after:mx-10 dark:after:border-gray-700`}
               >
                 <span className="flex items-center after:content-['/'] sm:after:hidden after:mx-2 after:text-gray-200 dark:after:text-gray-500">
                   {step > 1 ? (
@@ -478,11 +453,13 @@ export default function MultiStepForm() {
                   ) : (
                     <span className="me-2">1</span>
                   )}
-                  Informations <span className="hidden sm:inline-flex sm:ms-2">Personnelles</span>
+                  {langue === 'fr' ? 'Informations Personnelles' : 'المعلومات الشخصية'}
                 </span>
               </li>
               <li
-                className={`flex md:w-full items-center ${step === 2 || step > 2 ? 'text-blue-600 dark:text-blue-500' : ''} sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block after:mx-6 xl:after:mx-10 dark:after:border-gray-700`}
+                className={`flex md:w-full items-center ${
+                  step === 2 || step > 2 ? 'text-blue-600 dark:text-blue-500' : ''
+                } sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block after:mx-6 xl:after:mx-10 dark:after:border-gray-700`}
               >
                 <span className="flex items-center after:content-['/'] sm:after:hidden after:mx-2 after:text-gray-200 dark:after:text-gray-500">
                   {step > 2 ? (
@@ -498,7 +475,7 @@ export default function MultiStepForm() {
                   ) : (
                     <span className="me-2">2</span>
                   )}
-                  Compte <span className="hidden sm:inline-flex sm:ms-2">Info</span>
+                  {langue === 'fr' ? 'Compte Info' : 'معلومات الحساب'}
                 </span>
               </li>
               <li className={`flex items-center ${step === 3 ? 'text-blue-600 dark:text-blue-500' : ''}`}>
@@ -516,7 +493,7 @@ export default function MultiStepForm() {
                   ) : (
                     <span className="me-2">3</span>
                   )}
-                  Confirmation
+                  {langue === 'fr' ? 'Confirmation' : 'التأكيد'}
                 </span>
               </li>
             </ol>
@@ -539,6 +516,8 @@ export default function MultiStepForm() {
             error={error || wilayasError}
             wilayas={wilayas}
             isLoadingWilayas={isLoadingWilayas}
+            langue={langue}
+            t={translations[langue]}
           />
         );
       case 2:
@@ -552,6 +531,8 @@ export default function MultiStepForm() {
             onBack={prevStep}
             error={error}
             setIsProfessionalCardValidated={setIsProfessionalCardValidated}
+            langue={langue}
+            t={translations[langue]}
           />
         );
       case 3:
@@ -563,10 +544,16 @@ export default function MultiStepForm() {
             userId={formData.userId}
             themes={formData.themes}
             categories={formData.categories}
+            langue={langue}
+            t={translations[langue]}
           />
         );
       default:
-        return <div className="text-center text-green-600 text-xl font-bold">✅ Formulaire terminé !</div>;
+        return (
+          <div className="text-center text-green-600 text-xl font-bold">
+            {langue === 'fr' ? '✅ Formulaire terminé !' : '✅ اكتمل النموذج !'}
+          </div>
+        );
     }
   }
 }
