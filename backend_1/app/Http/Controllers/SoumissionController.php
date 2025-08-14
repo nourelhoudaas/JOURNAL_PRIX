@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 
 class SoumissionController extends Controller
 {
@@ -98,18 +99,28 @@ class SoumissionController extends Controller
     public function storeStep1(Request $request)
     {
         $langue = $request->input('langue', 'fr'); // Récupérer la langue, par défaut 'fr'
-        app()->setLocale($langue);                 // Définir la locale pour les traductions
+        app()->setLocale($langue); // Définir la locale pour les traductions
         Log::info('🟢 Début storeStep1', ['langue' => $langue, 'request_data' => $request->all()]);
+
         // Vérifier si l'utilisateur est authentifié
-        if (! Auth::check()) {
+        if (!Auth::check()) {
             return response()->json([
                 'error' => trans('formulaire.unauthenticated'),
             ], 401);
         }
 
+        // Vérifier si la personne existe déjà pour ajuster la règle unique
+        $person = Personne::where('id_nin_personne', $request->input('id_nin_personne'))->first();
+
         // Définir les règles de validation de base
         $rules = [
-            'id_nin_personne'      => ['required', 'string', 'size:18', 'regex:/^[0-9]{18}$/', 'unique:personnes,id_nin_personne'],
+            'id_nin_personne'      => [
+                'required',
+                'string',
+                'size:18',
+                'regex:/^[0-9]{18}$/',
+                Rule::unique('personnes', 'id_nin_personne')->ignore($person ? $person->id_personne : null, 'id_personne'),
+            ],
             'nom_personne_fr'      => ['required', 'string', 'max:191'],
             'prenom_personne_fr'   => ['required', 'string', 'max:191'],
             'nom_personne_ar'      => ['required', 'string', 'max:191'],
@@ -131,16 +142,16 @@ class SoumissionController extends Controller
         // Règles conditionnelles basées sur la langue
         if ($langue === 'fr') {
             $rules['lieu_naissance_fr'] = ['required', 'string', 'max:191', 'exists:wilayas,name_fr'];
-            $rules['sexe_personne_fr']  = ['required', 'string', 'in:Masculin,Féminin'];
+            $rules['sexe_personne_fr'] = ['required', 'string', 'in:Masculin,Féminin'];
         } elseif ($langue === 'ar') {
             $rules['lieu_naissance_ar'] = ['required', 'string', 'max:191', 'exists:wilayas,name_ar'];
-            $rules['sexe_personne_ar']  = ['required', 'string', 'in:ذكر,أنثى'];
+            $rules['sexe_personne_ar'] = ['required', 'string', 'in:ذكر,أنثى'];
         } else {
             // Par sécurité, si langue invalide, exiger tous les champs
             $rules['lieu_naissance_fr'] = ['required', 'string', 'max:191', 'exists:wilayas,name_fr'];
             $rules['lieu_naissance_ar'] = ['required', 'string', 'max:191', 'exists:wilayas,name_ar'];
-            $rules['sexe_personne_fr']  = ['required', 'string', 'in:Masculin,Féminin'];
-            $rules['sexe_personne_ar']  = ['required', 'string', 'in:ذكر,أنثى'];
+            $rules['sexe_personne_fr'] = ['required', 'string', 'in:Masculin,Féminin'];
+            $rules['sexe_personne_ar'] = ['required', 'string', 'in:ذكر,أنثى'];
         }
 
         // Définir les labels de traduction pour les messages d'erreur
@@ -180,34 +191,32 @@ class SoumissionController extends Controller
             // Déduire sexe_personne_ar depuis sexe_personne_fr
             $validated['sexe_personne_ar'] = $sexeMap[$validated['sexe_personne_fr']] ?? $validated['sexe_personne_fr'];
             // Déduire lieu_naissance_ar depuis lieu_naissance_fr
-            $wilaya                         = DB::table('wilayas')->where('name_fr', $validated['lieu_naissance_fr'])->first();
+            $wilaya = DB::table('wilayas')->where('name_fr', $validated['lieu_naissance_fr'])->first();
             $validated['lieu_naissance_ar'] = $wilaya ? $wilaya->name_ar : $validated['lieu_naissance_fr'];
         } elseif ($langue === 'ar') {
             // Déduire sexe_personne_fr depuis sexe_personne_ar
             $validated['sexe_personne_fr'] = $sexeMap[$validated['sexe_personne_ar']] ?? $validated['sexe_personne_ar'];
             // Déduire lieu_naissance_fr depuis lieu_naissance_ar
-            $wilaya                         = DB::table('wilayas')->where('name_ar', $validated['lieu_naissance_ar'])->first();
+            $wilaya = DB::table('wilayas')->where('name_ar', $validated['lieu_naissance_ar'])->first();
             $validated['lieu_naissance_fr'] = $wilaya ? $wilaya->name_fr : $validated['lieu_naissance_ar'];
         } else {
             // Par sécurité, si langue invalide, s'assurer que les champs sont cohérents
-            if (! empty($validated['sexe_personne_fr']) && empty($validated['sexe_personne_ar'])) {
+            if (!empty($validated['sexe_personne_fr']) && empty($validated['sexe_personne_ar'])) {
                 $validated['sexe_personne_ar'] = $sexeMap[$validated['sexe_personne_fr']] ?? $validated['sexe_personne_fr'];
-            } elseif (! empty($validated['sexe_personne_ar']) && empty($validated['sexe_personne_fr'])) {
+            } elseif (!empty($validated['sexe_personne_ar']) && empty($validated['sexe_personne_fr'])) {
                 $validated['sexe_personne_fr'] = $sexeMap[$validated['sexe_personne_ar']] ?? $validated['sexe_personne_ar'];
             }
-            if (! empty($validated['lieu_naissance_fr']) && empty($validated['lieu_naissance_ar'])) {
-                $wilaya                         = DB::table('wilayas')->where('name_fr', $validated['lieu_naissance_fr'])->first();
+            if (!empty($validated['lieu_naissance_fr']) && empty($validated['lieu_naissance_ar'])) {
+                $wilaya = DB::table('wilayas')->where('name_fr', $validated['lieu_naissance_fr'])->first();
                 $validated['lieu_naissance_ar'] = $wilaya ? $wilaya->name_ar : $validated['lieu_naissance_fr'];
-            } elseif (! empty($validated['lieu_naissance_ar']) && empty($validated['lieu_naissance_fr'])) {
-                $wilaya                         = DB::table('wilayas')->where('name_ar', $validated['lieu_naissance_ar'])->first();
+            } elseif (!empty($validated['lieu_naissance_ar']) && empty($validated['lieu_naissance_fr'])) {
+                $wilaya = DB::table('wilayas')->where('name_ar', $validated['lieu_naissance_ar'])->first();
                 $validated['lieu_naissance_fr'] = $wilaya ? $wilaya->name_fr : $validated['lieu_naissance_ar'];
             }
         }
 
         DB::beginTransaction();
         try {
-            $person = Personne::where('id_nin_personne', $validated['id_nin_personne'])->first();
-
             if ($person) {
                 // Mettre à jour la personne existante
                 $person->update($validated);
@@ -220,7 +229,7 @@ class SoumissionController extends Controller
                 ]);
                 $validated['id_dossier'] = $dossier->id_dossier;
                 $validated['id_compte']  = Auth::id();
-                $person                  = Personne::create($validated);
+                $person = Personne::create($validated);
             }
 
             if ($request->hasFile('carte_nationale')) {

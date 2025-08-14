@@ -1,40 +1,35 @@
 import React, { useState } from 'react';
 import MultiStepForm from './components/MultiStepForm/MultiStepForm';
+import Logo from './assets/img/logo_ministere.png';
 
 function App() {
-  // Ajouter le state pour la langue
   const [langue, setLangue] = useState('fr'); // 'fr' par défaut
 
-  // Fonction pour gérer le changement de langue
   const handleLangueChange = (newLangue) => {
     setLangue(newLangue);
   };
 
+  // Définir les traductions
+  const translations = {
+    fr: { logout: 'Déconnexion' },
+    ar: { logout: 'تسجيل الخروج' },
+  };
+
+   // Définir la direction en fonction de la langue
+  const direction = langue === 'ar' ? 'rtl' : 'ltr';
+
   return (
-    <div className="w-full mx-auto py-11 max-w-7xl">
+    <div className="w-full mx-auto py-11 max-w-7xl pt-16">
       <nav className="w-full bg-white shadow px-8 py-4 flex items-center justify-between fixed top-0 z-50">
         <div className="flex items-center space-x-4">
-          <img
-            src="https://tailwindui.com/img/logos/mark.svg?color=indigo&shade=500"
-            className="h-6 w-auto"
-            alt="Logo"
-          />
-          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
-            Product
-          </a>
-          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
-            Features
-          </a>
-          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
-            Marketplace
-          </a>
-          <a href="#" className="text-sm font-semibold text-gray-700 hover:text-indigo-600">
-            Company
-          </a>
+          <img src={Logo} className="h-6 w-auto" alt="Logo du ministère" />
         </div>
         <div className="flex items-center space-x-4">
-          {/* Sélecteur de langue */}
+          <label htmlFor="language-select" className="sr-only">
+            Sélectionner la langue
+          </label>
           <select
+            id="language-select"
             value={langue}
             onChange={(e) => handleLangueChange(e.target.value)}
             className="p-2 border rounded bg-white text-gray-900 text-sm"
@@ -43,23 +38,24 @@ function App() {
             <option value="ar">عربي</option>
           </select>
           <a
-            href="/login"
+            href="/logout"
             className="text-sm font-semibold text-gray-700 hover:text-indigo-600 flex items-center space-x-1"
           >
-            <span>Log in</span>
+            <span>{translations[langue].logout}</span>
             <svg
               className="h-4 w-4 ml-1"
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
               viewBox="0 0 24 24"
+              aria-hidden="true"
             >
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" />
             </svg>
           </a>
         </div>
       </nav>
-      <MultiStepForm langue={langue} setLangue={handleLangueChange} />
+      <MultiStepForm langue={langue} setLangue={handleLangueChange} direction={direction} />
     </div>
   );
 }
