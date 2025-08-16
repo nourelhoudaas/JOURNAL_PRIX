@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Associe;
@@ -24,12 +25,12 @@ use Illuminate\Validation\Rule;
 
 class SoumissionController extends Controller
 {
-// Check if NIN exists and return person data
+    // Check if NIN exists and return person data
     // Check if NIN exists and return person data
     public function checkNin(Request $request)
     {
-        $langue = $request->input('langue', 'fr'); // Récupérer la langue, par défaut 'fr'
-        app()->setLocale($langue);                 // Définir la locale pour les traductions
+        $locale = $request->input('locale', 'fr'); // Récupérer la langue, par défaut 'fr'
+        app()->setLocale($locale);                 // Définir la locale pour les traductions
 
         $nin = $request->query('nin');
 
@@ -98,9 +99,9 @@ class SoumissionController extends Controller
     // 🟢 ÉTAPE 1 - Données personnelles + création du dossier et fichiers associés
     public function storeStep1(Request $request)
     {
-        $langue = $request->input('langue', 'fr'); // Récupérer la langue, par défaut 'fr'
-        app()->setLocale($langue); // Définir la locale pour les traductions
-        Log::info('🟢 Début storeStep1', ['langue' => $langue, 'request_data' => $request->all()]);
+        $locale = $request->input('locale', 'fr'); // Récupérer la langue, par défaut 'fr'
+        app()->setLocale($locale); // Définir la locale pour les traductions
+        Log::info('🟢 Début storeStep1', ['locale' => $locale, 'request_data' => $request->all()]);
 
         // Vérifier si l'utilisateur est authentifié
         if (!Auth::check()) {
@@ -140,10 +141,10 @@ class SoumissionController extends Controller
         ];
 
         // Règles conditionnelles basées sur la langue
-        if ($langue === 'fr') {
+        if ($locale === 'fr') {
             $rules['lieu_naissance_fr'] = ['required', 'string', 'max:191', 'exists:wilayas,name_fr'];
             $rules['sexe_personne_fr'] = ['required', 'string', 'in:Masculin,Féminin'];
-        } elseif ($langue === 'ar') {
+        } elseif ($locale === 'ar') {
             $rules['lieu_naissance_ar'] = ['required', 'string', 'max:191', 'exists:wilayas,name_ar'];
             $rules['sexe_personne_ar'] = ['required', 'string', 'in:ذكر,أنثى'];
         } else {
@@ -187,13 +188,13 @@ class SoumissionController extends Controller
         ];
 
         // Déduire les champs manquants en fonction de la langue
-        if ($langue === 'fr') {
+        if ($locale === 'fr') {
             // Déduire sexe_personne_ar depuis sexe_personne_fr
             $validated['sexe_personne_ar'] = $sexeMap[$validated['sexe_personne_fr']] ?? $validated['sexe_personne_fr'];
             // Déduire lieu_naissance_ar depuis lieu_naissance_fr
             $wilaya = DB::table('wilayas')->where('name_fr', $validated['lieu_naissance_fr'])->first();
             $validated['lieu_naissance_ar'] = $wilaya ? $wilaya->name_ar : $validated['lieu_naissance_fr'];
-        } elseif ($langue === 'ar') {
+        } elseif ($locale === 'ar') {
             // Déduire sexe_personne_fr depuis sexe_personne_ar
             $validated['sexe_personne_fr'] = $sexeMap[$validated['sexe_personne_ar']] ?? $validated['sexe_personne_ar'];
             // Déduire lieu_naissance_fr depuis lieu_naissance_ar
@@ -284,23 +285,27 @@ class SoumissionController extends Controller
         }
     }
 
-// Check if professional card exists and return associated data
+    // Check if professional card exists and return associated data
     public function checkProfessionalCard(Request $request)
     {
+        // Utilisation de 'locale' pour la langue de l'interface
+        $locale = $request->input('locale', 'fr');
+        app()->setLocale($locale);
+
         // Log des paramètres reçus
         Log::info('🟢 Début checkProfessionalCard', [
             'id_professional_card' => $request->query('id_professional_card'),
-            'userId'               => $request->query('userId'),
+            'userId' => $request->query('userId'),
         ]);
 
         $id_professional_card = $request->query('id_professional_card');
-        $userId               = $request->query('userId');
+        $userId = $request->query('userId');
 
-        if (! $id_professional_card) {
+        if (!$id_professional_card) {
             Log::warning('🚫 id_professional_card manquant');
             return response()->json([
-                'exists'  => false,
-                'message' => 'Numéro de carte professionnelle requis.',
+                'exists' => false,
+                'message' => trans('formulaire.id_professional_card_required'),
             ], 422);
         }
 
@@ -310,54 +315,52 @@ class SoumissionController extends Controller
             if ($person->id_personne != $userId) {
                 Log::warning('🚫 Carte professionnelle associée à un autre utilisateur', [
                     'id_personne' => $person->id_personne,
-                    'userId'      => $userId,
+                    'userId' => $userId,
                 ]);
                 return response()->json([
                     'exists' => true,
-                    'error'  => 'Cette carte professionnelle appartient déjà à une autre personne.',
+                    'error' => trans('formulaire.id_professional_card_taken'),
                 ], 422);
             }
 
-            $occupation    = Occuper::where('id_personne', $person->id_personne)->first();
+            $occupation = Occuper::where('id_personne', $person->id_personne)->first();
             $etablissement = $occupation ? Etablissement::with(['typeMedia.categorieEtat.secteur', 'specialite'])->find($occupation->id_etab) : null;
 
             Log::info('🔍 Données Occupation et Etablissement', [
-                'occupation'    => $occupation ? $occupation->toArray() : null,
+                'occupation' => $occupation ? $occupation->toArray() : null,
                 'etablissement' => $etablissement ? $etablissement->toArray() : null,
             ]);
 
             $secteur_travail = $etablissement && $etablissement->typeMedia && $etablissement->typeMedia->categorieEtat && $etablissement->typeMedia->categorieEtat->secteur
-            ? $etablissement->typeMedia->categorieEtat->secteur->nom_fr_sect
-            : 'unknown';
+                ? $etablissement->typeMedia->categorieEtat->secteur->nom_fr_sect
+                : 'unknown';
 
             if ($secteur_travail === 'unknown') {
                 Log::warning('⚠️ Secteur de travail non récupéré', [
                     'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
-                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
+                    'id_type_media' => $etablissement ? $etablissement->id_type_media : null,
                 ]);
             }
 
-            $categorie = $secteur_travail === 'Privé' ? 'Privé' :
-            ($etablissement && $etablissement->typeMedia && $etablissement->typeMedia->categorieEtat
+            $categorie = $secteur_travail === 'Privé' ? 'Privé' : ($etablissement && $etablissement->typeMedia && $etablissement->typeMedia->categorieEtat
                 ? $etablissement->typeMedia->categorieEtat->nom_fr_etat ?? 'unknown'
                 : 'unknown');
 
             if ($categorie === 'unknown' && $secteur_travail !== 'Privé') {
                 Log::warning('⚠️ Catégorie non récupérée', [
                     'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
-                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
+                    'id_type_media' => $etablissement ? $etablissement->id_type_media : null,
                 ]);
             }
 
-            $type_media = $secteur_travail === 'Privé' ? 'Privé' :
-            ($etablissement && $etablissement->typeMedia
+            $type_media = $secteur_travail === 'Privé' ? 'Privé' : ($etablissement && $etablissement->typeMedia
                 ? $etablissement->typeMedia->nom_fr_type_media ?? ''
                 : '');
 
             if ($type_media === '' && $secteur_travail !== 'Privé') {
                 Log::warning('⚠️ Type média non récupéré', [
                     'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
-                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
+                    'id_type_media' => $etablissement ? $etablissement->id_type_media : null,
                 ]);
             }
 
@@ -369,81 +372,86 @@ class SoumissionController extends Controller
                 ->get()
                 ->map(function ($fichier) {
                     return [
-                        'id_fichier'     => $fichier->id_fichier,
+                        'id_fichier' => $fichier->id_fichier,
                         'nom_fichier_ar' => $fichier->nom_fichier_ar,
                         'nom_fichier_fr' => $fichier->nom_fichier_fr,
-                        'file_path'      => $fichier->file_path,
-                        'type'           => $fichier->type,
+                        'file_path' => $fichier->file_path,
+                        'type' => $fichier->type,
                     ];
                 })->toArray() : [];
 
             $data = [
                 'id_professional_card' => $person->id_professional_card,
-                'num_attes'            => $occupation ? $occupation->num_attes : '',
-                'fonction_fr'          => $person->fonction_fr ?? '',
-                'fonction_ar'          => $person->fonction_ar ?? '',
-                'secteur_travail'      => $secteur_travail,
-                'categorie'            => $categorie,
-                'type_media'           => $type_media,
-                'tv'                   => $etablissement ? $etablissement->tv : null,
-                'radio'                => $etablissement ? $etablissement->radio : null,
-                'media'                => $etablissement ? $etablissement->media : null,
-                'langue'               => $etablissement ? $etablissement->langue : null,
-                'specialite'           => $specialite_name,
-                'nom_etablissement'    => $etablissement ? $etablissement->nom_fr_etab : '',
+                'num_attes' => $occupation ? $occupation->num_attes : '',
+                'fonction_fr' => $person->fonction_fr ?? '',
+                'fonction_ar' => $person->fonction_ar ?? '',
+                'secteur_travail' => $secteur_travail,
+                'categorie' => $categorie,
+                'type_media' => $type_media,
+                'tv' => $etablissement ? $etablissement->tv : null,
+                'radio' => $etablissement ? $etablissement->radio : null,
+                'media' => $etablissement ? $etablissement->media : null,
+                'langue' => $etablissement ? $etablissement->langue : null, // Champ langue pour secteur privé
+                'specialite' => $specialite_name,
+                'nom_etablissement' => $etablissement ? $etablissement->nom_fr_etab : '',
                 'nom_etablissement_ar' => $etablissement ? $etablissement->nom_ar_etab : '',
-                'email'                => $etablissement ? $etablissement->email_etab : '',
-                'tel'                  => $etablissement ? $etablissement->tel_etab : '',
-                'fichiers'             => $fichiers,
+                'email' => $etablissement ? $etablissement->email_etab : '',
+                'tel' => $etablissement ? $etablissement->tel_etab : '',
+                'fichiers' => $fichiers,
             ];
 
             Log::info('📤 Données envoyées pour la carte professionnelle', $data);
 
             return response()->json([
-                'exists'  => true,
-                'message' => 'Carte professionnelle trouvée pour cet utilisateur.',
-                'data'    => $data,
+                'exists' => true,
+                'message' => trans('formulaire.id_professional_card_found'),
+                'data' => $data,
             ], 200);
         }
 
         Log::info('🔎 Carte professionnelle non trouvée', ['id_professional_card' => $id_professional_card]);
         return response()->json([
-            'exists'  => false,
-            'message' => 'Carte professionnelle non trouvée.',
-            'data'    => null,
+            'exists' => false,
+            'message' => trans('formulaire.id_professional_card_not_found'),
+            'data' => null,
         ], 200);
     }
 
     //🟢 ÉTAPE 2 - Établissement + mise à jour de la personne + attestation de travail
     public function storeStep2(Request $request)
     {
+        // Utilisation de 'locale' pour la langue de l'interface
+        $locale = $request->input('locale', 'fr');
+        app()->setLocale($locale);
+
         Log::info('🟢 Début storeStep2', ['request_data' => $request->all()]);
 
         $rules = [
-            'userId'               => 'required|exists:personnes,id_personne',
+            'userId' => 'required|exists:personnes,id_personne',
             'id_professional_card' => 'required|string|max:191',
-            'num_attes'            => 'required|string|max:191',
-            'fonction_fr'          => 'required|string|max:191',
-            'fonction_ar'          => 'required|string|max:191',
-            'secteur_travail'      => 'required|string|in:Public,Privé',
-            'categorie'            => 'required_if:secteur_travail,Public|string|in:Média audio,Média écrit et électronique,Privé',
-            'type_media'           => 'nullable|string|in:TV,Radio,Privé',
-            'tv'                   => 'nullable|string|in:Régionale,Nationale',
-            'radio'                => 'nullable|string|in:Publique,Locale',
-            'media'                => 'nullable|string|in:Écrit,Électronique',
-            'langue'               => 'nullable|string|in:Arabe,Français',
-            'specialite'           => 'nullable|string|in:Culturel,Economique,Publique,Sport,Santé,Touristique,Agricole,Technologique,Automobile',
-            'nom_etablissement'    => 'required|string|max:191',
+            'num_attes' => 'required|string|max:191',
+            'fonction_fr' => 'required|string|max:191',
+            'fonction_ar' => 'required|string|max:191',
+            'secteur_travail' => 'required|string|in:Public,Privé',
+            'categorie' => 'required_if:secteur_travail,Public|string|in:Média audio,Média écrit et électronique,Privé',
+            'type_media' => 'nullable|string|in:TV,Radio,Privé',
+            'tv' => 'nullable|string|in:Régionale,Nationale',
+            'radio' => 'nullable|string|in:Publique,Locale',
+            'media' => 'nullable|string|in:Écrit,Électronique',
+            'langue' => 'nullable|string|in:Arabe,Français',
+            'specialite' => 'nullable|string|in:Culturel,Economique,Publique,Sport,Santé,Touristique,Agricole,Technologique,Automobile',
+            'nom_etablissement' => 'required|string|max:191',
             'nom_etablissement_ar' => 'required|string|max:191',
-            'email'                => 'required|email|max:191',
-            'tel'                  => 'required|string|regex:/^(\+?\d{8,15})$/',
-            'attestation_travail'  => 'nullable|file|mimes:pdf|max:10240',
+            'email' => 'required|email|max:191',
+            'tel' => 'required|string|regex:/^(\+?\d{8,15})$/',
+            'attestation_travail' => 'nullable|file|mimes:pdf|max:10240',
         ];
 
         $validator = Validator::make($request->all(), $rules, [
-            'radio.in' => 'Le champ radio est invalide.',
-            'tv.in'    => 'Le champ TV est invalide.',
-            'media.in' => 'Le champ média est invalide.',
+            'radio.in' => trans('formulaire.radio_invalid'),
+            'tv.in' => trans('formulaire.tv_invalid'),
+            'media.in' => trans('formulaire.media_invalid'),
+            'langue.in' => trans('formulaire.langue_invalid'),
         ]);
 
         if ($validator->fails()) {
@@ -455,45 +463,60 @@ class SoumissionController extends Controller
 
         $validated = $validator->validated();
 
+        // Vérification supplémentaire : langue doit être vide pour secteur_travail Public
+        if ($validated['secteur_travail'] === 'Public' && !empty($validated['langue'])) {
+            Log::warning('🚫 Langue non vide pour secteur public', ['langue' => $validated['langue']]);
+            return response()->json([
+                'error' => trans('formulaire.langue_invalid'),
+            ], 422);
+        }
+
         if ($validated['secteur_travail'] === 'Privé' && $validated['categorie'] !== 'Privé') {
             Log::warning('🚫 Catégorie incorrecte pour secteur privé', ['categorie' => $validated['categorie']]);
             return response()->json([
-                'error' => 'La catégorie doit être "Privé" pour le secteur privé.',
+                'error' => trans('formulaire.categorie_prive_invalid'),
             ], 422);
         }
 
-        if ($validated['secteur_travail'] === 'Public' && ! in_array($validated['categorie'], ['Média audio', 'Média écrit et électronique'])) {
+        if ($validated['secteur_travail'] === 'Privé' && $validated['type_media'] !== 'Privé') {
+            Log::warning('🚫 Type média incorrect pour secteur privé', ['type_media' => $validated['type_media']]);
+            return response()->json([
+                'error' => trans('formulaire.type_media_prive_invalid'),
+            ], 422);
+        }
+
+        if ($validated['secteur_travail'] === 'Public' && !in_array($validated['categorie'], ['Média audio', 'Média écrit et électronique'])) {
             Log::warning('🚫 Catégorie incorrecte pour secteur public', ['categorie' => $validated['categorie']]);
             return response()->json([
-                'error' => 'La catégorie doit être "Média audio" ou "Média écrit et électronique" pour le secteur public.',
+                'error' => trans('formulaire.categorie_invalid'),
             ], 422);
         }
 
-        if ($validated['categorie'] === 'Média audio' && ! empty($validated['type_media']) && ! in_array($validated['type_media'], ['TV', 'Radio'])) {
+        if ($validated['categorie'] === 'Média audio' && !empty($validated['type_media']) && !in_array($validated['type_media'], ['TV', 'Radio'])) {
             Log::warning('🚫 type_media incorrect pour Média audio', ['type_media' => $validated['type_media']]);
             return response()->json([
-                'error' => 'Le type de média doit être "TV" ou "Radio" pour la catégorie "Média audio".',
+                'error' => trans('formulaire.type_media_invalid'),
             ], 422);
         }
 
-        if ($validated['categorie'] === 'Média écrit et électronique' && ! empty($validated['media']) && ! in_array($validated['media'], ['Écrit', 'Électronique'])) {
+        if ($validated['categorie'] === 'Média écrit et électronique' && !empty($validated['media']) && !in_array($validated['media'], ['Écrit', 'Électronique'])) {
             Log::warning('🚫 media incorrect pour Média écrit et électronique', ['media' => $validated['media']]);
             return response()->json([
-                'error' => 'Le type de média doit être "Écrit" ou "Électronique" pour la catégorie "Média écrit et électronique".',
+                'error' => trans('formulaire.media_invalid'),
             ], 422);
         }
 
-        if ($validated['type_media'] === 'TV' && ! empty($validated['Radio'])) {
-            Log::warning('🚫 Champ radio non vide pour type_media TV', ['Radio' => $validated['Radio']]);
+        if ($validated['type_media'] === 'TV' && !empty($validated['radio'])) {
+            Log::warning('🚫 Champ radio non vide pour type_media TV', ['radio' => $validated['radio']]);
             return response()->json([
-                'error' => 'Le champ radio doit être vide lorsque le type de média est "TV".',
+                'error' => trans('formulaire.radio_invalid'),
             ], 422);
         }
 
-        if ($validated['type_media'] === 'Radio' && ! empty($validated['tv'])) {
+        if ($validated['type_media'] === 'Radio' && !empty($validated['tv'])) {
             Log::warning('🚫 Champ tv non vide pour type_media Radio', ['tv' => $validated['tv']]);
             return response()->json([
-                'error' => 'Le champ TV doit être vide lorsque le type de média est "Radio".',
+                'error' => trans('formulaire.tv_invalid'),
             ], 422);
         }
 
@@ -503,58 +526,55 @@ class SoumissionController extends Controller
             if ($existingPerson && $existingPerson->id_personne != $validated['userId']) {
                 Log::warning('🚫 Carte professionnelle déjà utilisée', ['id_professional_card' => $validated['id_professional_card'], 'userId' => $validated['userId']]);
                 return response()->json([
-                    'error' => 'Cette carte professionnelle appartient déjà à une autre personne.',
+                    'error' => trans('formulaire.id_professional_card_taken'),
                 ], 422);
             }
 
             $secteur = SecteurTravail::firstOrCreate(['nom_fr_sect' => $validated['secteur_travail']]);
-            if (! $secteur->id_sect) {
+            if (!$secteur->id_sect) {
                 throw new \Exception('Échec de la création ou récupération du secteur.');
             }
             $id_secteur = $secteur->id_sect;
-
             Log::info('✅ Secteur récupéré', ['nom_fr_sect' => $secteur->nom_fr_sect, 'id_sect' => $id_secteur]);
 
             $categorie_etat = null;
             if ($validated['secteur_travail'] === 'Privé') {
                 $categorie_etat = CategorieEtat::firstOrCreate([
                     'nom_fr_etat' => 'Privé',
-                    'id_sect'     => $id_secteur,
+                    'id_sect' => $id_secteur,
                 ]);
             } else {
                 $categorie_etat = CategorieEtat::firstOrCreate([
                     'nom_fr_etat' => $validated['categorie'],
-                    'id_sect'     => $id_secteur,
+                    'id_sect' => $id_secteur,
                 ]);
             }
-            if (! $categorie_etat->id_cat_etat) {
+            if (!$categorie_etat->id_cat_etat) {
                 throw new \Exception('Échec de la création ou récupération de la catégorie état.');
             }
             $id_cat_etat = $categorie_etat->id_cat_etat;
-
             Log::info('✅ Catégorie état récupérée', ['nom_fr_etat' => $categorie_etat->nom_fr_etat, 'id_cat_etat' => $id_cat_etat]);
 
             $id_type_media = null;
             if ($validated['secteur_travail'] === 'Privé') {
                 $typeMedia = TypeMedia::firstOrCreate([
                     'nom_fr_type_media' => 'Privé',
-                    'id_cat_etat'       => $id_cat_etat,
+                    'id_cat_etat' => $id_cat_etat,
                 ]);
                 $id_type_media = $typeMedia->id_type_media;
-            } elseif ($validated['categorie'] === 'Média audio' && ! empty($validated['type_media'])) {
+            } elseif ($validated['categorie'] === 'Média audio' && !empty($validated['type_media'])) {
                 $typeMedia = TypeMedia::firstOrCreate([
                     'nom_fr_type_media' => $validated['type_media'],
-                    'id_cat_etat'       => $id_cat_etat,
+                    'id_cat_etat' => $id_cat_etat,
                 ]);
                 $id_type_media = $typeMedia->id_type_media;
-            } elseif ($validated['categorie'] === 'Média écrit et électronique' && ! empty($validated['media'])) {
+            } elseif ($validated['categorie'] === 'Média écrit et électronique' && !empty($validated['media'])) {
                 $typeMedia = TypeMedia::firstOrCreate([
                     'nom_fr_type_media' => $validated['media'],
-                    'id_cat_etat'       => $id_cat_etat,
+                    'id_cat_etat' => $id_cat_etat,
                 ]);
                 $id_type_media = $typeMedia->id_type_media;
             }
-
             if ($id_type_media) {
                 Log::info('✅ Type média récupéré', ['nom_fr_type_media' => $typeMedia->nom_fr_type_media, 'id_type_media' => $id_type_media]);
             } else {
@@ -563,32 +583,32 @@ class SoumissionController extends Controller
 
             $id_specialite = null;
             if ($validated['specialite']) {
-                $specialite    = Specialite::firstOrCreate(['name_fr' => $validated['specialite']]);
+                $specialite = Specialite::firstOrCreate(['name_fr' => $validated['specialite']]);
                 $id_specialite = $specialite->id_specialite;
                 Log::info('✅ Spécialité récupérée', ['name_fr' => $specialite->name_fr, 'id_specialite' => $id_specialite]);
             }
 
             // Récupérer la personne pour obtenir son id_dossier
             $personne = Personne::findOrFail($validated['userId']);
-            if (! $personne->id_dossier) {
+            if (!$personne->id_dossier) {
                 Log::error('🚫 Personne sans dossier associé', ['id_personne' => $validated['userId']]);
-                throw new \Exception('Aucun dossier associé à cette personne. Veuillez vérifier l\'étape 1.');
+                throw new \Exception(trans('formulaire.error_form_data'));
             }
             Log::info('✅ Dossier de la personne récupéré', ['id_personne' => $personne->id_personne, 'id_dossier' => $personne->id_dossier]);
 
             // Vérifier si un fichier d'attestation de travail est fourni
             $fichierAttestation = null;
             if ($request->hasFile('attestation_travail')) {
-                $file               = $request->file('attestation_travail');
-                $path               = $file->store('attestations', 'public');
+                $file = $request->file('attestation_travail');
+                $path = $file->store('attestations', 'public');
                 $fichierAttestation = Fichier::create([
-                    'nom_fichier_fr' => 'Attestation de travail', //$file->getClientOriginalName(),
-                    'nom_fichier_ar' => 'شهادة عمل',      //$file->getClientOriginalName(),
-                    'file_path'      => $path,
-                    'type'           => 'attestation_travail',
-                    'size'           => $file->getSize(),
-                    'id_dossier'     => $personne->id_dossier, // Correction : Associer au dossier de la personne
-                    'date_upload'    => now(),
+                    'nom_fichier_fr' => 'Attestation de travail',
+                    'nom_fichier_ar' => 'شهادة عمل',
+                    'file_path' => $path,
+                    'type' => 'attestation_travail',
+                    'size' => $file->getSize(),
+                    'id_dossier' => $personne->id_dossier,
+                    'date_upload' => now(),
                 ]);
                 Log::info('✅ Fichier attestation créé', ['id_fichier' => $fichierAttestation->id_fichier, 'file_path' => $path]);
             } else {
@@ -596,37 +616,35 @@ class SoumissionController extends Controller
             }
 
             Personne::where('id_personne', $validated['userId'])->update([
-                'fonction_fr'          => $validated['fonction_fr'],
-                'fonction_ar'          => $validated['fonction_ar'],
+                'fonction_fr' => $validated['fonction_fr'],
+                'fonction_ar' => $validated['fonction_ar'],
                 'id_professional_card' => $validated['id_professional_card'],
             ]);
             Log::info('✅ Mise à jour de Personne', ['id_personne' => $validated['userId']]);
 
             $occuper = Occuper::where('id_personne', $validated['userId'])->first();
-
             if ($occuper) {
                 $etablissement = Etablissement::find($occuper->id_etab);
                 $etablissement->update([
-                    'nom_fr_etab'   => $validated['nom_etablissement'],
-                    'nom_ar_etab'   => $validated['nom_etablissement_ar'],
-                    'email_etab'    => $validated['email'],
-                    'tel_etab'      => $validated['tel'],
-                    'langue'        => $validated['langue'] ?? null,
-                    'tv'            => $validated['type_media'] === 'TV' ? $validated['tv'] : null,
-                    'radio'         => $validated['type_media'] === 'Radio' ? $validated['radio'] : null,
-                    'media'         => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
+                    'nom_fr_etab' => $validated['nom_etablissement'],
+                    'nom_ar_etab' => $validated['nom_etablissement_ar'],
+                    'email_etab' => $validated['email'],
+                    'tel_etab' => $validated['tel'],
+                    'langue' => $validated['langue'] ?? null, // Champ langue pour secteur privé
+                    'tv' => $validated['type_media'] === 'TV' ? $validated['tv'] : null,
+                    'radio' => $validated['type_media'] === 'Radio' ? $validated['radio'] : null,
+                    'media' => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
                     'id_type_media' => $id_type_media,
                     'id_specialite' => $id_specialite,
-                    'updated_at'    => now(),
+                    'updated_at' => now(),
                 ]);
                 Log::info('✅ Mise à jour de Etablissement', ['id_etab' => $etablissement->id_etab]);
 
-                // Mise à jour de Occuper uniquement avec id_fichier si un nouveau fichier est téléchargé
                 $occuperData = [
-                    'id_etab'     => $etablissement->id_etab,
+                    'id_etab' => $etablissement->id_etab,
                     'date_recrut' => now()->toDateString(),
-                    'num_attes'   => $validated['num_attes'],
-                    'updated_at'  => now(),
+                    'num_attes' => $validated['num_attes'],
+                    'updated_at' => now(),
                 ];
                 if ($fichierAttestation) {
                     $occuperData['id_fichier'] = $fichierAttestation->id_fichier;
@@ -635,41 +653,41 @@ class SoumissionController extends Controller
                 Log::info('✅ Mise à jour de Occuper', ['id_occup' => $occuper->id_occup, 'data' => $occuperData]);
             } else {
                 $etablissement = Etablissement::create([
-                    'nom_fr_etab'   => $validated['nom_etablissement'],
-                    'nom_ar_etab'   => $validated['nom_etablissement_ar'],
-                    'email_etab'    => $validated['email'],
-                    'tel_etab'      => $validated['tel'],
-                    'langue'        => $validated['langue'] ?? null,
-                    'tv'            => $validated['type_media'] === 'TV' ? $validated['tv'] : null,
-                    'radio'         => $validated['type_media'] === 'Radio' ? $validated['radio'] : null,
-                    'media'         => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
+                    'nom_fr_etab' => $validated['nom_etablissement'],
+                    'nom_ar_etab' => $validated['nom_etablissement_ar'],
+                    'email_etab' => $validated['email'],
+                    'tel_etab' => $validated['tel'],
+                    'langue' => $validated['langue'] ?? null, // Champ langue pour secteur privé
+                    'tv' => $validated['type_media'] === 'TV' ? $validated['tv'] : null,
+                    'radio' => $validated['type_media'] === 'Radio' ? $validated['radio'] : null,
+                    'media' => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
                     'id_type_media' => $id_type_media,
                     'id_specialite' => $id_specialite,
-                    'created_at'    => now(),
-                    'updated_at'    => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
                 Log::info('✅ Création de Etablissement', ['id_etab' => $etablissement->id_etab]);
 
                 Occuper::create([
                     'id_personne' => $validated['userId'],
-                    'id_etab'     => $etablissement->id_etab,
+                    'id_etab' => $etablissement->id_etab,
                     'date_recrut' => now()->toDateString(),
-                    'num_attes'   => $validated['num_attes'],
-                    'id_fichier'  => $fichierAttestation ? $fichierAttestation->id_fichier : null,
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
+                    'num_attes' => $validated['num_attes'],
+                    'id_fichier' => $fichierAttestation ? $fichierAttestation->id_fichier : null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
                 Log::info('✅ Création de Occuper', ['id_personne' => $validated['userId'], 'id_etab' => $etablissement->id_etab]);
             }
 
             DB::commit();
             Log::info('✅ Étape 2 enregistrée avec succès');
-            return response()->json(['message' => 'Étape 2 enregistrée avec succès'], 201);
+            return response()->json(['message' => trans('formulaire.step2_saved')], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('🚫 Erreur lors de l\'enregistrement de l\'étape 2', ['message' => $e->getMessage()]);
             return response()->json([
-                'error' => 'Erreur lors de l\'enregistrement : ' . $e->getMessage(),
+                'error' => trans('formulaire.save_error', ['message' => $e->getMessage()]),
             ], 500);
         }
     }

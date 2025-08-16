@@ -66,4 +66,7 @@ return [
     'wilayas_error' => 'Impossible de charger les wilayas. Veuillez réessayer.',
     'file_size_error' => 'Le fichier :attribute ne doit pas dépasser :size Mo.',
     'submit_error' => 'Erreur lors de la soumission du formulaire.',
+    'personal_info' => 'Informations Personnelles',
+    'account_info' => 'Compte Info',
+    'confirmation' => 'Confirmation',
 ];

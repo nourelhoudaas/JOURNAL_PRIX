@@ -10,6 +10,7 @@ use App\Models\Theme;
 use App\Models\Wilaya;
 use App\Models\Specialite;
 use App\Models\SecteurTravail;
+use Illuminate\Support\Facades\App;
 
 
 
@@ -62,14 +63,23 @@ Route::middleware('auth:sanctum')->post('/soumission/step2', [SoumissionControll
 // ✅ Step 3 : enregistrement de la confirmation / finalisation
 Route::middleware('auth:sanctum')->post('/soumission/step3', [SoumissionController::class, 'storeStep3']);
 
-//Route::post('/soumission/store-step1', [SoumissionController::class, 'storeStep1']);
+// ✅ Traductions
+/*Route::get('/translations/{locale}', function ($locale) {
+    Vérifier que la locale est valide
+    if (!in_array($locale, ['fr', 'ar'])) {
+        return response()->json(['error' => 'Locale invalide'], 400);
+    }
 
+    App::setLocale($locale);
+    return response()->json(trans('formulaire'));
+});*/
+    
 // ✅ Récupération des données pour le formulaire (thèmes, catégories, userId)
 Route::get('/form-data', function () {
     return response()->json([
         'themes' => Theme::all(),
         'categories' => categories::all(),
-        'userId' => auth()->id(),
+        'userId' => optional(\Illuminate\Support\Facades\Auth::user())->id,
     ]);
 });
 

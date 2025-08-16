@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 
-const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoadingWilayas, langue, t }) => {
+const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoadingWilayas, locale, t }) => {
   const [ninError, setNinError] = useState('');
   const [ninExistsMessage, setNinExistsMessage] = useState('');
   const [isNinDisabled, setIsNinDisabled] = useState(false);
@@ -52,7 +52,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
         if (response.ok) {
           if (result.exists) {
             setNinExistsMessage(
-              langue === 'fr'
+              locale === 'fr'
                 ? 'Ce numéro NIN existe déjà dans la base de données.'
                 : 'رقم الهوية الوطنية موجود مسبقًا في قاعدة البيانات.'
             );
@@ -133,7 +133,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
         return false;
       }
     },
-    [onChange, formatDateForInput, t, langue]
+    [onChange, formatDateForInput, t, locale]
   );
 
   // Gérer le changement du NIN
@@ -302,7 +302,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
   return (
     <form
       onSubmit={handleSubmit}
-      className={`space-y-6 w-full max-w-5xl bg-white shadow-md rounded-lg p-8 ${langue === 'ar' ? 'text-right' : ''}`}
+      className={`space-y-6 w-full max-w-5xl bg-white shadow-md rounded-lg p-8 ${locale === 'ar' ? 'text-right' : ''}`}
     >
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
@@ -325,7 +325,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
       )}
       {isLoadingWilayas && (
         <div className="text-center text-gray-600">
-          {langue === 'fr' ? 'Chargement des wilayas...' : 'جارٍ تحميل الولايات...'}
+          {locale === 'fr' ? 'Chargement des wilayas...' : 'جارٍ تحميل الولايات...'}
         </div>
       )}
 
@@ -343,7 +343,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
               ninError ? 'border-red-500' : 'border-gray-300'
             } text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${
               isNinDisabled ? 'bg-gray-100 cursor-not-allowed' : ''
-            } ${langue === 'ar' ? 'text-right' : ''}`}
+            } ${locale === 'ar' ? 'text-right' : ''}`}
             placeholder={t.id_nin_personne}
             required
           />
@@ -359,7 +359,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
             pattern="[0-9]{10}"
             title={t.phone_invalid}
             className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${
-              langue === 'ar' ? 'text-right' : ''
+              locale === 'ar' ? 'text-right' : ''
             }`}
             placeholder={t.num_tlf_personne}
             required
@@ -397,7 +397,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
             value={data.nom_personne_ar || ''}
             onChange={onChange}
             className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${
-              langue === 'ar' ? 'text-right' : ''
+              locale === 'ar' ? 'text-right' : ''
             }`}
             placeholder={t.nom_personne_ar}
             required
@@ -411,7 +411,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
             value={data.prenom_personne_ar || ''}
             onChange={onChange}
             className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${
-              langue === 'ar' ? 'text-right' : ''
+              locale === 'ar' ? 'text-right' : ''
             }`}
             placeholder={t.prenom_personne_ar}
             required
@@ -441,7 +441,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
             required
           >
             <option value="" disabled>
-              {langue === 'fr' ? 'Sélectionnez un groupe sanguin' : 'اختر فصيلة الدم'}
+              {locale === 'fr' ? 'Sélectionnez un groupe sanguin' : 'اختر فصيلة الدم'}
             </option>
             <option value="A+">A+</option>
             <option value="A-">A-</option>
@@ -454,7 +454,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
           </select>
         </div>
 
-        {langue === 'fr' && (
+        {locale === 'fr' && (
           <>
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-900">{t.lieu_naissance_fr}</label>
@@ -467,7 +467,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
                 required
               >
                 <option value="" disabled>
-                  {langue === 'fr' ? 'Sélectionnez une wilaya' : 'اختر ولاية'}
+                  {locale === 'fr' ? 'Sélectionnez une wilaya' : 'اختر ولاية'}
                 </option>
                 {wilayas.map((wilaya) => (
                   <option key={wilaya.id} value={wilaya.name_fr}>
@@ -487,7 +487,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
                 required
               >
                 <option value="" disabled>
-                  {langue === 'fr' ? 'Sélectionnez le sexe' : 'اختر الجنس'}
+                  {locale === 'fr' ? 'Sélectionnez le sexe' : 'اختر الجنس'}
                 </option>
                 <option value="Masculin">Masculin</option>
                 <option value="Féminin">Féminin</option>
@@ -496,7 +496,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
           </>
         )}
 
-        {langue === 'ar' && (
+        {locale === 'ar' && (
           <>
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-900">{t.lieu_naissance_ar}</label>
@@ -509,7 +509,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
                 required
               >
                 <option value="" disabled>
-                  {langue === 'fr' ? 'Sélectionnez une wilaya' : 'اختر ولاية'}
+                  {locale === 'fr' ? 'Sélectionnez une wilaya' : 'اختر ولاية'}
                 </option>
                 {wilayas.map((wilaya) => (
                   <option key={wilaya.id} value={wilaya.name_ar}>
@@ -529,7 +529,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
                 required
               >
                 <option value="" disabled>
-                  {langue === 'fr' ? 'Sélectionnez le sexe' : 'اختر الجنس'}
+                  {locale === 'fr' ? 'Sélectionnez le sexe' : 'اختر الجنس'}
                 </option>
                 <option value="ذكر">ذكر</option>
                 <option value="أنثى">أنثى</option>
@@ -557,7 +557,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
             value={data.nationalite_ar || 'جزائرية'}
             disabled
             className={`bg-gray-100 border border-gray-300 text-gray-500 text-sm rounded-lg block w-full p-2.5 cursor-not-allowed ${
-              langue === 'ar' ? 'text-right' : ''
+              locale === 'ar' ? 'text-right' : ''
             }`}
             placeholder={t.nationalite_ar}
           />
@@ -583,7 +583,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
             value={data.adresse_ar || ''}
             onChange={onChange}
             className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${
-              langue === 'ar' ? 'text-right' : ''
+              locale === 'ar' ? 'text-right' : ''
             }`}
             placeholder={t.adresse_ar}
             required
@@ -598,7 +598,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
         {data.fichiers && data.fichiers.some((f) => f.type === 'carte_nationale') && (
           <div className="mb-2">
             <p className="text-sm text-gray-600">
-              {langue === 'fr' ? 'Fichier existant :' : 'الملف الموجود :'}
+              {locale === 'fr' ? 'Fichier existant :' : 'الملف الموجود :'}
               {data.fichiers.find((f) => f.type === 'carte_nationale').nom_fichier_fr}{' '}
               <a
                 href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === 'carte_nationale').file_path}`}
@@ -606,7 +606,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline"
               >
-                {langue === 'fr' ? '(Voir)' : '(عرض)'}
+                {locale === 'fr' ? '(Voir)' : '(عرض)'}
               </a>
             </p>
           </div>
@@ -626,7 +626,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
         {data.fichiers && data.fichiers.some((f) => f.type === 'photo') && (
           <div className="mb-2">
             <p className="text-sm text-gray-600">
-              {langue === 'fr' ? 'Fichier existant :' : 'الملف الموجود :'}
+              {locale === 'fr' ? 'Fichier existant :' : 'الملف الموجود :'}
               {data.fichiers.find((f) => f.type === 'photo').nom_fichier_fr}{' '}
               <a
                 href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === 'photo').file_path}`}
@@ -634,7 +634,7 @@ const Step1 = ({ data, onChange, onFileChange, onNext, error, wilayas, isLoading
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline"
               >
-                {langue === 'fr' ? '(Voir)' : '(عرض)'}
+                {locale === 'fr' ? '(Voir)' : '(عرض)'}
               </a>
             </p>
           </div>

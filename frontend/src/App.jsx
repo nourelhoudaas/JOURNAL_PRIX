@@ -3,10 +3,10 @@ import MultiStepForm from './components/MultiStepForm/MultiStepForm';
 import Logo from './assets/img/logo_ministere.png';
 
 function App() {
-  const [langue, setLangue] = useState('fr'); // 'fr' par défaut
+  const [locale, setLocale] = useState('fr'); // 'fr' par défaut
 
-  const handleLangueChange = (newLangue) => {
-    setLangue(newLangue);
+  const handleLocaleChange = (newLocale) => {
+    setLocale(newLocale);
   };
 
   // Définir les traductions
@@ -16,7 +16,7 @@ function App() {
   };
 
    // Définir la direction en fonction de la langue
-  const direction = langue === 'ar' ? 'rtl' : 'ltr';
+  const direction = locale === 'ar' ? 'rtl' : 'ltr';
 
   return (
     <div className="w-full mx-auto py-11 max-w-7xl pt-16">
@@ -30,8 +30,8 @@ function App() {
           </label>
           <select
             id="language-select"
-            value={langue}
-            onChange={(e) => handleLangueChange(e.target.value)}
+            value={locale}
+            onChange={(e) => handleLocaleChange(e.target.value)}
             className="p-2 border rounded bg-white text-gray-900 text-sm"
           >
             <option value="fr">Français</option>
@@ -41,7 +41,7 @@ function App() {
             href="/logout"
             className="text-sm font-semibold text-gray-700 hover:text-indigo-600 flex items-center space-x-1"
           >
-            <span>{translations[langue].logout}</span>
+            <span>{translations[locale].logout}</span>
             <svg
               className="h-4 w-4 ml-1"
               fill="none"
@@ -55,7 +55,7 @@ function App() {
           </a>
         </div>
       </nav>
-      <MultiStepForm langue={langue} setLangue={handleLangueChange} direction={direction} />
+      <MultiStepForm locale={locale} setLocale={handleLocaleChange} direction={direction} />
     </div>
   );
 }
