@@ -3,35 +3,41 @@ import MultiStepForm from './components/MultiStepForm/MultiStepForm';
 import Logo from './assets/img/logo_ministere.png';
 
 function App() {
-  const [langue, setLangue] = useState('fr'); // 'fr' par défaut
+  const [interfaceLocale, setInterfaceLocale] = useState('fr'); // 'fr' par défaut
 
-  const handleLangueChange = (newLangue) => {
-    setLangue(newLangue);
+  const handleLocaleChange = (newLocale) => {
+    setInterfaceLocale(newLocale);
   };
 
   // Définir les traductions
   const translations = {
-    fr: { logout: 'Déconnexion' },
-    ar: { logout: 'تسجيل الخروج' },
+    fr: {
+      logout: 'Déconnexion',
+      select_language: 'Sélectionner la langue',
+    },
+    ar: {
+      logout: 'تسجيل الخروج',
+      select_language: 'اختر اللغة',
+    },
   };
 
-   // Définir la direction en fonction de la langue
-  const direction = langue === 'ar' ? 'rtl' : 'ltr';
+  // Définir la direction en fonction de la langue
+  const direction = interfaceLocale === 'ar' ? 'rtl' : 'ltr';
 
   return (
-    <div className="w-full mx-auto py-11 max-w-7xl pt-16">
+    <div className="w-full mx-auto py-11 max-w-7xl pt-16" dir={direction}>
       <nav className="w-full bg-white shadow px-8 py-4 flex items-center justify-between fixed top-0 z-50">
         <div className="flex items-center space-x-4">
-          <img src={Logo} className="h-6 w-auto" alt="Logo du ministère" />
+          <img src={Logo} className="h-6 w-auto" alt={translations[interfaceLocale].select_language} />
         </div>
         <div className="flex items-center space-x-4">
           <label htmlFor="language-select" className="sr-only">
-            Sélectionner la langue
+            {translations[interfaceLocale].select_language}
           </label>
           <select
             id="language-select"
-            value={langue}
-            onChange={(e) => handleLangueChange(e.target.value)}
+            value={interfaceLocale}
+            onChange={(e) => handleLocaleChange(e.target.value)}
             className="p-2 border rounded bg-white text-gray-900 text-sm"
           >
             <option value="fr">Français</option>
@@ -41,7 +47,7 @@ function App() {
             href="/logout"
             className="text-sm font-semibold text-gray-700 hover:text-indigo-600 flex items-center space-x-1"
           >
-            <span>{translations[langue].logout}</span>
+            <span>{translations[interfaceLocale].logout}</span>
             <svg
               className="h-4 w-4 ml-1"
               fill="none"
@@ -55,7 +61,11 @@ function App() {
           </a>
         </div>
       </nav>
-      <MultiStepForm langue={langue} setLangue={handleLangueChange} direction={direction} />
+      <MultiStepForm
+        interfaceLocale={interfaceLocale}
+        setInterfaceLocale={handleLocaleChange}
+        direction={direction}
+      />
     </div>
   );
 }

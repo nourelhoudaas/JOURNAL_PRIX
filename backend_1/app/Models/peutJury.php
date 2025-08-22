@@ -12,7 +12,7 @@ class peutJury extends Model
     public $incrementing = true;
     protected $keyType = 'integer';  
     public $timestamps = false; 
-    protected $fillable = ['id_peut_etre_jury','id_personne','id_jury',
+    protected $fillable = ['id_peut_etre_jury','id_personne','id_jury','id_nin_personne'
     ];
 
       public function peutParticipantPersonne()

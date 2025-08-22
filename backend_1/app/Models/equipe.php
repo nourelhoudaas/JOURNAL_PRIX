@@ -1,28 +1,28 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class equipe extends Model
+class Equipe extends Model
 {
-     
     protected $table = 'equipes';
     protected $primaryKey = 'id_equipe';
     public $incrementing = true;
-    protected $keyType = 'integer';  
-    public $timestamps = false; 
-    protected $fillable = ['id_equipe','nom_equipe_ar','nom_equipe_fr','id_personne','id_oeuvre',
-];
-  public function equipepersonne()
-    {
-        return $this->belongsTo(personne::class,'id_personne','id_personne');
-    }
+    protected $keyType = 'integer';
+    public $timestamps = true;
+    protected $fillable = [
+        'id_equipe',
+        'nom_equipe_ar',
+        'nom_equipe_fr',
+        'created_at',
+        'updated_at'
+    ];
 
-     public function equipetravail()
-    {
-        return $this->belongsTo(travail::class,'id_oeuvre','id_oeuvre');
-    }
+    
 
+    public function membres()
+    {
+        return $this->belongsToMany(Personne::class, 'forme', 'id_equipe', 'id_personne')
+                    ->withPivot('role', 'date_integration');
+    }
 }
-       

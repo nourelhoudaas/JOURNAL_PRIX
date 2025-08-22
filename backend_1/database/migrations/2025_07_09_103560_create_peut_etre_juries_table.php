@@ -17,7 +17,7 @@ return new class extends Migration
 
            $table->unsignedBigInteger('id_personne');
             $table->foreign('id_personne')->references('id_personne')->on('personnes')->onDelete('cascade');
-
+             $table->decimal('id_nin_personne', 18, 0)->unique();
         
 
             $table->integer('id_jury');

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Hôte : 127.0.0.1:3306
--- Généré le : mer. 13 août 2025 à 15:31
+-- Généré le : ven. 22 août 2025 à 16:35
 -- Version du serveur : 8.2.0
 -- Version de PHP : 8.2.13
 
@@ -66,18 +66,6 @@ CREATE TABLE IF NOT EXISTS `cache` (
   `expiration` int NOT NULL,
   PRIMARY KEY (`key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Déchargement des données de la table `cache`
---
-
-INSERT INTO `cache` (`key`, `value`, `expiration`) VALUES
-('5c785c036466adea360111aa28563bfd556b5fba', 'i:4;', 1755098712),
-('5c785c036466adea360111aa28563bfd556b5fba:timer', 'i:1755098712;', 1755098712),
-('b0d987831f07a96453013f6d685dc1fd', 'i:2;', 1755098631),
-('b0d987831f07a96453013f6d685dc1fd:timer', 'i:1755098631;', 1755098631),
-('sayahhouda06@gmail.com|127.0.0.1', 'i:2;', 1755098631),
-('sayahhouda06@gmail.com|127.0.0.1:timer', 'i:1755098631;', 1755098631);
 
 -- --------------------------------------------------------
 
@@ -178,7 +166,7 @@ CREATE TABLE IF NOT EXISTS `comptes` (
 --
 
 INSERT INTO `comptes` (`id_compte`, `username`, `email`, `mot_passe_hash`, `email_verification_code`, `statut_email`, `code_forget_pass_generate`, `date_creation_cmpt`, `date_update_cmpt`, `date_verification_email`, `id`) VALUES
-(1, 'Admin', 'sayahhouda06@gmail.com', '$2y$12$OfqbicENxRqS0yJlmrGkL.m7YfE.oEg6REyBzzuWW1pIXL1Rlo5z6', 'ABC123', 'verifie', '', '2025-08-13 15:23:15', NULL, '2025-08-13 15:23:15', 1);
+(1, 'Admin', 'sayahhouda06@gmail.com', '$2y$12$UNRRASSVSGFMu3lhFlsVPOYw/k6xeTfbqPE3L6qNOqeCSPFFckcKO', 'ABC123', 'verifie', '', '2025-08-22 16:35:11', NULL, '2025-08-22 16:35:11', 1);
 
 -- --------------------------------------------------------
 
@@ -191,8 +179,6 @@ CREATE TABLE IF NOT EXISTS `contients` (
   `id_contient` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `id_oeuvre` bigint UNSIGNED NOT NULL,
   `id_categorie` bigint UNSIGNED NOT NULL,
-  `annee_gain` date DEFAULT NULL,
-  `classement` int DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_contient`),
@@ -212,14 +198,7 @@ CREATE TABLE IF NOT EXISTS `dossiers` (
   `date_create_dossier` datetime NOT NULL,
   `statut_dossier` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   PRIMARY KEY (`id_dossier`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Déchargement des données de la table `dossiers`
---
-
-INSERT INTO `dossiers` (`id_dossier`, `date_create_dossier`, `statut_dossier`) VALUES
-(1, '2025-08-13 15:24:43', 'en_attente');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -276,14 +255,7 @@ CREATE TABLE IF NOT EXISTS `etablissement` (
   PRIMARY KEY (`id_etab`),
   KEY `etablissement_id_specialite_foreign` (`id_specialite`),
   KEY `etablissement_id_type_media_foreign` (`id_type_media`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Déchargement des données de la table `etablissement`
---
-
-INSERT INTO `etablissement` (`id_etab`, `nom_ar_etab`, `nom_fr_etab`, `email_etab`, `tel_etab`, `langue`, `tv`, `radio`, `media`, `id_type_media`, `id_specialite`, `created_at`, `updated_at`) VALUES
-(1, 'sayah', 'nour el houda', 'sayahhouda06@gmail.com', '0791326438', NULL, 'Régionale', NULL, NULL, 1, 2, '2025-08-13 14:25:10', '2025-08-13 14:25:10');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -324,16 +296,7 @@ CREATE TABLE IF NOT EXISTS `fichiers` (
   PRIMARY KEY (`id_fichier`),
   KEY `fichiers_id_dossier_foreign` (`id_dossier`),
   KEY `fichiers_id_oeuvre_foreign` (`id_oeuvre`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Déchargement des données de la table `fichiers`
---
-
-INSERT INTO `fichiers` (`id_fichier`, `nom_fichier_ar`, `nom_fichier_fr`, `file_path`, `type`, `size`, `id_dossier`, `id_oeuvre`, `date_upload`) VALUES
-(1, 'البطاقة الوطنية', 'Carte nationale', 'carte_nationale/5EOoT6Hpw0KaNpFqPnm2Pm0BWMs4dSFJJTS2zpSn.pdf', 'carte_nationale', 330625, 1, NULL, '2025-08-13 15:24:43'),
-(2, 'صورة', 'Photo', 'photos/m68tYjBTEwp33BVYSqoQVV689cT3AyFaifowKROD.jpg', 'photo', 245999, 1, NULL, '2025-08-13 15:24:43'),
-(3, 'شهادة عمل', 'Attestation de travail', 'attestations/zZJxpur070NieSFnZarmoRfv3UWREmPPmhrv3Y0P.pdf', 'attestation_travail', 103082, 1, NULL, '2025-08-13 15:25:10');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -483,14 +446,7 @@ CREATE TABLE IF NOT EXISTS `occuper` (
   KEY `occuper_id_etab_foreign` (`id_etab`),
   KEY `occuper_id_personne_foreign` (`id_personne`),
   KEY `occuper_id_fichier_foreign` (`id_fichier`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Déchargement des données de la table `occuper`
---
-
-INSERT INTO `occuper` (`id_occup`, `date_recrut`, `id_etab`, `id_personne`, `id_fichier`, `num_attes`, `created_at`, `updated_at`) VALUES
-(1, '2025-08-13', 1, 1, 3, '222', '2025-08-13 14:25:10', '2025-08-13 14:25:10');
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -596,14 +552,7 @@ CREATE TABLE IF NOT EXISTS `personnes` (
   UNIQUE KEY `personnes_id_nin_personne_unique` (`id_nin_personne`),
   KEY `personnes_id_compte_foreign` (`id_compte`),
   KEY `personnes_id_dossier_foreign` (`id_dossier`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
---
--- Déchargement des données de la table `personnes`
---
-
-INSERT INTO `personnes` (`id_personne`, `id_nin_personne`, `nom_personne_ar`, `nom_personne_fr`, `prenom_personne_ar`, `prenom_personne_fr`, `date_naissance`, `lieu_naissance_ar`, `lieu_naissance_fr`, `nationalite_ar`, `nationalite_fr`, `id_professional_card`, `id_dossier`, `num_tlf_personne`, `adresse_ar`, `adresse_fr`, `fonction_ar`, `fonction_fr`, `sexe_personne_ar`, `sexe_personne_fr`, `groupage`, `created_at`, `updated_at`, `id_compte`) VALUES
-(1, 123456789012345678, 'sayah', 'sayah', 'nour el houda', 'nour el houda', '2025-07-09', 'تيزي وزو', 'Tizi Ouzou', 'جزائرية', 'Algerienne', 96524, 1, '0791326438', 'aqsss', 'cité 1200 logts boumerdes, boumerdes', 'ss', 'ss', 'ذكر', 'Masculin', 'B+', '2025-08-13 14:24:43', '2025-08-13 14:25:10', 1);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
 
@@ -615,8 +564,10 @@ DROP TABLE IF EXISTS `peut_etre_juries`;
 CREATE TABLE IF NOT EXISTS `peut_etre_juries` (
   `id_peut_etre_jury` int NOT NULL AUTO_INCREMENT,
   `id_personne` bigint UNSIGNED NOT NULL,
+  `id_nin_personne` decimal(18,0) NOT NULL,
   `id_jury` int NOT NULL,
   PRIMARY KEY (`id_peut_etre_jury`),
+  UNIQUE KEY `peut_etre_juries_id_nin_personne_unique` (`id_nin_personne`),
   KEY `peut_etre_juries_id_personne_foreign` (`id_personne`),
   KEY `peut_etre_juries_id_jury_foreign` (`id_jury`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -632,7 +583,9 @@ CREATE TABLE IF NOT EXISTS `peut_etre_participants` (
   `id_peut_etre_participant` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `id_personne` bigint UNSIGNED NOT NULL,
   `id_participant` bigint UNSIGNED NOT NULL,
+  `id_nin_personne` decimal(18,0) NOT NULL,
   PRIMARY KEY (`id_peut_etre_participant`),
+  UNIQUE KEY `peut_etre_participants_id_nin_personne_unique` (`id_nin_personne`),
   KEY `peut_etre_participants_id_personne_foreign` (`id_personne`),
   KEY `peut_etre_participants_id_participant_foreign` (`id_participant`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -745,13 +698,15 @@ CREATE TABLE IF NOT EXISTS `travails` (
   `id_oeuvre` bigint UNSIGNED NOT NULL AUTO_INCREMENT,
   `titre_oeuvre_ar` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `titre_oeuvre_fr` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
-  `Duree_nbr_signes` time NOT NULL,
+  `Duree_nbr_signes` time DEFAULT NULL,
   `date_publication` date NOT NULL,
   `description_oeuvre_ar` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `description_oeuvre_fr` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `statut_oeuvre_ar` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `statut_oeuvre_fr` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
   `valider_oeuvre` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `annee_gain` date DEFAULT NULL,
+  `classement` int DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT NULL,
   `updated_at` timestamp NULL DEFAULT NULL,
   PRIMARY KEY (`id_oeuvre`)
@@ -780,11 +735,11 @@ CREATE TABLE IF NOT EXISTS `type_media` (
 --
 
 INSERT INTO `type_media` (`id_type_media`, `nom_ar_type_media`, `nom_fr_type_media`, `id_cat_etat`, `created_at`, `updated_at`) VALUES
-(1, 'تلفزيون', 'TV', 1, '2025-08-13 14:23:15', '2025-08-13 14:23:15'),
-(2, 'راديو', 'Radio', 1, '2025-08-13 14:23:15', '2025-08-13 14:23:15'),
-(3, 'مكتوب', 'Écrit', 2, '2025-08-13 14:23:15', '2025-08-13 14:23:15'),
-(4, 'إلكتروني', 'Électronique', 2, '2025-08-13 14:23:15', '2025-08-13 14:23:15'),
-(5, 'خاص', 'Privé', 3, '2025-08-13 14:23:15', '2025-08-13 14:23:15');
+(1, 'تلفزيون', 'TV', 1, '2025-08-22 15:35:11', '2025-08-22 15:35:11'),
+(2, 'راديو', 'Radio', 1, '2025-08-22 15:35:11', '2025-08-22 15:35:11'),
+(3, 'مكتوب', 'Écrit', 2, '2025-08-22 15:35:11', '2025-08-22 15:35:11'),
+(4, 'إلكتروني', 'Électronique', 2, '2025-08-22 15:35:11', '2025-08-22 15:35:11'),
+(5, 'خاص', 'Privé', 3, '2025-08-22 15:35:11', '2025-08-22 15:35:11');
 
 -- --------------------------------------------------------
 
@@ -815,7 +770,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 --
 
 INSERT INTO `users` (`id`, `name`, `email`, `email_verified_at`, `password`, `two_factor_secret`, `two_factor_recovery_codes`, `two_factor_confirmed_at`, `remember_token`, `created_at`, `updated_at`, `verification_code`) VALUES
-(1, 'Admin', 'sayahhouda06@gmail.com', '2025-08-13 14:23:14', '$2y$12$9Q3fTtBo0zPgjdq9rjgq4uygjLt5OrrUxdUMC1kKHod8siPQhErBu', NULL, NULL, NULL, NULL, '2025-08-13 14:23:14', '2025-08-13 14:23:14', NULL);
+(1, 'Admin', 'sayahhouda06@gmail.com', '2025-08-22 15:35:10', '$2y$12$vd.CL.xfESTTNbq4kip7OePm5Grbf0qrJNHCOnbz.oBUP0HkWdhxm', NULL, NULL, NULL, NULL, '2025-08-22 15:35:11', '2025-08-22 15:35:11', NULL);
 
 -- --------------------------------------------------------
 

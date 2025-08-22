@@ -17,6 +17,7 @@ return new class extends Migration
             $table->id('id_peut_etre_participant'); // Utilisation de id() pour la clé primaire
             $table->unsignedBigInteger('id_personne'); // Changé de integer() à unsignedBigInteger()
             $table->unsignedBigInteger('id_participant'); // Assurez-vous que id_participant est aussi compatible
+            $table->decimal('id_nin_personne', 18, 0)->unique();
         });
 
         // Étape 2 : Ajouter les foreign keys dans une étape séparée

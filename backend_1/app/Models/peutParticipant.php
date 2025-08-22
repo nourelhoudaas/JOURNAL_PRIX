@@ -11,7 +11,7 @@ class peutParticipant extends Model
     public $incrementing = true;
     protected $keyType = 'integer';  
     public $timestamps = false; 
-    protected $fillable = ['id_peut_etre_participant','id_personne','id_participant',
+    protected $fillable = ['id_peut_etre_participant','id_personne','id_participant','id_nin_personne'
     ];
 
       public function peutParticipantPersonne()

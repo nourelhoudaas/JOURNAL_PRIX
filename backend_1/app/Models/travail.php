@@ -20,11 +20,15 @@ class Travail extends Model
         'statut_oeuvre_fr',
         'valider_oeuvre',
         'id_fichier',
+        'annee_gain',
+        'classement',
     ];
 
     protected $casts = [
         'Duree_nbr_signes' => 'datetime:H:i:s', // Peut-être à revoir si c'est un nombre de signes
         'date_publication' => 'date',
+        'annee_gain' => 'date',
+        'classement' => 'integer',
     ];
 
     public function fichiers()

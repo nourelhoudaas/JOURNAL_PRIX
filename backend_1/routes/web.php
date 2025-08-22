@@ -8,6 +8,7 @@ use App\Http\Controllers\SoumissionController;
 use App\Http\Controllers\VerificationController;
 use App\Models\Theme;
 use App\Models\Wilaya;
+use App\Models\Categorie;
 use App\Models\Specialite;
 use App\Models\SecteurTravail;
 
@@ -62,13 +63,14 @@ Route::middleware('auth:sanctum')->post('/soumission/step2', [SoumissionControll
 // ✅ Step 3 : enregistrement de la confirmation / finalisation
 Route::middleware('auth:sanctum')->post('/soumission/step3', [SoumissionController::class, 'storeStep3']);
 
-//Route::post('/soumission/store-step1', [SoumissionController::class, 'storeStep1']);
+// ✅ Récupération des membres collaborateurs
+Route::middleware('auth:sanctum')->get('/soumission/membre-collaborators', [SoumissionController::class, 'membreCollaborators']);
 
 // ✅ Récupération des données pour le formulaire (thèmes, catégories, userId)
 Route::get('/form-data', function () {
     return response()->json([
         'themes' => Theme::all(),
-        'categories' => categories::all(),
+        'categories' => Categorie::all(),
         'userId' => auth()->id(),
     ]);
 });

@@ -13,10 +13,7 @@ return new class extends Migration
             $table->id('id_equipe'); // bigint unsigned for primary key
             $table->string('nom_equipe_ar', 191);
             $table->string('nom_equipe_fr', 191);
-            $table->unsignedBigInteger('id_personne'); // Changed to integer to match personnes table
-            $table->foreign('id_personne')->references('id_personne')->on('personnes')->onDelete('cascade');
-            $table->unsignedBigInteger('id_oeuvre'); // Matches travails table
-            $table->foreign('id_oeuvre')->references('id_oeuvre')->on('travails')->onDelete('cascade');
+            $table->timestamps();
             $table->charset = 'utf8mb4';
             $table->collation = 'utf8mb4_unicode_ci';
         });

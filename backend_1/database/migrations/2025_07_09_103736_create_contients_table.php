@@ -13,8 +13,6 @@ class CreateContientsTable extends Migration
             $table->id('id_contient');
             $table->foreignId('id_oeuvre')->constrained('travails', 'id_oeuvre')->onDelete('cascade');
             $table->foreignId('id_categorie')->constrained('categories', 'id_categorie')->onDelete('cascade');
-            $table->date('annee_gain')->nullable();
-            $table->integer('classement')->nullable();
             $table->timestamps();
             $table->charset = 'utf8mb4';
             $table->collation = 'utf8mb4_unicode_ci';
