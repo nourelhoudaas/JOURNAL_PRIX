@@ -1,5 +1,6 @@
 <?php
 return [
+    'id_nin_personne' => 'رقم الهوية الوطنية',
     'nom_personne_fr' => 'الاسم (فرنسي)',
     'prenom_personne_fr' => 'اللقب (فرنسي)',
     'nom_personne_ar' => 'الاسم (عربي)',
@@ -8,8 +9,6 @@ return [
     'lieu_naissance_ar' => 'مكان الولادة (عربي)',
     'sexe_personne_fr' => 'الجنس (فرنسي)',
     'sexe_personne_ar' => 'الجنس (عربي)',
-    'id_nin_personne' => 'رقم الهوية الوطنية',
-    'num_tlf_personne' => 'الهاتف',
     'date_naissance' => 'تاريخ الميلاد',
     'nationalite_fr' => 'الجنسية (فرنسي)',
     'nationalite_ar' => 'الجنسية (عربي)',

@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Http\Controllers;
 
 use App\Models\Categorie;
@@ -25,7 +26,7 @@ use Illuminate\Validation\Rule;
 
 class SoumissionController extends Controller
 {
-// Check if NIN exists and return person data
+    // Check if NIN exists and return person data
     // Check if NIN exists and return person data
     public function checkNin(Request $request)
     {
@@ -340,7 +341,7 @@ class SoumissionController extends Controller
         }
     }
 
-// Check if professional card exists and return associated data
+    // Check if professional card exists and return associated data
     public function checkProfessionalCard(Request $request)
     {
         $interfaceLocale = $request->query('locale', 'fr');
@@ -349,13 +350,13 @@ class SoumissionController extends Controller
         // Log des paramètres reçus
         Log::info('🟢 Début checkProfessionalCard', [
             'id_professional_card' => $request->query('id_professional_card'),
-            'userId'               => $request->query('userId'),
+            'userId' => $request->query('userId'),
         ]);
 
         $id_professional_card = $request->query('id_professional_card');
-        $userId               = $request->query('userId');
+        $userId = $request->query('userId');
 
-        if (! $id_professional_card) {
+        if (!$id_professional_card) {
             Log::warning('🚫 id_professional_card manquant');
             return response()->json([
                 'exists'  => false,
@@ -369,7 +370,7 @@ class SoumissionController extends Controller
             if ($person->id_personne != $userId) {
                 Log::warning('🚫 Carte professionnelle associée à un autre utilisateur', [
                     'id_personne' => $person->id_personne,
-                    'userId'      => $userId,
+                    'userId' => $userId,
                 ]);
                 return response()->json([
                     'exists' => true,
@@ -377,46 +378,44 @@ class SoumissionController extends Controller
                 ], 422);
             }
 
-            $occupation    = Occuper::where('id_personne', $person->id_personne)->first();
+            $occupation = Occuper::where('id_personne', $person->id_personne)->first();
             $etablissement = $occupation ? Etablissement::with(['typeMedia.categorieEtat.secteur', 'specialite'])->find($occupation->id_etab) : null;
 
             Log::info('🔍 Données Occupation et Etablissement', [
-                'occupation'    => $occupation ? $occupation->toArray() : null,
+                'occupation' => $occupation ? $occupation->toArray() : null,
                 'etablissement' => $etablissement ? $etablissement->toArray() : null,
             ]);
 
             $secteur_travail = $etablissement && $etablissement->typeMedia && $etablissement->typeMedia->categorieEtat && $etablissement->typeMedia->categorieEtat->secteur
-            ? $etablissement->typeMedia->categorieEtat->secteur->nom_fr_sect
-            : 'unknown';
+                ? $etablissement->typeMedia->categorieEtat->secteur->nom_fr_sect
+                : 'unknown';
 
             if ($secteur_travail === 'unknown') {
                 Log::warning('⚠️ Secteur de travail non récupéré', [
                     'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
-                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
+                    'id_type_media' => $etablissement ? $etablissement->id_type_media : null,
                 ]);
             }
 
-            $categorie = $secteur_travail === 'Privé' ? 'Privé' :
-            ($etablissement && $etablissement->typeMedia && $etablissement->typeMedia->categorieEtat
+            $categorie = $secteur_travail === 'Privé' ? 'Privé' : ($etablissement && $etablissement->typeMedia && $etablissement->typeMedia->categorieEtat
                 ? $etablissement->typeMedia->categorieEtat->nom_fr_etat ?? 'unknown'
                 : 'unknown');
 
             if ($categorie === 'unknown' && $secteur_travail !== 'Privé') {
                 Log::warning('⚠️ Catégorie non récupérée', [
                     'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
-                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
+                    'id_type_media' => $etablissement ? $etablissement->id_type_media : null,
                 ]);
             }
 
-            $type_media = $secteur_travail === 'Privé' ? 'Privé' :
-            ($etablissement && $etablissement->typeMedia
+            $type_media = $secteur_travail === 'Privé' ? 'Privé' : ($etablissement && $etablissement->typeMedia
                 ? $etablissement->typeMedia->nom_fr_type_media ?? ''
                 : '');
 
             if ($type_media === '' && $secteur_travail !== 'Privé') {
                 Log::warning('⚠️ Type média non récupéré', [
                     'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
-                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
+                    'id_type_media' => $etablissement ? $etablissement->id_type_media : null,
                 ]);
             }
 
@@ -428,32 +427,32 @@ class SoumissionController extends Controller
                 ->get()
                 ->map(function ($fichier) {
                     return [
-                        'id_fichier'     => $fichier->id_fichier,
+                        'id_fichier' => $fichier->id_fichier,
                         'nom_fichier_ar' => $fichier->nom_fichier_ar,
                         'nom_fichier_fr' => $fichier->nom_fichier_fr,
-                        'file_path'      => $fichier->file_path,
-                        'type'           => $fichier->type,
+                        'file_path' => $fichier->file_path,
+                        'type' => $fichier->type,
                     ];
                 })->toArray() : [];
 
             $data = [
                 'id_professional_card' => $person->id_professional_card,
-                'num_attes'            => $occupation ? $occupation->num_attes : '',
-                'fonction_fr'          => $person->fonction_fr ?? '',
-                'fonction_ar'          => $person->fonction_ar ?? '',
-                'secteur_travail'      => $secteur_travail,
-                'categorie'            => $categorie,
-                'type_media'           => $type_media,
-                'tv'                   => $etablissement ? $etablissement->tv : null,
-                'radio'                => $etablissement ? $etablissement->radio : null,
-                'media'                => $etablissement ? $etablissement->media : null,
-                'langue'               => $etablissement ? $etablissement->langue : null,
-                'specialite'           => $specialite_name,
-                'nom_etablissement'    => $etablissement ? $etablissement->nom_fr_etab : '',
+                'num_attes' => $occupation ? $occupation->num_attes : '',
+                'fonction_fr' => $person->fonction_fr ?? '',
+                'fonction_ar' => $person->fonction_ar ?? '',
+                'secteur_travail' => $secteur_travail,
+                'categorie' => $categorie,
+                'type_media' => $type_media,
+                'tv' => $etablissement ? $etablissement->tv : null,
+                'radio' => $etablissement ? $etablissement->radio : null,
+                'media' => $etablissement ? $etablissement->media : null,
+                'langue' => $etablissement ? $etablissement->langue : null, // Champ langue pour secteur privé
+                'specialite' => $specialite_name,
+                'nom_etablissement' => $etablissement ? $etablissement->nom_fr_etab : '',
                 'nom_etablissement_ar' => $etablissement ? $etablissement->nom_ar_etab : '',
-                'email'                => $etablissement ? $etablissement->email_etab : '',
-                'tel'                  => $etablissement ? $etablissement->tel_etab : '',
-                'fichiers'             => $fichiers,
+                'email' => $etablissement ? $etablissement->email_etab : '',
+                'tel' => $etablissement ? $etablissement->tel_etab : '',
+                'fichiers' => $fichiers,
             ];
 
             Log::info('📤 Données envoyées pour la carte professionnelle', $data);
@@ -481,7 +480,7 @@ class SoumissionController extends Controller
         Log::info('🟢 Début storeStep2', ['request_data' => $request->all()]);
 
         $rules = [
-            'userId'               => 'required|exists:personnes,id_personne',
+            'userId' => 'required|exists:personnes,id_personne',
             'id_professional_card' => 'required|string|max:191',
             'num_attes'            => 'required|string|max:191',
             'fonction_fr'          => 'required|string|max:191',
@@ -496,9 +495,9 @@ class SoumissionController extends Controller
             'specialite'           => 'nullable|string|in:Culturel,Economique,Publique,Sport,Santé,Touristique,Agricole,Technologique,Automobile',
             'nom_etablissement'    => 'required|string|max:191',
             'nom_etablissement_ar' => 'required|string|max:191',
-            'email'                => 'required|email|max:191',
-            'tel'                  => 'required|string|regex:/^(\+?\d{8,15})$/',
-            'attestation_travail'  => 'nullable|file|mimes:pdf|max:10240',
+            'email' => 'required|email|max:191',
+            'tel' => 'required|string|regex:/^(\+?\d{8,15})$/',
+            'attestation_travail' => 'nullable|file|mimes:pdf|max:10240',
         ];
 
         $messages = [
@@ -528,7 +527,14 @@ class SoumissionController extends Controller
             ], 422);
         }
 
-        if ($validated['secteur_travail'] === 'Public' && ! in_array($validated['categorie'], ['Média audio', 'Média écrit et électronique'])) {
+        if ($validated['secteur_travail'] === 'Privé' && $validated['type_media'] !== 'Privé') {
+            Log::warning('🚫 Type média incorrect pour secteur privé', ['type_media' => $validated['type_media']]);
+            return response()->json([
+                'error' => trans('formulaire.type_media_prive_invalid'),
+            ], 422);
+        }
+
+        if ($validated['secteur_travail'] === 'Public' && !in_array($validated['categorie'], ['Média audio', 'Média écrit et électronique'])) {
             Log::warning('🚫 Catégorie incorrecte pour secteur public', ['categorie' => $validated['categorie']]);
             return response()->json([
                 'error' => trans('formulaire.invalid_category'),
@@ -574,7 +580,7 @@ class SoumissionController extends Controller
             }
 
             $secteur = SecteurTravail::firstOrCreate(['nom_fr_sect' => $validated['secteur_travail']]);
-            if (! $secteur->id_sect) {
+            if (!$secteur->id_sect) {
                 throw new \Exception('Échec de la création ou récupération du secteur.');
             }
             $id_secteur = $secteur->id_sect;
@@ -584,15 +590,15 @@ class SoumissionController extends Controller
             if ($validated['secteur_travail'] === 'Privé') {
                 $categorie_etat = CategorieEtat::firstOrCreate([
                     'nom_fr_etat' => 'Privé',
-                    'id_sect'     => $id_secteur,
+                    'id_sect' => $id_secteur,
                 ]);
             } else {
                 $categorie_etat = CategorieEtat::firstOrCreate([
                     'nom_fr_etat' => $validated['categorie'],
-                    'id_sect'     => $id_secteur,
+                    'id_sect' => $id_secteur,
                 ]);
             }
-            if (! $categorie_etat->id_cat_etat) {
+            if (!$categorie_etat->id_cat_etat) {
                 throw new \Exception('Échec de la création ou récupération de la catégorie état.');
             }
             $id_cat_etat = $categorie_etat->id_cat_etat;
@@ -608,22 +614,22 @@ class SoumissionController extends Controller
 
             $id_specialite = null;
             if ($validated['specialite']) {
-                $specialite    = Specialite::firstOrCreate(['name_fr' => $validated['specialite']]);
+                $specialite = Specialite::firstOrCreate(['name_fr' => $validated['specialite']]);
                 $id_specialite = $specialite->id_specialite;
                 Log::info('✅ Spécialité récupérée', ['name_fr' => $specialite->name_fr, 'id_specialite' => $id_specialite]);
             }
 
             $personne = Personne::findOrFail($validated['userId']);
-            if (! $personne->id_dossier) {
+            if (!$personne->id_dossier) {
                 Log::error('🚫 Personne sans dossier associé', ['id_personne' => $validated['userId']]);
-                throw new \Exception('Aucun dossier associé à cette personne. Veuillez vérifier l\'étape 1.');
+                throw new \Exception(trans('formulaire.error_form_data'));
             }
             Log::info('✅ Dossier de la personne récupéré', ['id_personne' => $personne->id_personne, 'id_dossier' => $personne->id_dossier]);
 
             $fichierAttestation = null;
             if ($request->hasFile('attestation_travail')) {
-                $file               = $request->file('attestation_travail');
-                $path               = $file->store('attestations', 'public');
+                $file = $request->file('attestation_travail');
+                $path = $file->store('attestations', 'public');
                 $fichierAttestation = Fichier::create([
                     'nom_fichier_fr' => 'Attestation de travail',
                     'nom_fichier_ar' => 'شهادة عمل',
@@ -639,8 +645,8 @@ class SoumissionController extends Controller
             }
 
             Personne::where('id_personne', $validated['userId'])->update([
-                'fonction_fr'          => $validated['fonction_fr'],
-                'fonction_ar'          => $validated['fonction_ar'],
+                'fonction_fr' => $validated['fonction_fr'],
+                'fonction_ar' => $validated['fonction_ar'],
                 'id_professional_card' => $validated['id_professional_card'],
             ]);
             Log::info('✅ Mise à jour de Personne', ['id_personne' => $validated['userId']]);
@@ -649,24 +655,24 @@ class SoumissionController extends Controller
             if ($occuper) {
                 $etablissement = Etablissement::find($occuper->id_etab);
                 $etablissement->update([
-                    'nom_fr_etab'   => $validated['nom_etablissement'],
-                    'nom_ar_etab'   => $validated['nom_etablissement_ar'],
-                    'email_etab'    => $validated['email'],
-                    'tel_etab'      => $validated['tel'],
-                    'langue'        => $validated['langue'] ?? null,
-                    'tv'            => $validated['type_media'] === 'TV' ? $validated['tv'] : null,
-                    'radio'         => $validated['type_media'] === 'Radio' ? $validated['radio'] : null,
-                    'media'         => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
+                    'nom_fr_etab' => $validated['nom_etablissement'],
+                    'nom_ar_etab' => $validated['nom_etablissement_ar'],
+                    'email_etab' => $validated['email'],
+                    'tel_etab' => $validated['tel'],
+                    'langue' => $validated['langue'] ?? null, // Champ langue pour secteur privé
+                    'tv' => $validated['type_media'] === 'TV' ? $validated['tv'] : null,
+                    'radio' => $validated['type_media'] === 'Radio' ? $validated['radio'] : null,
+                    'media' => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
                     'id_type_media' => $id_type_media,
                     'id_specialite' => $id_specialite,
-                    'updated_at'    => now(),
+                    'updated_at' => now(),
                 ]);
                 Log::info('✅ Mise à jour de Etablissement', ['id_etab' => $etablissement->id_etab]);
                 $occuperData = [
-                    'id_etab'     => $etablissement->id_etab,
+                    'id_etab' => $etablissement->id_etab,
                     'date_recrut' => now()->toDateString(),
-                    'num_attes'   => $validated['num_attes'],
-                    'updated_at'  => now(),
+                    'num_attes' => $validated['num_attes'],
+                    'updated_at' => now(),
                 ];
                 if ($fichierAttestation) {
                     $occuperData['id_fichier'] = $fichierAttestation->id_fichier;
@@ -685,18 +691,18 @@ class SoumissionController extends Controller
                     'media'         => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
                     'id_type_media' => $id_type_media,
                     'id_specialite' => $id_specialite,
-                    'created_at'    => now(),
-                    'updated_at'    => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
                 Log::info('✅ Création de Etablissement', ['id_etab' => $etablissement->id_etab]);
                 Occuper::create([
                     'id_personne' => $validated['userId'],
-                    'id_etab'     => $etablissement->id_etab,
+                    'id_etab' => $etablissement->id_etab,
                     'date_recrut' => now()->toDateString(),
-                    'num_attes'   => $validated['num_attes'],
-                    'id_fichier'  => $fichierAttestation ? $fichierAttestation->id_fichier : null,
-                    'created_at'  => now(),
-                    'updated_at'  => now(),
+                    'num_attes' => $validated['num_attes'],
+                    'id_fichier' => $fichierAttestation ? $fichierAttestation->id_fichier : null,
+                    'created_at' => now(),
+                    'updated_at' => now(),
                 ]);
                 Log::info('✅ Création de Occuper', ['id_personne' => $validated['userId'], 'id_etab' => $etablissement->id_etab]);
             }

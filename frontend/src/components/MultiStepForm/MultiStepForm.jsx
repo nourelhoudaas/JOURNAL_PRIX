@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
-import Step1 from "./Step1";
-import Step2 from "./Step2";
-import Step3 from "./Step3";
+import React, { useState, useEffect } from 'react';
+import Step1 from './Step1';
+import Step2 from './Step2';
+import Step3 from './Step3';
 
 export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, direction }) {
   const [currentLocale, setCurrentLocale] = useState(interfaceLocale || "fr");
@@ -13,27 +13,27 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   }, [interfaceLocale]);
 
   const [step1Data, setStep1Data] = useState({
-    id_nin_personne: "",
-    nom_personne_fr: "",
-    prenom_personne_fr: "",
-    nom_personne_ar: "",
-    prenom_personne_ar: "",
-    date_naissance: "",
-    lieu_naissance_fr: "",
-    lieu_naissance_ar: "",
-    nationalite_fr: "Algerienne",
-    nationalite_ar: "جزائرية",
-    num_tlf_personne: "",
-    adresse_fr: "",
-    adresse_ar: "",
-    sexe_personne_fr: "",
-    sexe_personne_ar: "",
-    groupage: "",
+    id_nin_personne: '',
+    nom_personne_fr: '',
+    prenom_personne_fr: '',
+    nom_personne_ar: '',
+    prenom_personne_ar: '',
+    date_naissance: '',
+    lieu_naissance_fr: '',
+    lieu_naissance_ar: '',
+    nationalite_fr: 'Algerienne',
+    nationalite_ar: 'جزائرية',
+    num_tlf_personne: '',
+    adresse_fr: '',
+    adresse_ar: '',
+    sexe_personne_fr: '',
+    sexe_personne_ar: '',
+    groupage: '',
     carte_nationale: null,
     photo: null,
-    id_professional_card: "",
-    fonction_fr: "",
-    fonction_ar: "",
+    id_professional_card: '',
+    fonction_fr: '',
+    fonction_ar: '',
     fichiers: [],
   });
 
@@ -41,22 +41,22 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
     userId: null,
     themes: [],
     categories: [],
-    id_professional_card: "",
-    num_attes: "",
-    fonction_fr: "",
-    fonction_ar: "",
-    secteur_travail: "",
-    categorie: "",
-    type_media: "",
-    tv: "",
-    radio: "",
-    media: "",
-    langue: "",
-    specialite: "",
-    nom_etablissement: "",
-    nom_etablissement_ar: "",
-    email: "",
-    tel: "",
+    id_professional_card: '',
+    num_attes: '',
+    fonction_fr: '',
+    fonction_ar: '',
+    secteur_travail: '',
+    categorie: '',
+    type_media: '',
+    tv: '',
+    radio: '',
+    media: '',
+    langue: '',
+    specialite: '',
+    nom_etablissement: '',
+    nom_etablissement_ar: '',
+    email: '',
+    tel: '',
     attestation_travail: null,
     fichiers: [],
     titre_oeuvre_fr: "",
@@ -68,8 +68,8 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   });
 
   const [wilayas, setWilayas] = useState([]);
-  const [error, setError] = useState("");
-  const [wilayasError, setWilayasError] = useState("");
+  const [error, setError] = useState('');
+  const [wilayasError, setWilayasError] = useState('');
   const [isLoadingWilayas, setIsLoadingWilayas] = useState(true);
   const [isProfessionalCardValidated, setIsProfessionalCardValidated] = useState(false);
 
@@ -222,11 +222,11 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const response = await fetch("http://localhost:8000/profile", {
-          credentials: "include",
-          headers: { Accept: "application/json" },
+        const response = await fetch('http://localhost:8000/profile', {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
         });
-        if (!response.ok) throw new Error("Erreur d'authentification");
+        if (!response.ok) throw new Error('Erreur d\'authentification');
       } catch (error) {
         console.error("❌ Erreur d'authentification :", error);
         setError(
@@ -243,11 +243,11 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   useEffect(() => {
     const fetchFormData = async () => {
       try {
-        const response = await fetch("http://localhost:8000/form-data", {
-          credentials: "include",
-          headers: { Accept: "application/json" },
+        const response = await fetch('http://localhost:8000/form-data', {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
         });
-        if (!response.ok) throw new Error("Erreur données");
+        if (!response.ok) throw new Error('Erreur données');
         const data = await response.json();
         setFormData((prev) => ({
           ...prev,
@@ -272,18 +272,16 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
     const fetchWilayas = async () => {
       try {
         setIsLoadingWilayas(true);
-        const response = await fetch("http://localhost:8000/wilayas", {
-          credentials: "include",
-          headers: { Accept: "application/json" },
+        const response = await fetch('http://localhost:8000/wilayas', {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
         });
         if (!response.ok) {
-          throw new Error(
-            `Erreur HTTP ${response.status}: ${response.statusText}`
-          );
+          throw new Error(`Erreur HTTP ${response.status}: ${response.statusText}`);
         }
         const data = await response.json();
         setWilayas(data);
-        setWilayasError("");
+        setWilayasError('');
         setIsLoadingWilayas(false);
       } catch (error) {
         console.error("❌ Erreur chargement des wilayas :", error);
@@ -297,7 +295,7 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   }, [currentLocale]);
 
   const handleStep1Change = (e) => {
-    if (e.target.name === "batch") {
+    if (e.target.name === 'batch') {
       setStep1Data((prev) => ({
         ...prev,
         ...e.target.value,
@@ -306,11 +304,11 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
       const { name, value } = e.target;
       setStep1Data((prev) => ({ ...prev, [name]: value }));
     }
-    setError("");
+    setError('');
   };
 
   const handleStep2Change = (e) => {
-    if (e.target.name === "batch") {
+    if (e.target.name === 'batch') {
       setFormData((prev) => ({
         ...prev,
         ...e.target.value,
@@ -320,15 +318,11 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
       setFormData((prev) => ({
         ...prev,
         [name]: value,
-        ...(name === "secteur_travail" && value === "Privé"
-          ? { categorie: "Privé" }
-          : {}),
-        ...(name === "secteur_travail" && value === "Public"
-          ? { categorie: "" }
-          : {}),
+        ...(name === 'secteur_travail' && value === 'Privé' ? { categorie: 'Privé', type_media: 'Privé' } : {}),
+        ...(name === 'secteur_travail' && value === 'Public' ? { categorie: '', type_media: '' } : {}),
       }));
     }
-    setError("");
+    setError('');
     setIsProfessionalCardValidated(false);
   };
 
@@ -387,14 +381,14 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
       } else {
         setFormData((prev) => ({ ...prev, [name]: files[0] }));
       }
-      setError("");
+      setError('');
     }
   };
 
   const handleStep3Change = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    setError("");
+    setError('');
   };
 
   const validateStep1 = () => {
@@ -578,6 +572,7 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   };
 
   const validateStep2 = async () => {
+    const errors = {};
     if (!formData.id_professional_card) {
       setError(
         translations[currentLocale].required.replace(
@@ -592,37 +587,32 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
 
   const nextStep = async (e) => {
     if (e) e.preventDefault();
-    setError("");
+    setError('');
     if (step === 1) {
       if (!validateStep1()) return;
       const form = new FormData();
       for (const key in step1Data) {
-        if (
-          step1Data[key] !== null &&
-          step1Data[key] !== undefined &&
-          step1Data[key] !== "" &&
-          key !== "fichiers"
-        ) {
+        if (step1Data[key] !== null && step1Data[key] !== undefined && step1Data[key] !== '' && key !== 'fichiers') {
           form.append(key, step1Data[key]);
         }
       }
       form.append("locale", currentLocale);
       try {
-        await fetch("http://localhost:8000/sanctum/csrf-cookie", {
-          credentials: "include",
-          headers: { Accept: "application/json" },
+        await fetch('http://localhost:8000/sanctum/csrf-cookie', {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
         });
         const token = document.cookie
-          .split("; ")
-          .find((row) => row.startsWith("XSRF-TOKEN="))
-          ?.split("=")[1];
-        const res = await fetch("http://localhost:8000/soumission/step1", {
-          method: "POST",
+          .split('; ')
+          .find((row) => row.startsWith('XSRF-TOKEN='))
+          ?.split('=')[1];
+        const res = await fetch('http://localhost:8000/soumission/step1', {
+          method: 'POST',
           body: form,
-          credentials: "include",
+          credentials: 'include',
           headers: {
-            "X-XSRF-TOKEN": decodeURIComponent(token),
-            Accept: "application/json",
+            'X-XSRF-TOKEN': decodeURIComponent(token),
+            Accept: 'application/json',
           },
         });
         if (!res.ok) {
@@ -631,11 +621,8 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
           return;
         }
         const result = await res.json();
-        setFormData((prev) => ({
-          ...prev,
-          userId: result.id_personne || prev.userId,
-        }));
-        setError("");
+        setFormData((prev) => ({ ...prev, userId: result.id_personne || prev.userId }));
+        setError('');
         setStep(2);
       } catch (error) {
         console.error("Erreur fetch :", error);
@@ -645,47 +632,42 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
         );
       }
     } else if (step === 2) {
-      if (!validateStep2()) return;
+      if (!await validateStep2()) return;
       const form = new FormData();
       for (const key in formData) {
-        if (
-          formData[key] !== null &&
-          formData[key] !== undefined &&
-          formData[key] !== "" &&
-          key !== "fichiers"
-        ) {
+        if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '' && key !== 'fichiers') {
           form.append(key, formData[key]);
         }
       }
       form.append("type_media", formData.type_media || "");
       form.append("locale", currentLocale);
       try {
-        await fetch("http://localhost:8000/sanctum/csrf-cookie", {
-          credentials: "include",
-          headers: { Accept: "application/json" },
+        await fetch('http://localhost:8000/sanctum/csrf-cookie', {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
         });
         const token = document.cookie
-          .split("; ")
-          .find((row) => row.startsWith("XSRF-TOKEN="))
-          ?.split("=")[1];
-        const res = await fetch("http://localhost:8000/soumission/step2", {
-          method: "POST",
+          .split('; ')
+          .find((row) => row.startsWith('XSRF-TOKEN='))
+          ?.split('=')[1];
+        const res = await fetch('http://localhost:8000/soumission/step2', {
+          method: 'POST',
           body: form,
-          credentials: "include",
+          credentials: 'include',
           headers: {
-            "X-XSRF-TOKEN": decodeURIComponent(token),
-            Accept: "application/json",
+            'X-XSRF-TOKEN': decodeURIComponent(token),
+            Accept: 'application/json',
           },
         });
         if (!res.ok) {
           const errorData = await res.json();
           const errorMessages = errorData.errors
-            ? Object.values(errorData.errors).flat().join(" ")
+            ? Object.values(errorData.errors).flat().join(' ')
             : errorData.error || `Erreur HTTP ${res.status}`;
           setError(errorMessages);
           return;
         }
-        setError("");
+        setError('');
         setStep(3);
       } catch (error) {
         console.error("Erreur fetch :", error);
@@ -700,16 +682,12 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   };
 
   const prevStep = () => {
-    setError("");
+    setError('');
     setStep((prev) => prev - 1);
   };
 
   return (
-    <div
-      className="min-h-screen bg-gray-100 flex flex-col pt-8"
-      dir={direction}
-      style={{ direction: direction }}
-    >
+    <div className="min-h-screen bg-gray-100 flex flex-col pt-8">
       <div className="flex-grow flex flex-col items-center justify-start p-4">
         <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl overflow-hidden">
           <div className="p-6 border-b border-gray-200">

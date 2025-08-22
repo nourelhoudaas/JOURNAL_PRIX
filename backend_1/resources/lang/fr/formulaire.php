@@ -1,5 +1,6 @@
 <?php
 return [
+    'id_nin_personne' => 'Numéro NIN',
     'nom_personne_fr' => 'Nom (FR)',
     'prenom_personne_fr' => 'Prénom (FR)',
     'nom_personne_ar' => 'Nom (AR)',
@@ -8,7 +9,6 @@ return [
     'lieu_naissance_ar' => 'Lieu de naissance (AR)',
     'sexe_personne_fr' => 'Sexe (FR)',
     'sexe_personne_ar' => 'Sexe (AR)',
-    'id_nin_personne' => 'Numéro NIN',
     'num_tlf_personne' => 'Téléphone',
     'date_naissance' => 'Date de naissance',
     'nationalite_fr' => 'Nationalité (FR)',

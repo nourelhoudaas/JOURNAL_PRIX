@@ -11,6 +11,7 @@ use App\Models\Wilaya;
 use App\Models\Categorie;
 use App\Models\Specialite;
 use App\Models\SecteurTravail;
+use Illuminate\Support\Facades\App;
 
 
 
@@ -66,6 +67,10 @@ Route::middleware('auth:sanctum')->post('/soumission/step3', [SoumissionControll
 // ✅ Récupération des membres collaborateurs
 Route::middleware('auth:sanctum')->get('/soumission/membre-collaborators', [SoumissionController::class, 'membreCollaborators']);
 
+/*    App::setLocale($locale);
+    return response()->json(trans('formulaire'));
+});*/
+    
 // ✅ Récupération des données pour le formulaire (thèmes, catégories, userId)
 Route::get('/form-data', function () {
     return response()->json([
