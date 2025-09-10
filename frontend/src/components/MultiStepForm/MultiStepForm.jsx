@@ -4,13 +4,9 @@ import Step2 from './Step2';
 import Step3 from './Step3';
 
 export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, direction }) {
-  const [currentLocale, setCurrentLocale] = useState(interfaceLocale || "fr");
   const [step, setStep] = useState(1);
-
-  // Synchroniser currentLocale avec la prop interfaceLocale
-  useEffect(() => {
-    setCurrentLocale(interfaceLocale);
-  }, [interfaceLocale]);
+  const [translations, setTranslations] = useState({}); // État pour stocker les traductions
+  const [translationError, setTranslationError] = useState(''); // Erreur pour la récupération des traductions
 
   const [step1Data, setStep1Data] = useState({
     id_nin_personne: '',
@@ -59,12 +55,12 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
     tel: '',
     attestation_travail: null,
     fichiers: [],
-    titre_oeuvre_fr: "",
-    titre_oeuvre_ar: "",
-    descriptif_oeuvre_fr: "",
-    descriptif_oeuvre_ar: "",
-    date_publication: "",
-    video_url: "",
+    titre_oeuvre_fr: '',
+    titre_oeuvre_ar: '',
+    descriptif_oeuvre_fr: '',
+    descriptif_oeuvre_ar: '',
+    date_publication: '',
+    video_url: '',
   });
 
   const [wilayas, setWilayas] = useState([]);
@@ -73,152 +69,34 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   const [isLoadingWilayas, setIsLoadingWilayas] = useState(true);
   const [isProfessionalCardValidated, setIsProfessionalCardValidated] = useState(false);
 
-  // Définir les traductions
-  const translations = {
-    fr: {
-      id_nin_personne: "Numéro NIN",
-      nom_personne_fr: "Nom (FR)",
-      prenom_personne_fr: "Prénom (FR)",
-      nom_personne_ar: "Nom (AR)",
-      prenom_personne_ar: "Prénom (AR)",
-      date_naissance: "Date de naissance",
-      lieu_naissance_fr: "Lieu de naissance (FR)",
-      lieu_naissance_ar: "Lieu de naissance (AR)",
-      sexe_personne_fr: "Sexe (FR)",
-      sexe_personne_ar: "Sexe (AR)",
-      nationalite_fr: "Nationalité (FR)",
-      nationalite_ar: "Nationalité (AR)",
-      num_tlf_personne: "Téléphone",
-      adresse_fr: "Adresse (FR)",
-      adresse_ar: "Adresse (AR)",
-      groupage: "Groupe sanguin",
-      carte_nationale: "Carte nationale",
-      photo: "Photo",
-      id_professional_card: "Numéro de carte professionnelle",
-      num_attes: "Référence attestation de travail",
-      fonction_fr: "Fonction (FR)",
-      fonction_ar: "الوظيفة (AR)",
-      secteur_travail: "Secteur de travail",
-      categorie: "Catégorie",
-      theme: "Thème",
-      collaborators: "Collaborateurs",
-      type_media: "Type de média",
-      teamSize: "Taille de l'équipe",
-      role: "Rôle",
-      file: "Fichier(s) oeuvre(s)",
-      video_file: "Vidéo",
-      tv: "Type de TV",
-      radio: "Type de radio",
-      media: "Type de média écrit",
-      langue: "Langue de l'établissement",
-      specialite: "Spécialité",
-      nom_etablissement: "Nom de l'établissement (FR)",
-      nom_etablissement_ar: "اسم المؤسسة (AR)",
-      email: "Email de l'établissement",
-      tel: "Téléphone de l'établissement",
-      attestation_travail: "Attestation de travail",
-      titre_oeuvre_fr: "Titre de l'œuvre (FR)",
-      titre_oeuvre_ar: "Titre de l'œuvre (AR)",
-      descriptif_oeuvre_fr: "Descriptif de l'œuvre (FR)",
-      descriptif_oeuvre_ar: "Descriptif de l'œuvre (AR)",
-      date_publication: "Date de publication",
-      video_url: "URL de la vidéo YouTube",
-      required: "Le champ :attribute est requis.",
-      nin_invalid: "Le numéro NIN doit contenir 18 chiffres.",
-      phone_invalid: "Le numéro de téléphone doit contenir entre 8 et 15 chiffres.",
-      email_invalid: "L'email est invalide ou requis.",
-      professional_card_required: "Le numéro de carte professionnelle est requis.",
-      professional_card_exists: "Cette carte professionnelle appartient déjà à une autre personne.",
-      professional_card_found: "Carte professionnelle trouvée. Vous pouvez modifier les données.",
-      new_professional_card: "Nouvelle carte professionnelle. Veuillez remplir les informations.",
-      error_check_professional_card: "Erreur lors de la vérification de la carte professionnelle.",
-      invalid_category: "La catégorie est requise et doit être 'Média audio' ou 'Média écrit et électronique'.",
-      invalid_media_type: "Le type de média est requis et doit être 'TV' ou 'Radio'.",
-      invalid_tv_type: "Le type de TV est requis et doit être 'Régionale' ou 'Nationale'.",
-      invalid_radio_type: "Le type de radio est requis et doit être 'Publique' ou 'Locale'.",
-      invalid_written_media_type: "Le type de média écrit est requis et doit être 'Écrit' ou 'Électronique'.",
-      invalid_category_private: "La catégorie doit être 'Privé' pour le secteur privé.",
-      invalid_media_type_private: "Le type de média doit être 'Privé' pour le secteur privé.",
-      max_video_size: "La taille de la vidéo ne doit pas dépasser 100 Mo.",
-      max_video_duration: "La durée de la vidéo ne doit pas dépasser 13 minutes.",
-      invalid_youtube_url: "L'URL doit être une URL YouTube valide.",
-      video_or_url_required: "Vous devez fournir soit une vidéo, soit une URL YouTube, mais pas les deux.",
-      next_step: "Étape suivante →",
-      prev_step: "← Étape précédente",
-    },
-    ar: {
-      id_nin_personne: "رقم الهوية الوطنية",
-      nom_personne_fr: "الاسم (فرنسي)",
-      prenom_personne_fr: "اللقب (فرنسي)",
-      nom_personne_ar: "الاسم (عربي)",
-      prenom_personne_ar: "اللقب (عربي)",
-      date_naissance: "تاريخ الميلاد",
-      lieu_naissance_fr: "مكان الولادة (فرنسي)",
-      lieu_naissance_ar: "مكان الولادة (عربي)",
-      sexe_personne_fr: "الجنس (فرنسي)",
-      sexe_personne_ar: "الجنس (عربي)",
-      nationalite_fr: "الجنسية (فرنسي)",
-      nationalite_ar: "الجنسية (عربي)",
-      num_tlf_personne: "الهاتف",
-      adresse_fr: "العنوان (فرنسي)",
-      adresse_ar: "العنوان (عربي)",
-      groupage: "فصيلة الدم",
-      carte_nationale: "البطاقة الوطنية",
-      photo: "الصورة",
-      id_professional_card: "رقم البطاقة المهنية",
-      num_attes: "رقم شهادة العمل",
-      fonction_fr: "الوظيفة (فرنسي)",
-      fonction_ar: "الوظيفة (عربي)",
-      secteur_travail: "قطاع العمل",
-      categorie: "الفئة",
-      theme: "الموضوع",
-      collaborators: "المتعاونون",
-      type_media: "نوع الوسائط",
-      teamSize: "حجم الفريق",
-      role: "الدور",
-      file: "الملف(ات) العمل",
-      video_file: "الفيديو",
-      tv: "نوع التلفزيون",
-      radio: "نوع الراديو",
-      media: "نوع الوسائط المكتوبة",
-      langue: "لغة المؤسسة",
-      specialite: "التخصص",
-      nom_etablissement: "اسم المؤسسة (فرنسي)",
-      nom_etablissement_ar: "اسم المؤسسة (عربي)",
-      email: "البريد الإلكتروني للمؤسسة",
-      tel: "هاتف المؤسسة",
-      attestation_travail: "شهادة العمل",
-      titre_oeuvre_fr: "عنوان العمل (فرنسي)",
-      titre_oeuvre_ar: "عنوان العمل (عربي)",
-      descriptif_oeuvre_fr: "وصف العمل (فرنسي)",
-      descriptif_oeuvre_ar: "وصف العمل (عربي)",
-      date_publication: "تاريخ النشر",
-      video_url: "رابط فيديو يوتيوب",
-      required: "الحقل :attribute مطلوب.",
-      nin_invalid: "رقم الهوية الوطنية يجب أن يحتوي على 18 رقمًا.",
-      phone_invalid: "رقم الهاتف يجب أن يحتوي على ما بين 8 و15 أرقام.",
-      email_invalid: "البريد الإلكتروني غير صالح أو مطلوب.",
-      professional_card_required: "رقم البطاقة المهنية مطلوب.",
-      professional_card_exists: "هذه البطاقة المهنية تخص شخصًا آخر بالفعل.",
-      professional_card_found: "تم العثور على البطاقة المهنية. يمكنك تعديل البيانات.",
-      new_professional_card: "بطاقة مهنية جديدة. يرجى ملء المعلومات.",
-      error_check_professional_card: "خطأ أثناء التحقق من البطاقة المهنية.",
-      invalid_category: "الفئة مطلوبة ويجب أن تكون 'وسائط صوتية' أو 'وسائط مكتوبة وإلكترونية'.",
-      invalid_media_type: "نوع الوسائط مطلوب ويجب أن يكون 'تلفزيون' أو 'راديو'.",
-      invalid_tv_type: "نوع التلفزيون مطلوب ويجب أن يكون 'إقليمي' أو 'وطني'.",
-      invalid_radio_type: "نوع الراديو مطلوب ويجب أن يكون 'عمومي' أو 'محلي'.",
-      invalid_written_media_type: "نوع الوسائط المكتوبة مطلوب ويجب أن يكون 'مكتوب' أو 'إلكتروني'.",
-      invalid_category_private: "يجب أن تكون الفئة 'خاص' للقطاع الخاص.",
-      invalid_media_type_private: "يجب أن يكون نوع الوسائط 'خاص' للقطاع الخاص.",
-      max_video_size: "حجم الفيديو يجب ألا يتجاوز 100 ميغابايت.",
-      max_video_duration: "مدة الفيديو يجب ألا تتجاوز 13 دقيقة.",
-      invalid_youtube_url: "الرابط يجب أن يكون رابط يوتيوب صالح.",
-      video_or_url_required: "يجب تقديم إما فيديو أو رابط يوتيوب، وليس كلاهما.",
-      next_step: "الخطوة التالية ←",
-      prev_step: "→ الخطوة السابقة",
-    },
-  };
+  // Charger les traductions depuis le backend
+  useEffect(() => {
+    const fetchTranslations = async () => {
+      try {
+        const response = await fetch(`http://localhost:8000/translations/${interfaceLocale}`, {
+          credentials: 'include',
+          headers: { Accept: 'application/json' },
+        });
+        if (!response.ok) {
+          throw new Error('Erreur lors du chargement des traductions');
+        }
+        const data = await response.json();
+        setTranslations(data);
+        setTranslationError('');
+      } catch (error) {
+        console.error('Erreur lors du chargement des traductions :', error);
+        setTranslationError('Impossible de charger les traductions.');
+        // Revenir à la langue par défaut (fr) si erreur
+        if (interfaceLocale !== 'fr') {
+          setInterfaceLocale('fr');
+        }
+      }
+    };
 
+    fetchTranslations();
+  }, [interfaceLocale, setInterfaceLocale]);
+
+  // Vérification de l'authentification
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -230,16 +108,15 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
       } catch (error) {
         console.error("❌ Erreur d'authentification :", error);
         setError(
-          translations[currentLocale].required.replace(
-            ":attribute",
-            "authentification"
-          )
+          translations.required?.replace(':attribute', 'authentification') ||
+          'Le champ authentification est requis.'
         );
       }
     };
     checkAuth();
-  }, [currentLocale]);
+  }, [translations]);
 
+  // Charger les données du formulaire
   useEffect(() => {
     const fetchFormData = async () => {
       try {
@@ -258,16 +135,15 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
       } catch (error) {
         console.error("❌ Erreur chargement des données :", error);
         setError(
-          translations[currentLocale].required.replace(
-            ":attribute",
-            "données du formulaire"
-          )
+          translations.required?.replace(':attribute', 'données du formulaire') ||
+          'Le champ données du formulaire est requis.'
         );
       }
     };
     fetchFormData();
-  }, [currentLocale]);
+  }, [translations]);
 
+  // Charger les wilayas
   useEffect(() => {
     const fetchWilayas = async () => {
       try {
@@ -286,13 +162,14 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
       } catch (error) {
         console.error("❌ Erreur chargement des wilayas :", error);
         setWilayasError(
-          translations[currentLocale].required.replace(":attribute", "wilayas")
+          translations.required?.replace(':attribute', 'wilayas') ||
+          'Le champ wilayas est requis.'
         );
         setIsLoadingWilayas(false);
       }
     };
     fetchWilayas();
-  }, [currentLocale]);
+  }, [translations]);
 
   const handleStep1Change = (e) => {
     if (e.target.name === 'batch') {
@@ -329,54 +206,51 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   const handleFileChange = (e) => {
     const { name, files } = e.target;
     if (files.length > 0) {
-      // Vérification de la taille pour carte_nationale et photo (étape 1)
-      if (name === "carte_nationale" && files[0].size > 10 * 1024 * 1024) {
+      if (name === 'carte_nationale' && files[0].size > 10 * 1024 * 1024) {
         setError(
-          translations[currentLocale].required.replace(
-            ":attribute",
-            "carte nationale (taille max 10 Mo)"
-          )
+          translations.required?.replace(
+            ':attribute',
+            translations.carte_nationale || 'carte nationale (taille max 10 Mo)'
+          ) || 'Le champ carte nationale est requis.'
         );
         return;
       }
-      if (name === "photo" && files[0].size > 5 * 1024 * 1024) {
+      if (name === 'photo' && files[0].size > 5 * 1024 * 1024) {
         setError(
-          translations[currentLocale].required.replace(
-            ":attribute",
-            "photo (taille max 5 Mo)"
-          )
+          translations.required?.replace(
+            ':attribute',
+            translations.photo || 'photo (taille max 5 Mo)'
+          ) || 'Le champ photo est requis.'
         );
         return;
       }
-      if (name === "attestation_travail" && files[0].size > 10 * 1024 * 1024) {
+      if (name === 'attestation_travail' && files[0].size > 10 * 1024 * 1024) {
         setError(
-          translations[currentLocale].required.replace(
-            ":attribute",
-            "attestation de travail (taille max 10 Mo)"
-          )
+          translations.required?.replace(
+            ':attribute',
+            translations.attestation_travail || 'attestation de travail (taille max 10 Mo)'
+          ) || 'Le champ attestation de travail est requis.'
         );
         return;
       }
-      if (name === "file") {
-        // Vérification de la taille pour chaque fichier/vidéo (max 100 Mo pour l'étape 3)
+      if (name === 'file') {
         const maxSize = 100 * 1024 * 1024; // 100 Mo
         for (let i = 0; i < files.length; i++) {
           if (files[i].size > maxSize) {
             setError(
-              translations[currentLocale].max_video_size.replace(
-                ":attribute",
+              translations.max_video_size?.replace(
+                ':attribute',
                 `fichier ${files[i].name}`
-              )
+              ) || 'La taille du fichier ne doit pas dépasser 100 Mo.'
             );
             return;
           }
         }
-        // Stocker les fichiers dans formData.fichiers
         setFormData((prev) => ({
           ...prev,
-          fichiers: Array.from(files).map((file) => ({ type: "file", file })),
+          fichiers: Array.from(files).map((file) => ({ type: 'file', file })),
         }));
-      } else if (name === "carte_nationale" || name === "photo") {
+      } else if (name === 'carte_nationale' || name === 'photo') {
         setStep1Data((prev) => ({ ...prev, [name]: files[0] }));
       } else {
         setFormData((prev) => ({ ...prev, [name]: files[0] }));
@@ -394,177 +268,168 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   const validateStep1 = () => {
     if (!step1Data.id_nin_personne) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].id_nin_personne
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.id_nin_personne || 'Numéro NIN'
+        ) || 'Le champ Numéro NIN est requis.'
       );
       return false;
     }
-    if (step1Data.id_nin_personne.length !== 18) {
-      setError(translations[currentLocale].nin_invalid);
-      return false;
-    }
-    if (!/^[0-9]{18}$/.test(step1Data.id_nin_personne)) {
-      setError(translations[currentLocale].nin_invalid);
+    if (step1Data.id_nin_personne.length !== 18 || !/^[0-9]{18}$/.test(step1Data.id_nin_personne)) {
+      setError(translations.nin_invalid || 'Le numéro NIN doit contenir 18 chiffres.');
       return false;
     }
     if (!step1Data.nom_personne_fr) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].nom_personne_fr
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.nom_personne_fr || 'Nom (FR)'
+        ) || 'Le champ Nom (FR) est requis.'
       );
       return false;
     }
     if (!step1Data.prenom_personne_fr) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].prenom_personne_fr
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.prenom_personne_fr || 'Prénom (FR)'
+        ) || 'Le champ Prénom (FR) est requis.'
       );
       return false;
     }
     if (!step1Data.nom_personne_ar) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].nom_personne_ar
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.nom_personne_ar || 'Nom (AR)'
+        ) || 'Le champ Nom (AR) est requis.'
       );
       return false;
     }
     if (!step1Data.prenom_personne_ar) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].prenom_personne_ar
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.prenom_personne_ar || 'Prénom (AR)'
+        ) || 'Le champ Prénom (AR) est requis.'
       );
       return false;
     }
     if (!step1Data.date_naissance) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].date_naissance
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.date_naissance || 'Date de naissance'
+        ) || 'Le champ Date de naissance est requis.'
       );
       return false;
     }
     if (!step1Data.lieu_naissance_fr) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].lieu_naissance_fr
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.lieu_naissance_fr || 'Lieu de naissance (FR)'
+        ) || 'Le champ Lieu de naissance (FR) est requis.'
       );
       return false;
     }
     if (!step1Data.lieu_naissance_ar) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].lieu_naissance_ar
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.lieu_naissance_ar || 'Lieu de naissance (AR)'
+        ) || 'Le champ Lieu de naissance (AR) est requis.'
       );
       return false;
     }
     if (!step1Data.nationalite_fr) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].nationalite_fr
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.nationalite_fr || 'Nationalité (FR)'
+        ) || 'Le champ Nationalité (FR) est requis.'
       );
       return false;
     }
     if (!step1Data.nationalite_ar) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].nationalite_ar
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.nationalite_ar || 'Nationalité (AR)'
+        ) || 'Le champ Nationalité (AR) est requis.'
       );
       return false;
     }
-    if (
-      !step1Data.num_tlf_personne ||
-      !/^[0-9]{10}$/.test(step1Data.num_tlf_personne)
-    ) {
-      setError(translations[currentLocale].phone_invalid);
+    if (!step1Data.num_tlf_personne || !/^[0-9]{10}$/.test(step1Data.num_tlf_personne)) {
+      setError(translations.phone_invalid || 'Le numéro de téléphone doit contenir entre 8 et 15 chiffres.');
       return false;
     }
     if (!step1Data.adresse_fr) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].adresse_fr
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.adresse_fr || 'Adresse (FR)'
+        ) || 'Le champ Adresse (FR) est requis.'
       );
       return false;
     }
     if (!step1Data.adresse_ar) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].adresse_ar
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.adresse_ar || 'Adresse (AR)'
+        ) || 'Le champ Adresse (AR) est requis.'
       );
       return false;
     }
     if (!step1Data.sexe_personne_fr) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].sexe_personne_fr
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.sexe_personne_fr || 'Sexe (FR)'
+        ) || 'Le champ Sexe (FR) est requis.'
       );
       return false;
     }
     if (!step1Data.sexe_personne_ar) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].sexe_personne_ar
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.sexe_personne_ar || 'Sexe (AR)'
+        ) || 'Le champ Sexe (AR) est requis.'
       );
       return false;
     }
     if (!step1Data.groupage) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].groupage
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.groupage || 'Groupe sanguin'
+        ) || 'Le champ Groupe sanguin est requis.'
       );
       return false;
     }
     if (
       !step1Data.carte_nationale &&
-      (!step1Data.fichiers ||
-        !step1Data.fichiers.some((f) => f.type === "carte_nationale"))
+      (!step1Data.fichiers || !step1Data.fichiers.some((f) => f.type === 'carte_nationale'))
     ) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].carte_nationale
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.carte_nationale || 'Carte nationale'
+        ) || 'Le champ Carte nationale est requis.'
       );
       return false;
     }
     if (
       !step1Data.photo &&
-      (!step1Data.fichiers ||
-        !step1Data.fichiers.some((f) => f.type === "photo"))
+      (!step1Data.fichiers || !step1Data.fichiers.some((f) => f.type === 'photo'))
     ) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          translations[currentLocale].photo
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.photo || 'Photo'
+        ) || 'Le champ Photo est requis.'
       );
       return false;
     }
@@ -572,13 +437,12 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   };
 
   const validateStep2 = async () => {
-    const errors = {};
     if (!formData.id_professional_card) {
       setError(
-        translations[currentLocale].required.replace(
-          ":attribute",
-          "numéro de carte professionnelle"
-        )
+        translations.required?.replace(
+          ':attribute',
+          translations.id_professional_card || 'Numéro de carte professionnelle'
+        ) || 'Le champ Numéro de carte professionnelle est requis.'
       );
       return false;
     }
@@ -596,7 +460,7 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
           form.append(key, step1Data[key]);
         }
       }
-      form.append("locale", currentLocale);
+      form.append('locale', interfaceLocale);
       try {
         await fetch('http://localhost:8000/sanctum/csrf-cookie', {
           credentials: 'include',
@@ -625,22 +489,23 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
         setError('');
         setStep(2);
       } catch (error) {
-        console.error("Erreur fetch :", error);
+        console.error('Erreur fetch :', error);
         setError(
           error.message ||
-            translations[currentLocale].required.replace(":attribute", "soumission")
+          translations.required?.replace(':attribute', 'soumission') ||
+          'Le champ soumission est requis.'
         );
       }
     } else if (step === 2) {
-      if (!await validateStep2()) return;
+      if (!(await validateStep2())) return;
       const form = new FormData();
       for (const key in formData) {
         if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '' && key !== 'fichiers') {
           form.append(key, formData[key]);
         }
       }
-      form.append("type_media", formData.type_media || "");
-      form.append("locale", currentLocale);
+      form.append('type_media', formData.type_media || '');
+      form.append('locale', interfaceLocale);
       try {
         await fetch('http://localhost:8000/sanctum/csrf-cookie', {
           credentials: 'include',
@@ -670,10 +535,11 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
         setError('');
         setStep(3);
       } catch (error) {
-        console.error("Erreur fetch :", error);
+        console.error('Erreur fetch :', error);
         setError(
           error.message ||
-            translations[currentLocale].required.replace(":attribute", "soumission")
+          translations.required?.replace(':attribute', 'soumission') ||
+          'Le champ soumission est requis.'
         );
       }
     } else {
@@ -692,32 +558,32 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
         <div className="bg-white rounded-xl shadow-xl w-full max-w-5xl overflow-hidden">
           <div className="p-6 border-b border-gray-200">
             <ol
-              className={`flex items-center w-full text-sm font-medium text-center text-gray-500 dark:text-gray-400 sm:text-base ${direction === "rtl" ? "flex-row-reverse space-x-reverse space-x-6" : "flex-row space-x-6"}`}
-              style={{ direction: direction === "rtl" ? "rtl !important" : "ltr" }}
+              className={`flex items-center w-full text-sm font-medium text-center text-gray-500 dark:text-gray-400 sm:text-base ${direction === 'rtl' ? 'flex-row-reverse space-x-reverse space-x-6' : 'flex-row space-x-6'}`}
+              style={{ direction: direction === 'rtl' ? 'rtl !important' : 'ltr' }}
             >
               <li
-                className={`${interfaceLocale === "ar"
-                    ? "flex items-center"
-                    : "flex md:w-full items-center sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block after:mr-8 xl:after:mr-12 dark:after:border-gray-700"
-                  } ${step === 1 || step > 1 ? "text-blue-600 dark:text-blue-500" : ""}`}
+                className={`${interfaceLocale === 'ar'
+                  ? 'flex items-center'
+                  : "flex md:w-full items-center sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block after:mr-8 xl:after:mr-12 dark:after:border-gray-700"
+                  } ${step === 1 || step > 1 ? 'text-blue-600 dark:text-blue-500' : ''}`}
               >
                 <span
-                  className={`flex items-center after:content-['/'] sm:after:hidden ${direction === "rtl" ? "after:mr-3" : "after:ml-3"} after:text-gray-200 dark:after:text-gray-500`}
+                  className={`flex items-center after:content-['/'] sm:after:hidden ${direction === 'rtl' ? 'after:mr-3' : 'after:ml-3'} after:text-gray-200 dark:after:text-gray-500`}
                 >
-                  {interfaceLocale === "ar" ? (
+                  {interfaceLocale === 'ar' ? (
                     <>
-                      {interfaceLocale === "fr" ? "Informations Personnelles" : "المعلومات الشخصية"}
-                      <span className={direction === "rtl" ? "ml-3" : "mr-3"}>1</span>
+                      {translations.step1_title || (interfaceLocale === 'fr' ? 'Informations Personnelles' : 'المعلومات الشخصية')}
+                      <span className={direction === 'rtl' ? 'ml-3' : 'mr-3'}>1</span>
                     </>
                   ) : (
                     <>
-                      <span className={direction === "rtl" ? "ml-3" : "mr-3"}>1</span>
-                      {interfaceLocale === "fr" ? "Informations Personnelles" : "المعلومات الشخصية"}
+                      <span className={direction === 'rtl' ? 'ml-3' : 'mr-3'}>1</span>
+                      {translations.step1_title || (interfaceLocale === 'fr' ? 'Informations Personnelles' : 'المعلومات الشخصية')}
                     </>
                   )}
                   {step > 1 ? (
                     <svg
-                      className={`w-4 h-4 sm:w-5 sm:h-5 ${direction === "rtl" ? "ml-3" : "mr-3"}`}
+                      className={`w-4 h-4 sm:w-5 sm:h-5 ${direction === 'rtl' ? 'ml-3' : 'mr-3'}`}
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="currentColor"
@@ -729,25 +595,25 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
                 </span>
               </li>
               <li
-                className={`flex md:w-full items-center ${step === 2 || step > 2 ? "text-blue-600 dark:text-blue-500" : ""} sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block ${direction === "rtl" ? "after:mr-8 xl:after:mr-12" : "after:ml-8 xl:after:ml-12"} dark:after:border-gray-700`}
+                className={`flex md:w-full items-center ${step === 2 || step > 2 ? 'text-blue-600 dark:text-blue-500' : ''} sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block ${direction === 'rtl' ? 'after:mr-8 xl:after:mr-12' : 'after:ml-8 xl:after:ml-12'} dark:after:border-gray-700`}
               >
                 <span
-                  className={`flex items-center after:content-['/'] sm:after:hidden ${direction === "rtl" ? "after:mr-3" : "after:ml-3"} after:text-gray-200 dark:after:text-gray-500`}
+                  className={`flex items-center after:content-['/'] sm:after:hidden ${direction === 'rtl' ? 'after:mr-3' : 'after:ml-3'} after:text-gray-200 dark:after:text-gray-500`}
                 >
-                  {interfaceLocale === "ar" ? (
+                  {interfaceLocale === 'ar' ? (
                     <>
-                      {interfaceLocale === "fr" ? "Compte Info" : "معلومات الحساب"}
-                      <span className={direction === "rtl" ? "ml-3" : "mr-3"}>2</span>
+                      {translations.step2_title || (interfaceLocale === 'fr' ? 'Compte Info' : 'معلومات الحساب')}
+                      <span className={direction === 'rtl' ? 'ml-3' : 'mr-3'}>2</span>
                     </>
                   ) : (
                     <>
-                      <span className={direction === "rtl" ? "ml-3" : "mr-3"}>2</span>
-                      {interfaceLocale === "fr" ? "Compte Info" : "معلومات الحساب"}
+                      <span className={direction === 'rtl' ? 'ml-3' : 'mr-3'}>2</span>
+                      {translations.step2_title || (interfaceLocale === 'fr' ? 'Compte Info' : 'معلومات الحساب')}
                     </>
                   )}
                   {step > 2 ? (
                     <svg
-                      className={`w-4 h-4 sm:w-5 sm:h-5 ${direction === "rtl" ? "ml-3" : "mr-3"}`}
+                      className={`w-4 h-4 sm:w-5 sm:h-5 ${direction === 'rtl' ? 'ml-3' : 'mr-3'}`}
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="currentColor"
@@ -759,28 +625,28 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
                 </span>
               </li>
               <li
-                className={`${interfaceLocale === "ar"
-                    ? "flex md:w-full items-center sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block after:mr-8 xl:after:mr-12 dark:after:border-gray-700"
-                    : "flex items-center"
-                  } ${step === 3 ? "text-blue-600 dark:text-blue-500" : ""}`}
+                className={`${interfaceLocale === 'ar'
+                  ? "flex md:w-full items-center sm:after:content-[''] after:w-full after:h-1 after:border-b after:border-gray-200 after:border-1 after:hidden sm:after:inline-block after:mr-8 xl:after:mr-12 dark:after:border-gray-700"
+                  : 'flex items-center'
+                  } ${step === 3 ? 'text-blue-600 dark:text-blue-500' : ''}`}
               >
                 <span
-                  className={`flex items-center ${direction === "rtl" ? "after:mr-3" : "after:ml-3"} after:content-['/'] sm:after:hidden after:text-gray-200 dark:after:text-gray-500`}
+                  className={`flex items-center ${direction === 'rtl' ? 'after:mr-3' : 'after:ml-3'} after:content-['/'] sm:after:hidden after:text-gray-200 dark:after:text-gray-500`}
                 >
-                  {interfaceLocale === "ar" ? (
+                  {interfaceLocale === 'ar' ? (
                     <>
-                      {interfaceLocale === "fr" ? "Confirmation" : "التأكيد"}
-                      <span className={direction === "rtl" ? "ml-3" : "mr-3"}>3</span>
+                      {translations.step3_title || (interfaceLocale === 'fr' ? 'Confirmation' : 'التأكيد')}
+                      <span className={direction === 'rtl' ? 'ml-3' : 'mr-3'}>3</span>
                     </>
                   ) : (
                     <>
-                      <span className={direction === "rtl" ? "ml-3" : "mr-3"}>3</span>
-                      {interfaceLocale === "fr" ? "Confirmation" : "التأكيد"}
+                      <span className={direction === 'rtl' ? 'ml-3' : 'mr-3'}>3</span>
+                      {translations.step3_title || (interfaceLocale === 'fr' ? 'Confirmation' : 'التأكيد')}
                     </>
                   )}
                   {step > 3 ? (
                     <svg
-                      className={`w-4 h-4 sm:w-5 sm:h-5 ${direction === "rtl" ? "ml-3" : "mr-3"}`}
+                      className={`w-4 h-4 sm:w-5 sm:h-5 ${direction === 'rtl' ? 'ml-3' : 'mr-3'}`}
                       aria-hidden="true"
                       xmlns="http://www.w3.org/2000/svg"
                       fill="currentColor"
@@ -800,8 +666,8 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
   );
 
   function renderStepContent() {
-    const t = translations[currentLocale] || translations.fr; // Valeur par défaut si undefined
-    //console.log('MultiStepForm - interfaceLocale:', currentLocale, 't:', t);
+    const t = translations || {}; // Utiliser les traductions dynamiques
+    console.log('MultiStepForm - interfaceLocale:', interfaceLocale, 't:', t);
     switch (step) {
       case 1:
         return (
@@ -810,10 +676,10 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
             onChange={handleStep1Change}
             onFileChange={handleFileChange}
             onNext={nextStep}
-            error={error || wilayasError}
+            error={error || wilayasError || translationError}
             wilayas={wilayas}
             isLoadingWilayas={isLoadingWilayas}
-            interfaceLocale={currentLocale}
+            interfaceLocale={interfaceLocale}
             t={t}
             direction={direction}
           />
@@ -827,9 +693,9 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
             onCheckProfessionalCard={validateStep2}
             onNext={nextStep}
             onBack={prevStep}
-            error={error}
+            error={error || translationError}
             setIsProfessionalCardValidated={setIsProfessionalCardValidated}
-            interfaceLocale={currentLocale}
+            interfaceLocale={interfaceLocale}
             t={t}
             direction={direction}
           />
@@ -844,7 +710,7 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
             userId={formData.userId}
             themes={formData.themes}
             categories={formData.categories}
-            interfaceLocale={currentLocale}
+            interfaceLocale={interfaceLocale}
             t={t}
             direction={direction}
           />
@@ -852,7 +718,7 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
       default:
         return (
           <div className="text-center text-green-600 text-xl font-bold">
-            {currentLocale === "fr" ? "✅ Formulaire terminé !" : "✅ اكتمل النموذج !"}
+            {translations.form_completed || (interfaceLocale === 'fr' ? '✅ Formulaire terminé !' : '✅ اكتمل النموذج !')}
           </div>
         );
     }
