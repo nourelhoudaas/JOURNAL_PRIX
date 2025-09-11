@@ -67,9 +67,15 @@ Route::middleware('auth:sanctum')->post('/soumission/step3', [SoumissionControll
 // ✅ Récupération des membres collaborateurs
 Route::middleware('auth:sanctum')->get('/soumission/membre-collaborators', [SoumissionController::class, 'membreCollaborators']);
 
-/*    App::setLocale($locale);
+// ✅ Récupération des traductions
+Route::get('/translations/{locale}', function ($locale) {
+    // Vérifiez que la locale est valide
+    if (!in_array($locale, ['fr', 'ar'])) {
+        $locale = config('app.fallback_locale', 'fr');
+    }
+    App::setLocale($locale);
     return response()->json(trans('formulaire'));
-});*/
+})->name('translations');
     
 // ✅ Récupération des données pour le formulaire (thèmes, catégories, userId)
 Route::get('/form-data', function () {

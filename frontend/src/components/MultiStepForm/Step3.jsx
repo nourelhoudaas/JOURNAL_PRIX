@@ -270,11 +270,11 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
     }
   };
 
-  const handleSubmit = useCallback(async (e) => {
+const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!validateFormErrors()) {
-      console.error('Formulaire incomplet, vérifiez les champs.');
-      return;
+        console.error('Formulaire incomplet, vérifiez les champs.');
+        return;
     }
     const form = new FormData();
     form.append('theme', data.theme || '');
@@ -289,42 +289,63 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
     form.append('date_publication', data.date_publication || '');
     form.append('video_url', data.video_url || '');
     if (role === 'principal') {
-      if (selectedFiles.length > 0) {
-        selectedFiles.forEach((file, index) => {
-          form.append(`files[${index}]`, file);
-        });
-      }
+        if (selectedFiles.length > 0) {
+            selectedFiles.forEach((file, index) => {
+                form.append(`files[${index}]`, file);
+            });
+        }
+        if (collaborators.length > 0) {
+            collaborators.forEach((id, index) => {
+                form.append(`collaborateurs[${index}]`, id);
+            });
+        }
     }
     try {
-      await fetch('http://localhost:8000/sanctum/csrf-cookie', {
-        credentials: 'include',
-        headers: { Accept: 'application/json' },
-      });
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('XSRF-TOKEN='))
-        ?.split('=')[1];
-      const response = await fetch('http://localhost:8000/soumission/step3', {
-        method: 'POST',
-        body: form,
-        credentials: 'include',
-        headers: {
-          'X-XSRF-TOKEN': decodeURIComponent(token),
-          Accept: 'application/json',
-        },
-      });
-      if (!response.ok) {
-        const errorData = await response.json();
-        setError(errorData.message || `Erreur HTTP ${response.status}`);
-        return;
-      }
-      const result = await response.json();
-      alert(result.message || (interfaceLocale === 'fr' ? 'Soumission réussie' : 'تم الإرسال بنجاح'));
+        await fetch('http://localhost:8000/sanctum/csrf-cookie', {
+            credentials: 'include',
+            headers: { Accept: 'application/json' },
+        });
+        const token = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('XSRF-TOKEN='))
+            ?.split('=')[1];
+        const response = await fetch('http://localhost:8000/soumission/step3', {
+            method: 'POST',
+            body: form,
+            credentials: 'include',
+            headers: {
+                'X-XSRF-TOKEN': decodeURIComponent(token),
+                Accept: 'application/json',
+            },
+        });
+        if (!response.ok) {
+            const errorData = await response.json();
+            const errorMessages = errorData.errors
+                ? Object.entries(errorData.errors)
+                    .map(([field, messages]) => {
+                        return messages.map((msg) => {
+                            // Mapper les messages d'erreur aux traductions
+                            if (msg.includes('required')) {
+                                return t.required?.replace(':attribute', t[field] || field) || `Le champ ${field} est requis.`;
+                            }
+                            if (msg.includes('regex')) {
+                                return t.invalid_youtube_url || 'L\'URL doit être une URL YouTube valide.';
+                            }
+                            return t[msg] || msg;
+                        }).join(' ');
+                    })
+                    .join(' ')
+                : errorData.error || `Erreur HTTP ${response.status}`;
+            setError(errorMessages);
+            return;
+        }
+        const result = await response.json();
+        alert(result.message || (interfaceLocale === 'fr' ? 'Soumission réussie' : 'تم الإرسال بنجاح'));
     } catch (err) {
-      console.error('Erreur lors de la soumission :', err);
-      setError(t.required.replace(':attribute', 'soumission'));
+        console.error('Erreur lors de la soumission :', err);
+        setError(t.network_error || (interfaceLocale === 'fr' ? 'Une erreur réseau s\'est produite.' : 'حدث خطأ في الشبكة.'));
     }
-  }, [data, userId, teamSize, role, collaborators, t, interfaceLocale, selectedFiles]);
+}, [data, userId, teamSize, role, collaborators, t, interfaceLocale, selectedFiles, validateFormErrors]);
 
   return (
     <form
@@ -491,9 +512,10 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
             </div>
           </div>
           {teamSize > 1 && (
+            console.log('Eligible Users:', eligibleUsers.length),
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-900">{t.collaborators}</label>
-              {eligibleUsers.length === 0 ? (
+              {eligibleUsers.length < teamSize-1 ? (
                 <p className="text-sm text-gray-600">
                   {interfaceLocale === 'fr' ? 'Aucun collaborateur disponible' : 'لا يوجد متعاونون متاحون'}
                 </p>

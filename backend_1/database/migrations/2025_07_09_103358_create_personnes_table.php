@@ -21,7 +21,7 @@ class CreatePersonnesTable extends Migration
             $table->string('lieu_naissance_fr', 191);
             $table->string('nationalite_ar', 191);
             $table->string('nationalite_fr', 191);
-            $table->integer('id_professional_card')->nullable();
+            $table->decimal('id_professional_card', 18, 0)->nullable();
             $table->unsignedBigInteger('id_dossier');
             $table->string('num_tlf_personne', 191);
             $table->string('adresse_ar', 191);

@@ -795,6 +795,9 @@ class SoumissionController extends Controller
     // Ajouter la validation des descriptions pour le rôle principal
     $validationRules = [
         'theme'            => 'required|exists:themes,id_theme',
+        'video_url'        => 'nullable|url|max:255',
+        'titre_oeuvre_fr'  => 'required|string|max:255',
+        'titre_oeuvre_ar'  => 'required|string|max:255',
         'categorie'        => 'required|exists:categories,id_categorie',
         'id_personne'      => 'required|exists:personnes,id_personne',
         'role'             => 'required|string|in:principal,membre',
@@ -851,7 +854,7 @@ class SoumissionController extends Controller
         if ($request->role === 'principal') {
             Log::info('Traitement du rôle principal', ['id_personne' => $id_personne]);
             
-            // Si teamSize == 1 : Réaffecter anciens collaborateurs à leurs équipes individuelles
+            // Si teamSize == 1 : mettre    à jour forme son rôle de collaborateur a principal
             if ($request->taille_equipe == 1) {
                 Log::info('Mise à jour de la forme pour équipe de taille 1', ['id_equipe' => $equipe->id_equipe]);
                 // Mettre à jour le rôle dans forme
@@ -871,12 +874,14 @@ class SoumissionController extends Controller
                         ->first();
                     Log::info('Recherche de la forme du collaborateur', ['id_personne' => $collabId, 'found' => !is_null($collabForme)]);
                     
+                    //supprimer l equipe de ce  collaborateur puisque il va integrer une autre equipe(du principal)
                     $collabequipe = Equipe::find($collabForme->id_equipe);
                     if ($collabequipe) {
                         Log::info('Suppression de l’équipe du collaborateur', ['id_equipe' => $collabequipe->id_equipe]);
                         $collabequipe->delete();
                     }
                     
+                    // Mettre à jour la forme du collaborateur
                     if ($collabForme) {
                         Log::info('Mise à jour de la forme du collaborateur', ['id_personne' => $collabId, 'new_id_equipe' => $equipe->id_equipe]);
                         // Mettre à jour id_equipe et rôle
@@ -899,8 +904,9 @@ class SoumissionController extends Controller
                     
                     // Créer œuvre pour chaque fichier
                     $oeuvre = \App\Models\Travail::create([
-                        'titre_oeuvre_ar'       => 'عمل-' . now()->timestamp . '-' . ($index + 1),
-                        'titre_oeuvre_fr'       => 'Œuvre-' . now()->timestamp . '-' . ($index + 1),
+                        'titre_oeuvre_ar'       =>$request->input('titre_oeuvre_ar', ''),
+                        'titre_oeuvre_fr'       => $request->input('titre_oeuvre_fr', ''),
+                        'video_url'             => $request->input('video_url', null),
                         'Duree_nbr_signes'      => '00:00:00', // À ajuster si nécessaire
                         'date_publication'      => now()->toDateString(),
                         'description_oeuvre_ar' => $request->input('descriptif_oeuvre_ar', ''),

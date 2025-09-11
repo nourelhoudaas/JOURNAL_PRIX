@@ -20,6 +20,7 @@ class CreateTravailsTable extends Migration
             $table->string('statut_oeuvre_ar', 191);
             $table->string('statut_oeuvre_fr', 191);
             $table->string('valider_oeuvre', 191);
+            $table->url('video_url')->nullable();
             $table->date('annee_gain')->nullable();
             $table->integer('classement')->nullable();
             $table->timestamps();

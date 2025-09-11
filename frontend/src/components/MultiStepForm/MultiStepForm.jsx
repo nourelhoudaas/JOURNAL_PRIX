@@ -602,13 +602,13 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
                 >
                   {interfaceLocale === 'ar' ? (
                     <>
-                      {translations.step2_title || (interfaceLocale === 'fr' ? 'Compte Info' : 'معلومات الحساب')}
+                      {translations.step2_title || (interfaceLocale === 'fr' ? 'Informations Professionnelles' : 'المعلومات المهنية')}
                       <span className={direction === 'rtl' ? 'ml-3' : 'mr-3'}>2</span>
                     </>
                   ) : (
                     <>
                       <span className={direction === 'rtl' ? 'ml-3' : 'mr-3'}>2</span>
-                      {translations.step2_title || (interfaceLocale === 'fr' ? 'Compte Info' : 'معلومات الحساب')}
+                      {translations.step2_title || (interfaceLocale === 'fr' ? 'Informations Professionnelles' : 'المعلومات المهنية')}
                     </>
                   )}
                   {step > 2 ? (
@@ -635,13 +635,13 @@ export default function MultiStepForm({ interfaceLocale, setInterfaceLocale, dir
                 >
                   {interfaceLocale === 'ar' ? (
                     <>
-                      {translations.step3_title || (interfaceLocale === 'fr' ? 'Confirmation' : 'التأكيد')}
+                      {translations.step3_title || (interfaceLocale === 'fr' ? 'Informations sur l\'oeuvre' : 'معلومات عن العمل')}
                       <span className={direction === 'rtl' ? 'ml-3' : 'mr-3'}>3</span>
                     </>
                   ) : (
                     <>
                       <span className={direction === 'rtl' ? 'ml-3' : 'mr-3'}>3</span>
-                      {translations.step3_title || (interfaceLocale === 'fr' ? 'Confirmation' : 'التأكيد')}
+                      {translations.step3_title || (interfaceLocale === 'fr' ? 'Informations sur l\'oeuvre' : 'معلومات عن العمل')}
                     </>
                   )}
                   {step > 3 ? (
