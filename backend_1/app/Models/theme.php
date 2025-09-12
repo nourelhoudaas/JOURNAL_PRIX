@@ -11,7 +11,8 @@ class theme extends Model
     public $incrementing = true;
     protected $keyType = 'integer';  
     public $timestamps = false; 
-    protected $fillable = ['id_theme','titre_ar','titre_fr',
+    protected $fillable = ['id_theme',
+    'titre_ar','titre_fr',
     ];
 
       public function appartienttheme()

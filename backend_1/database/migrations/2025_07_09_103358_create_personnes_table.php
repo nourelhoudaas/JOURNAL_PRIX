@@ -4,43 +4,55 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreatePersonnesTable extends Migration
+return new class extends Migration
 {
-    public function up()
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
     {
         Schema::create('personnes', function (Blueprint $table) {
-            $table->engine = 'InnoDB';
-            $table->id('id_personne'); // Changed to id() for bigint unsigned
+                $table->engine = 'InnoDB';
+            $table->integer('id_personne')->primary()->autoIncrement();
             $table->decimal('id_nin_personne', 18, 0)->unique();
-            $table->string('nom_personne_ar', 191);
-            $table->string('nom_personne_fr', 191);
-            $table->string('prenom_personne_ar', 191);
-            $table->string('prenom_personne_fr', 191);
-            $table->date('date_naissance');
-            $table->string('lieu_naissance_ar', 191);
-            $table->string('lieu_naissance_fr', 191);
-            $table->string('nationalite_ar', 191);
-            $table->string('nationalite_fr', 191);
+            $table->string('nom_personne_ar');
+            $table->string('nom_personne_fr');
+            $table->string('prenom_personne_ar');
+            $table->string('prenom_personne_fr');
+            $table->Date('date_naissance');
+            $table->string('lieu_naissance_ar');
+            $table->string('lieu_naissance_fr');
+            $table->string('nationalite_ar');
+            $table->string('nationalite_fr');
             $table->decimal('id_professional_card', 18, 0)->nullable();
-            $table->unsignedBigInteger('id_dossier');
-            $table->string('num_tlf_personne', 191);
-            $table->string('adresse_ar', 191);
-            $table->string('adresse_fr', 191);
+            $table->string('num_tlf_personne');
+            $table->string('adresse_ar');
+            $table->string('adresse_fr');
             $table->string('fonction_ar', 191)->nullable();
             $table->string('fonction_fr', 191)->nullable();
-            $table->string('sexe_personne_ar', 191);
-            $table->string('sexe_personne_fr', 191);
-            $table->string('groupage', 191);
-            $table->timestamps();
-            $table->foreignId('id_compte')->constrained('comptes', 'id_compte')->onDelete('cascade');
+            //$table->string('organisme_ar');
+           // $table->string('organisme_fr');
+            $table->string('sexe_personne_ar');
+            $table->string('sexe_personne_fr');
+            $table->string('groupage');
+            //$table->string('photo_path');
+
+            $table->integer('id_compte');
+            $table->foreign('id_compte')->references('id_compte')->on('comptes')->onDelete('cascade');
+
+            $table->integer('id_dossier');
             $table->foreign('id_dossier')->references('id_dossier')->on('dossiers')->onDelete('cascade');
-            $table->charset = 'utf8mb4';
-            $table->collation = 'utf8mb4_unicode_ci';
+            
+            $table->timestamps();
+     
         });
     }
 
-    public function down()
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
     {
         Schema::dropIfExists('personnes');
     }
-}
+};

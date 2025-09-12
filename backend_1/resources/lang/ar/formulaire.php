@@ -79,5 +79,7 @@ return [
     'max_length' => 'لا يمكن أن يتجاوز الحقل :attribute :max أحرف.',
     'step3_saved' => 'تم حفظ المرحلة 3 بنجاح.',
     'save_error' => 'خطأ أثناء الحفظ: :message',
+    "num_attes_exists" => "رقم شهادة العمل موجود مسبقًا.",
+        "error_check_num_attes" => "خطأ أثناء التحقق من رقم شهادة العمل."
 ];
 ?>

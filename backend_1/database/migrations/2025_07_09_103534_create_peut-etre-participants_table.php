@@ -11,17 +11,17 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('peut_etre_juries', function (Blueprint $table) {
+        Schema::create('peut-etre-participants', function (Blueprint $table) {
                 $table->engine = 'InnoDB';
-            $table->integer('id_peut_etre_jury')->primary()->autoIncrement();
+            $table->integer('id_peut_etre_participant')->primary()->autoIncrement();
 
-           $table->unsignedBigInteger('id_personne');
+            $table->integer('id_personne');
             $table->foreign('id_personne')->references('id_personne')->on('personnes')->onDelete('cascade');
-             $table->decimal('id_nin_personne', 18, 0)->unique();
-        
 
-            $table->integer('id_jury');
-            $table->foreign('id_jury')->references('id_jury')->on('juries')->onDelete('cascade');
+
+
+            $table->integer('id_participant');
+            $table->foreign('id_participant')->references('id_participant')->on('participants')->onDelete('cascade');
         });
     }
 
@@ -30,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('peut_etre_juries');
+        Schema::dropIfExists('peut-etre-participants');
     }
 };

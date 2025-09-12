@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('participants', function (Blueprint $table) {
-                $table->engine = 'InnoDB';
-            $table->id('id_participant');
+            $table->engine = 'InnoDB';
+            $table->integer('id_participant')->primary()->autoIncrement();
             $table->date('date_debut_activité');
          
         });

@@ -4,7 +4,7 @@ return [
     'paths'                    => ['api/*', 'login', 'logout', 'register', 'profile', '/infosPerso', 'sanctum/csrf-cookie', 'csrf-token',
                                      'soumission/*', 'form-data', 'soumission/step1',
                                       'soumission/step2', 'soumission/step3', 
-                                      'wilayas', 'check-nin', 'check-professional-card','soumission/membre-collaborators','translations/*'],
+                                      'wilayas', 'check-nin', 'check-professional-card','soumission/membre-collaborators','translations/*','check-num-attes'], // ← ajoute tes routes ici
 
     'allowed_methods'          => ['*'],
 

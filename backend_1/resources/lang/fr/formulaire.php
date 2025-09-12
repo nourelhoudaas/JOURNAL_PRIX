@@ -79,5 +79,7 @@ return [
     'max_length' => 'Le champ :attribute ne peut pas dépasser :max caractères.',
     'step3_saved' => 'Étape 3 enregistrée avec succès.',
     'save_error' => 'Erreur lors de l\'enregistrement : :message',
+    "num_attes_exists" => "Le numéro d'attestation existe déjà.",
+        "error_check_num_attes" => "Erreur lors de la vérification du numéro d'attestation."
 ];
 ?>

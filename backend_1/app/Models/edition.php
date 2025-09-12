@@ -13,10 +13,16 @@ class edition extends Model
     protected $keyType = 'integer';  
     public $timestamps = false; 
     protected $fillable = ['id_edition','annee_edition','num_edition','date_lancement_edition','date_limite_depotDossier','statut_edition'
+,'path_image_edition','id_fichier'
 ];
   public function appartientedition()
     {
         return $this->hasMany(appartient::class,'id_edition','id_edition');
+    }
+
+       public function editionfichier()
+    {
+        return $this->belongsTo(fichier::class,'id_fichier','id_fichier');
     }
 
 }

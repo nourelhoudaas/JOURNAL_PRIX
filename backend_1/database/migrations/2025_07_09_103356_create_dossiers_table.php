@@ -1,24 +1,32 @@
-    <?php
-    use Illuminate\Database\Migrations\Migration;
-    use Illuminate\Database\Schema\Blueprint;
-    use Illuminate\Support\Facades\Schema;
+<?php
 
-    class CreateDossiersTable extends Migration
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
     {
-        public function up()
-        {
-            Schema::create('dossiers', function (Blueprint $table) {
+        Schema::create('dossiers', function (Blueprint $table) {
                 $table->engine = 'InnoDB';
-                $table->id('id_dossier');
-                $table->dateTime('date_create_dossier');
-                $table->string('statut_dossier', 191);
-                $table->charset = 'utf8mb4';
-                $table->collation = 'utf8mb4_unicode_ci';
-            });
-        }
 
-        public function down()
-        {
-            Schema::dropIfExists('dossiers');
-        }
+            $table->integer('id_dossier')->primary()->autoIncrement();
+            $table->dateTime('date_create_dossier');
+            $table->string('statut_dossier');//validé ou nn 
+
+           
+        });
     }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        Schema::dropIfExists('dossiers');
+    }
+};

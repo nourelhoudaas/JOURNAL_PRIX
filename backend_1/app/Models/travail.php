@@ -1,14 +1,16 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Travail extends Model
+class travail extends Model
 {
-    protected $table      = 'travails';
+    protected $table = 'travails';
     protected $primaryKey = 'id_oeuvre';
-    public $timestamps    = true;
-
+    public $incrementing = true;
+    protected $keyType = 'integer';  
+    public $timestamps = false; 
     protected $fillable = [
         'titre_oeuvre_ar',
         'titre_oeuvre_fr',
@@ -20,18 +22,36 @@ class Travail extends Model
         'statut_oeuvre_fr',
         'valider_oeuvre',
         'id_fichier',
-        'annee_gain',
-        'classement',
+        'video_url',
+
     ];
 
     protected $casts = [
         'Duree_nbr_signes' => 'datetime:H:i:s', // Peut-être à revoir si c'est un nombre de signes
         'date_publication' => 'date',
-        'annee_gain' => 'date',
-        'classement' => 'integer',
+
     ];
 
-    public function fichiers()
+      public function contienttravail()
+    {
+        return $this->hasMany(contient::class,'id_oeuvre','id_oeuvre');
+    }
+
+     public function associetravail()
+    {
+        return $this->hasMany(associe::class,'id_oeuvre','id_oeuvre');
+    }
+
+     public function equipetravail()
+    {
+        return $this->hasMany(participe::class,'id_oeuvre','id_oeuvre');
+    }
+        public function travailfichier()
+    {
+        return $this->hasMany(fichier::class,'id_oeuvre','id_oeuvre');
+    }
+
+     public function fichiers()
     {
         return $this->hasMany(Fichier::class, 'id_oeuvre', 'id_oeuvre');
     }
@@ -48,11 +68,13 @@ class Travail extends Model
 
     public function participations()
     {
-        return $this->hasMany(Participer::class, 'id_oeuvre', 'id_oeuvre');
+        return $this->hasMany(participe::class, 'id_oeuvre', 'id_oeuvre');
     }
+
 
     public function associes()
     {
         return $this->hasMany(Associe::class, 'id_oeuvre', 'id_oeuvre');
     }
 }
+

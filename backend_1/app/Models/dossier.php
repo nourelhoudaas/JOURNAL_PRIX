@@ -4,27 +4,31 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Dossier extends Model
+class dossier extends Model
 {
-    protected $table = 'dossiers'; // Nom de la table
-
-    protected $primaryKey = 'id_dossier'; // Clé primaire personnalisée
-
-    public $timestamps = false; // Pas de colonnes created_at / updated_at
-
-    protected $fillable = [
-        'date_create_dossier',
-        'statut_dossier',
+    protected $table = 'dossiers';
+    protected $primaryKey = 'id_dossier';
+    public $incrementing = true;
+    protected $keyType = 'integer';  
+    public $timestamps = false; 
+    protected $fillable = ['id_dossier','date_create_dossier','statut_dossier',
+   
     ];
 
-    protected $casts = [
-        'date_create_dossier' => 'datetime',
-    ];
+      public function dossierpersonne ()
+    {
+        return $this->hasMany(personne::class,'id_dossier','id_dossier');
+    }
 
+       public function dossierfichier ()
+    {
+        return $this->hasMany(fichier::class,'id_oeuvre','id_oeuvre');
+    }
+    
+    // rajouter par moi sayah
     public function fichiers()
     {
         return $this->hasMany(Fichier::class, 'id_dossier', 'id_dossier');
     }
 }
-
-
+    

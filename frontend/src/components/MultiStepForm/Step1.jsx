@@ -18,7 +18,7 @@ const Step1 = ({
   const [selectedCarteNationaleName, setSelectedCarteNationaleName] = useState('');
   const [selectedPhotoName, setSelectedPhotoName] = useState('');
 
- //console.log('step1 - interfaceLocale:', interfaceLocale, 't:', t);
+  //console.log('step1 - interfaceLocale:', interfaceLocale, 't:', t);
   // Mapper pour sexe
   const sexeMap = {
     frToAr: {
@@ -348,73 +348,73 @@ const Step1 = ({
   }, [data, t, isLoadingWilayas, wilayas]);
 
   // Gérer la soumission du formulaire
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  if (!validateFormErrors()) {
-    console.error("Formulaire incomplet, vérifiez les champs.");
-    return;
-  }
-  try {
-    const form = new FormData();
-    form.append("id_nin_personne", data.id_nin_personne || "");
-    form.append("nom_personne_fr", data.nom_personne_fr || "");
-    form.append("prenom_personne_fr", data.prenom_personne_fr || "");
-    form.append("nom_personne_ar", data.nom_personne_ar || "");
-    form.append("prenom_personne_ar", data.prenom_personne_ar || "");
-    form.append("date_naissance", data.date_naissance || "");
-    form.append("lieu_naissance_fr", data.lieu_naissance_fr || "");
-    form.append("lieu_naissance_ar", data.lieu_naissance_ar || "");
-    form.append("nationalite_fr", data.nationalite_fr || "");
-    form.append("nationalite_ar", data.nationalite_ar || "");
-    form.append("num_tlf_personne", data.num_tlf_personne || "");
-    form.append("adresse_fr", data.adresse_fr || "");
-    form.append("adresse_ar", data.adresse_ar || "");
-    form.append("sexe_personne_fr", data.sexe_personne_fr || "");
-    form.append("sexe_personne_ar", data.sexe_personne_ar || "");
-    form.append("groupage", data.groupage || "");
-    form.append("id_professional_card", data.id_professional_card || "");
-    form.append("fonction_fr", data.fonction_fr || "");
-    form.append("fonction_ar", data.fonction_ar || "");
-    if (data.carte_nationale) form.append("carte_nationale", data.carte_nationale);
-    if (data.photo) form.append("photo", data.photo);
-    form.append("locale", interfaceLocale);
-
-    await fetch("http://localhost:8000/sanctum/csrf-cookie", {
-      credentials: "include",
-      headers: { Accept: "application/json" },
-    });
-    const token = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("XSRF-TOKEN="))
-      ?.split("=")[1];
-    const response = await fetch("http://localhost:8000/soumission/step1", {
-      method: "POST",
-      body: form,
-      credentials: "include",
-      headers: {
-        "X-XSRF-TOKEN": decodeURIComponent(token),
-        Accept: "application/json",
-      },
-    });
-    const result = await response.json();
-    console.log("Réponse API storeStep1:", result); // Débogage
-    if (!response.ok) {
-      const errorData = result;
-      setNinError(errorData.error || `Erreur HTTP ${response.status}`);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!validateFormErrors()) {
+      console.error("Formulaire incomplet, vérifiez les champs.");
       return;
     }
-    console.log(
-      result.message ||
+    try {
+      const form = new FormData();
+      form.append("id_nin_personne", data.id_nin_personne || "");
+      form.append("nom_personne_fr", data.nom_personne_fr || "");
+      form.append("prenom_personne_fr", data.prenom_personne_fr || "");
+      form.append("nom_personne_ar", data.nom_personne_ar || "");
+      form.append("prenom_personne_ar", data.prenom_personne_ar || "");
+      form.append("date_naissance", data.date_naissance || "");
+      form.append("lieu_naissance_fr", data.lieu_naissance_fr || "");
+      form.append("lieu_naissance_ar", data.lieu_naissance_ar || "");
+      form.append("nationalite_fr", data.nationalite_fr || "");
+      form.append("nationalite_ar", data.nationalite_ar || "");
+      form.append("num_tlf_personne", data.num_tlf_personne || "");
+      form.append("adresse_fr", data.adresse_fr || "");
+      form.append("adresse_ar", data.adresse_ar || "");
+      form.append("sexe_personne_fr", data.sexe_personne_fr || "");
+      form.append("sexe_personne_ar", data.sexe_personne_ar || "");
+      form.append("groupage", data.groupage || "");
+      form.append("id_professional_card", data.id_professional_card || "");
+      form.append("fonction_fr", data.fonction_fr || "");
+      form.append("fonction_ar", data.fonction_ar || "");
+      if (data.carte_nationale) form.append("carte_nationale", data.carte_nationale);
+      if (data.photo) form.append("photo", data.photo);
+      form.append("locale", interfaceLocale);
+
+      await fetch("http://localhost:8000/sanctum/csrf-cookie", {
+        credentials: "include",
+        headers: { Accept: "application/json" },
+      });
+      const token = document.cookie
+        .split("; ")
+        .find((row) => row.startsWith("XSRF-TOKEN="))
+        ?.split("=")[1];
+      const response = await fetch("http://localhost:8000/soumission/step1", {
+        method: "POST",
+        body: form,
+        credentials: "include",
+        headers: {
+          "X-XSRF-TOKEN": decodeURIComponent(token),
+          Accept: "application/json",
+        },
+      });
+      const result = await response.json();
+      console.log("Réponse API storeStep1:", result); // Débogage
+      if (!response.ok) {
+        const errorData = result;
+        setNinError(errorData.error || `Erreur HTTP ${response.status}`);
+        return;
+      }
+      console.log(
+        result.message ||
         (interfaceLocale === "fr"
           ? "Étape 1 soumise avec succès"
           : "تم إرسال الخطوة 1 بنجاح")
-    );
-    onNext(); // Passer à l'étape suivante uniquement si succès
-  } catch (err) {
-    console.error("Erreur lors de la soumission :", err);
-    setNinError(t.required.replace(":attribute", "soumission"));
-  }
-};
+      );
+      onNext(); // Passer à l'étape suivante uniquement si succès
+    } catch (err) {
+      console.error("Erreur lors de la soumission :", err);
+      setNinError(t.required.replace(":attribute", "soumission"));
+    }
+  };
 
   // useEffect pour débogage et réévaluation
   useEffect(() => {
@@ -461,10 +461,20 @@ const handleSubmit = async (e) => {
           name="id_nin_personne"
           value={data.id_nin_personne || ""}
           onChange={handleNinChange}
+          onKeyPress={(e) => {
+            const charCode = e.charCode;
+            // Autoriser uniquement les chiffres (charCode entre 48 et 57 correspond à 0-9)
+            if (charCode < 48 || charCode > 57) {
+              e.preventDefault();
+            }
+          }}
           className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""}`}
           placeholder={t.id_nin_personne}
           disabled={isNinDisabled}
+          maxLength="18"
           required
+          pattern="[0-9]{18}" // Validation HTML5 pour 18 chiffres
+          title={t.nin_invalid || "Le numéro NIN doit contenir 18 chiffres."} // Message pour la validation HTML5
         />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -805,7 +815,7 @@ const handleSubmit = async (e) => {
                 }{" "}
                 <a
                   href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === "carte_nationale")
-                      .file_path
+                    .file_path
                     }`}
                   target="_blank"
                   rel="noopener noreferrer"

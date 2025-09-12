@@ -11,10 +11,15 @@ class jury extends Model
     public $incrementing = true;
     protected $keyType = 'integer';  
     public $timestamps = false; 
-    protected $fillable = ['id_jury','date_debut_mondat','date_fin_mondat'
+    protected $fillable = ['id_jury',
+    'date_debut_mondat',
+    'date_fin_mondat'
    
     ];
-
+     public function peutJury()
+    {
+        return $this->hasMany(peutJury::class,'id_jury','id_jury');
+    }
 }
 
   

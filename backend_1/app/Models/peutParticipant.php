@@ -6,12 +6,13 @@ use Illuminate\Database\Eloquent\Model;
 
 class peutParticipant extends Model
 {
-    protected $table = 'peut_etre_participants';
+    protected $table = 'peut-etre-participants';
     protected $primaryKey = 'id_peut_etre_participant';
     public $incrementing = true;
     protected $keyType = 'integer';  
     public $timestamps = false; 
-    protected $fillable = ['id_peut_etre_participant','id_personne','id_participant','id_nin_personne'
+    protected $fillable = ['id_peut_etre_participant',
+    'id_personne','id_participant','id_nin_personne'
     ];
 
       public function peutParticipantPersonne()

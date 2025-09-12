@@ -13,8 +13,8 @@ return new class extends Migration
             $table->integer('id_occup')->primary()->autoIncrement();
             $table->date('date_recrut');
             $table->unsignedBigInteger('id_etab');
-            $table->unsignedBigInteger('id_personne');
-            $table->unsignedBigInteger('id_fichier');
+            $table->Integer('id_personne');
+            $table->Integer('id_fichier');
 
             $table->string('num_attes', 191)->unique();
             $table->foreign('id_etab')->references('id_etab')->on('etablissement')->onDelete('cascade');

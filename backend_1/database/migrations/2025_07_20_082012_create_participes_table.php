@@ -11,18 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('associes', function (Blueprint $table) {
-                $table->engine = 'InnoDB';
-   
-             $table->integer('id_associe')->primary()->autoIncrement();
+        Schema::create('participes', function (Blueprint $table) {
+            $table->engine = 'InnoDB';
+            $table->integer('id_partcipe')->primary()->autoIncrement();
+            $table->DateTime('date_creation_oeuvre');
 
             $table->integer('id_oeuvre');
             $table->foreign('id_oeuvre')->references('id_oeuvre')->on('travails')->onDelete('cascade');
+            $table->timestamps();
 
-        
 
-            $table->integer('id_theme');
-            $table->foreign('id_theme')->references('id_theme')->on('themes')->onDelete('cascade');
+            $table->integer('id_equipe');
+            $table->foreign('id_equipe')->references('id_equipe')->on('equipes')->onDelete('cascade');
         });
     }
 
@@ -31,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('associes');
+        Schema::dropIfExists('participes');
     }
 };

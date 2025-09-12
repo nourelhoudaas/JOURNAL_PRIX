@@ -87,11 +87,12 @@ Route::get('/form-data', function () {
 });
 
 // ✅ Récupération des wilayas
-
 Route::get('/wilayas', function () {
     $wilayas = Wilaya::all(['id', 'name_fr', 'name_ar']);
     return response()->json($wilayas);
 });
+// ✅ Vérification du numéro d'attestation de travail
+Route::get('/check-num-attes', [SoumissionController::class, 'checkNumAttes'])->middleware('throttle:60,1');
 
 /*Route::get('/step3', function () {
     $secteurs = SecteurTravail::all()->map(function ($secteur) {

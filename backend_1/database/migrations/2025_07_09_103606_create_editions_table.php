@@ -12,13 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('editions', function (Blueprint $table) {
-                $table->engine = 'InnoDB';
+            $table->engine = 'InnoDB';
             $table->integer('id_edition')->primary()->autoIncrement();
-            $table->date('annee_edition');
-            $table->integer('num_edition');
+            $table->integer('annee_edition');
+            $table->string('num_edition');
+            $table->text('description_edition_fr');
+            $table->text('description_edition_ar');
             $table->date('date_lancement_edition');
             $table->date('date_limite_depotDossier');
             $table->string('statut_edition');
+            $table->string('path_image_edition');
+
+            $table->integer('id_fichier');
+            $table->foreign('id_fichier')->references('id_fichier')->on('fichiers')->onDelete('cascade');
            
         });
     }

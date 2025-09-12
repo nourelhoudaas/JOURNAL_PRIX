@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('categories', function (Blueprint $table) {
                 $table->engine = 'InnoDB';
-           $table->id('id_categorie');
+           $table->integer('id_categorie')->primary()->autoIncrement();
             $table->string('nom_categorie_ar');
             $table->string('nom_categorie_fr');
             $table->text('description_cat_ar');

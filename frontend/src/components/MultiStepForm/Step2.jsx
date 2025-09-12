@@ -4,8 +4,12 @@ export default function Step2({ data, onChange, onFileChange, onNext, onBack, er
   const [professionalCardError, setProfessionalCardError] = useState('');
   const [professionalCardExistsMessage, setProfessionalCardExistsMessage] = useState('');
   const [isProfessionalCardDisabled, setIsProfessionalCardDisabled] = useState(false);
+  const [numAttesError, setNumAttesError] = useState('');
+  const [isNumAttesDisabled, setIsNumAttesDisabled] = useState(false);
   const [formErrors, setFormErrors] = useState({});
+   const numAttesInputRef = useRef(null); // Référence pour l'input num_attes
   const debounceTimer = useRef(null);
+  
   // État pour le nom du fichier sélectionné
   const [selectedFileName, setSelectedFileName] = useState('');
   // Données statiques basées sur les seeders
@@ -175,6 +179,75 @@ export default function Step2({ data, onChange, onFileChange, onNext, onBack, er
     [data.userId, onChange, setIsProfessionalCardValidated, interfaceLocale, t]
   );
 
+  // Vérifie la validité de num_attes
+  // Vérifie la validité de num_attes
+  const validateNumAttes = useCallback(
+    async (value) => {
+      console.log('🔍 [validateNumAttes] Début de la validation pour value :', value);
+      if (!value) {
+        console.log('🚫 [validateNumAttes] num_attes vide');
+        setNumAttesError(t.required.replace(':attribute', t.num_attes));
+        return false;
+      }
+      try {
+        console.log('🔍 [validateNumAttes] Vérification de num_attes:', { num_attes: value, interfaceLocale });
+        const response = await fetch(
+          `http://localhost:8000/check-num-attes?num_attes=${encodeURIComponent(value)}&locale=${interfaceLocale}`,
+          {
+            headers: { Accept: 'application/json' },
+            credentials: 'include',
+            method: 'GET',
+          }
+        );
+        console.log('📥 [validateNumAttes] Réponse :', { status: response.status, ok: response.ok });
+
+        let result;
+        try {
+          result = await response.json();
+          console.log('📥 [validateNumAttes] Corps de la réponse :', result);
+        } catch (jsonError) {
+          console.error('❌ [validateNumAttes] Erreur de parsing JSON :', jsonError);
+          setNumAttesError(t.error_check_num_attes);
+          return false;
+        }
+
+        if (response.ok) {
+          console.log('🔎 [validateNumAttes] Nouveau num_attes détecté');
+          setNumAttesError('');
+          return true;
+        } else {
+          console.log('🚫 [validateNumAttes] Erreur serveur lors de la vérification', {
+            status: response.status,
+            message: result.message || result.error,
+          });
+          if (response.status === 422) {
+            if (result.exists) {
+              console.log('🚫 [validateNumAttes] num_attes déjà utilisé');
+              setNumAttesError(result.error || t.num_attes_exists);
+              // Conserver le focus sur l'input
+              if (numAttesInputRef.current) {
+                numAttesInputRef.current.focus();
+              }
+              return false;
+            } else {
+              console.log('🚫 [validateNumAttes] num_attes non fourni ou invalide');
+              setNumAttesError(result.error || t.required.replace(':attribute', t.num_attes));
+              return false;
+            }
+          } else {
+            setNumAttesError(result.message || t.error_check_num_attes);
+            return false;
+          }
+        }
+      } catch (error) {
+        console.error('❌ [validateNumAttes] Erreur réseau lors de la vérification de num_attes:', error.message, error.stack);
+        setNumAttesError(t.error_check_num_attes);
+        return false;
+      }
+    },
+    [interfaceLocale, t]
+  );
+
   // Gère le changement du numéro de carte professionnelle avec debounce pour le check
   const handleProfessionalCardChange = useCallback(
     (e) => {
@@ -193,6 +266,58 @@ export default function Step2({ data, onChange, onFileChange, onNext, onBack, er
     },
     [data.id_professional_card, onChange, validateProfessionalCard]
   );
+
+   // Gère le changement de num_attes
+  const handleNumAttesChange = useCallback(
+    (e) => {
+      const { value } = e.target;
+      console.log('🔄 [handleNumAttesChange] Changement détecté pour value :', value);
+      onChange(e); // Met à jour formData via la prop onChange
+      // Réinitialiser l'erreur si l'utilisateur modifie la valeur
+      if (numAttesError) {
+        setNumAttesError('');
+      }
+    },
+    [onChange, numAttesError]
+  );
+
+  // Gère la perte de focus de num_attes pour déclencher la validation
+  const handleNumAttesBlur = useCallback(
+    async (e) => {
+      const { value } = e.target;
+      console.log('🔄 [handleNumAttesBlur] Perte de focus pour value :', value);
+      const isValid = await validateNumAttes(value);
+      if (!isValid && numAttesError) {
+        // Conserver le focus sur l'input
+        if (numAttesInputRef.current) {
+          numAttesInputRef.current.focus();
+        }
+      }
+    },
+    [validateNumAttes, numAttesError]
+  );
+
+  // Gère la pression de touche pour bloquer Tab si erreur
+  const handleNumAttesKeyDown = useCallback(
+    (e) => {
+      if (numAttesError && e.key === 'Tab') {
+        e.preventDefault();
+        if (numAttesInputRef.current) {
+          numAttesInputRef.current.focus();
+        }
+      }
+    },
+    [numAttesError]
+  );
+
+  // Cleanup du timer lors du démontage
+  useEffect(() => {
+    return () => {
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+    };
+  }, []);
 
   // Cleanup du timer lors du démontage du composant
   useEffect(() => {
@@ -464,6 +589,11 @@ export default function Step2({ data, onChange, onFileChange, onNext, onBack, er
           {professionalCardExistsMessage}
         </div>
       )}
+      {numAttesError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          {numAttesError}
+        </div>
+      )}
       {Object.keys(formErrors).length > 0 && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
           <ul>
@@ -480,6 +610,13 @@ export default function Step2({ data, onChange, onFileChange, onNext, onBack, er
             name="id_professional_card"
             value={data.id_professional_card || ''}
             onChange={handleProfessionalCardChange}
+            onKeyPress={(e) => {
+              const charCode = e.charCode;
+              // Autoriser uniquement les chiffres (charCode entre 48 et 57 correspond à 0-9)
+              if (charCode < 48 || charCode > 57) {
+                e.preventDefault();
+              }
+            }}
             placeholder={t.id_professional_card}
             className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${isProfessionalCardDisabled ? 'bg-gray-100 cursor-not-allowed' : ''} ${interfaceLocale === 'ar' ? 'text-right' : ''}`}
             required
@@ -491,8 +628,13 @@ export default function Step2({ data, onChange, onFileChange, onNext, onBack, er
           <input
             name="num_attes"
             value={data.num_attes || ''}
-            onChange={onChange}
+            //onChange={onChange}
+            onChange={handleNumAttesChange}
+            onBlur={handleNumAttesBlur}
+            onKeyDown={handleNumAttesKeyDown}
+            ref={numAttesInputRef}
             placeholder={t.num_attes}
+            disabled={isNumAttesDisabled}
             className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === 'ar' ? 'text-right' : ''}`}
             required
           />
@@ -848,7 +990,7 @@ export default function Step2({ data, onChange, onFileChange, onNext, onBack, er
         <button
           type="submit"
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={!isFormComplete() || !!professionalCardError}
+          disabled={!isFormComplete() || !!professionalCardError || !!numAttesError}
         >
           {t.next_step}
         </button>

@@ -1,21 +1,24 @@
 <?php
-
 namespace App\Http\Controllers;
 
-use App\Models\Categorie;
-use App\Models\CategorieEtat;
+use App\Models\associe;
+use App\Models\categorie;
+use App\Models\categorieEtat;
 use App\Models\Compte;
-use App\Models\Dossier;
+use App\Models\Contient;
+use App\Models\dossier;
 use App\Models\equipe;
 use App\Models\Etablissement;
-use App\Models\Fichier;
-use App\Models\Forme;
+use App\Models\fichier;
+use App\Models\forme;
 use App\Models\Occuper;
-use App\Models\Participant;
-use App\Models\Personne;
-use App\Models\PeutParticipant;
+use App\Models\participant;
+use App\Models\participe;
+use App\Models\personne;
+use App\Models\peutParticipant;
 use App\Models\SecteurTravail;
 use App\Models\Specialite;
+use App\Models\travail;
 use App\Models\TypeMedia;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,7 +46,7 @@ class SoumissionController extends Controller
             ], 422);
         }
 
-        $person = Personne::where('id_nin_personne', $nin)
+        $person = personne::where('id_nin_personne', $nin)
             ->with(['dossier.fichiers' => function ($query) {
                 $query->select('id_fichier', 'nom_fichier_ar', 'nom_fichier_fr', 'file_path', 'type', 'id_dossier')
                     ->whereIn('type', ['carte_nationale', 'photo'])
@@ -112,7 +115,7 @@ class SoumissionController extends Controller
         }
 
         // Vérifier si la personne existe déjà pour ajuster la règle unique
-        $person = Personne::where('id_nin_personne', $request->input('id_nin_personne'))->first();
+        $person = personne::where('id_nin_personne', $request->input('id_nin_personne'))->first();
 
         // Définir les règles de validation de base
         $rules = [
@@ -217,10 +220,10 @@ class SoumissionController extends Controller
             if ($person) {
                 // Mettre à jour la personne existante
                 $person->update($validated);
-                $dossier = Dossier::find($person->id_dossier);
+                $dossier = dossier::find($person->id_dossier);
                 // Vérifier si une équipe existe pour cette personne
-                $forme  = Forme::where('id_personne', $person->id_personne)->first();
-                $equipe = $forme ? Equipe::where('id_equipe', $forme->id_equipe)->first() : null;
+                $forme  = forme::where('id_personne', $person->id_personne)->first();
+                $equipe = $forme ? equipe::where('id_equipe', $forme->id_equipe)->first() : null;
                 if ($equipe) {
                     // Mettre à jour le nom de l'équipe si nécessaire
                     $equipe->update([
@@ -229,17 +232,17 @@ class SoumissionController extends Controller
                     ]);
                 } else {
                     // Créer une nouvelle équipe
-                    $equipe = Equipe::create([
+                    $equipe = equipe::create([
                         'nom_equipe_ar' => $validated['nom_personne_ar'] . ' ' . $validated['prenom_personne_ar'],
                         'nom_equipe_fr' => $validated['nom_personne_fr'] . ' ' . $validated['prenom_personne_fr'],
                     ]);
                 }
                 // Vérifier si la personne est déjà dans la table forme pour cette équipe
-                $formeExists = Forme::where('id_personne', $person->id_personne)
+                $formeExists = forme::where('id_personne', $person->id_personne)
                     ->where('id_equipe', $equipe->id_equipe)
                     ->exists();
                 if (! $formeExists) {
-                    Forme::create([
+                    forme::create([
                         'id_equipe'              => $equipe->id_equipe,
                         'id_personne'            => $person->id_personne,
                         'date_forme_equipe'      => now(),
@@ -250,20 +253,20 @@ class SoumissionController extends Controller
                 }
             } else {
                 // Créer un nouveau dossier
-                $dossier = Dossier::create([
+                $dossier = dossier::create([
                     'date_create_dossier' => now(),
                     'statut_dossier'      => 'en_attente',
                 ]);
                 $validated['id_dossier'] = $dossier->id_dossier;
                 $validated['id_compte']  = Auth::id();
-                $person                  = Personne::create($validated);
+                $person                  = personne::create($validated);
                 // Créer une équipe pour la personne
-                $equipe = Equipe::create([
+                $equipe = equipe::create([
                     'nom_equipe_ar' => $validated['nom_personne_ar'] . ' ' . $validated['prenom_personne_ar'],
                     'nom_equipe_fr' => $validated['nom_personne_fr'] . ' ' . $validated['prenom_personne_fr'],
                 ]);
                 // Ajouter la personne comme membre dans la table forme
-                Forme::create([
+                forme::create([
                     'id_equipe'              => $equipe->id_equipe,
                     'id_personne'            => $person->id_personne,
                     'date_forme_equipe'      => now(),
@@ -272,14 +275,14 @@ class SoumissionController extends Controller
                     'date_integration'       => now()->toDateString(),
                 ]);
                 // Ajouter la personne à participant
-                $participant = Participant::create([
+                $participant = participant::create([
                     'date_debut_activité' => now()->toDateString(),
                 ]);
                 // Ajouter la personne à peutParticipant
-                PeutParticipant::create([
-                    'id_personne'     => $person->id_personne,
-                    'id_participant'  => $participant->id_participant,
-                    'id_nin_personne' => $person->id_nin_personne,
+                peutParticipant::create([
+                    'id_personne'    => $person->id_personne,
+                    'id_participant' => $participant->id_participant,
+                    //'id_nin_personne' => $person->id_nin_personne,
                 ]);
             }
 
@@ -287,7 +290,7 @@ class SoumissionController extends Controller
                 $file = $request->file('carte_nationale');
                 $path = $file->store('carte_nationale', 'public');
                 Log::info('Fichier carte_nationale uploadé', ['path' => $path]);
-                Fichier::updateOrCreate(
+                fichier::updateOrCreate(
                     [
                         'id_dossier' => $dossier->id_dossier,
                         'type'       => 'carte_nationale',
@@ -307,7 +310,7 @@ class SoumissionController extends Controller
                 $file = $request->file('photo');
                 $path = $file->store('photos', 'public');
                 Log::info('Fichier photo uploadé', ['path' => $path]);
-                Fichier::updateOrCreate(
+                fichier::updateOrCreate(
                     [
                         'id_dossier' => $dossier->id_dossier,
                         'type'       => 'photo',
@@ -350,13 +353,13 @@ class SoumissionController extends Controller
         // Log des paramètres reçus
         Log::info('🟢 Début checkProfessionalCard', [
             'id_professional_card' => $request->query('id_professional_card'),
-            'userId' => $request->query('userId'),
+            'userId'               => $request->query('userId'),
         ]);
 
         $id_professional_card = $request->query('id_professional_card');
-        $userId = $request->query('userId');
+        $userId               = $request->query('userId');
 
-        if (!$id_professional_card) {
+        if (! $id_professional_card) {
             Log::warning('🚫 id_professional_card manquant');
             return response()->json([
                 'exists'  => false,
@@ -364,13 +367,13 @@ class SoumissionController extends Controller
             ], 422);
         }
 
-        $person = Personne::where('id_professional_card', $id_professional_card)->first();
+        $person = personne::where('id_professional_card', $id_professional_card)->first();
 
         if ($person) {
             if ($person->id_personne != $userId) {
                 Log::warning('🚫 Carte professionnelle associée à un autre utilisateur', [
                     'id_personne' => $person->id_personne,
-                    'userId' => $userId,
+                    'userId'      => $userId,
                 ]);
                 return response()->json([
                     'exists' => true,
@@ -378,11 +381,11 @@ class SoumissionController extends Controller
                 ], 422);
             }
 
-            $occupation = Occuper::where('id_personne', $person->id_personne)->first();
+            $occupation    = Occuper::where('id_personne', $person->id_personne)->first();
             $etablissement = $occupation ? Etablissement::with(['typeMedia.categorieEtat.secteur', 'specialite'])->find($occupation->id_etab) : null;
 
             Log::info('🔍 Données Occupation et Etablissement', [
-                'occupation' => $occupation ? $occupation->toArray() : null,
+                'occupation'    => $occupation ? $occupation->toArray() : null,
                 'etablissement' => $etablissement ? $etablissement->toArray() : null,
             ]);
 
@@ -393,66 +396,66 @@ class SoumissionController extends Controller
             if ($secteur_travail === 'unknown') {
                 Log::warning('⚠️ Secteur de travail non récupéré', [
                     'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
-                    'id_type_media' => $etablissement ? $etablissement->id_type_media : null,
+                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
                 ]);
             }
 
             $categorie = $secteur_travail === 'Privé' ? 'Privé' : ($etablissement && $etablissement->typeMedia && $etablissement->typeMedia->categorieEtat
-                ? $etablissement->typeMedia->categorieEtat->nom_fr_etat ?? 'unknown'
-                : 'unknown');
+                    ? $etablissement->typeMedia->categorieEtat->nom_fr_etat ?? 'unknown'
+                    : 'unknown');
 
             if ($categorie === 'unknown' && $secteur_travail !== 'Privé') {
                 Log::warning('⚠️ Catégorie non récupérée', [
                     'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
-                    'id_type_media' => $etablissement ? $etablissement->id_type_media : null,
+                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
                 ]);
             }
 
             $type_media = $secteur_travail === 'Privé' ? 'Privé' : ($etablissement && $etablissement->typeMedia
-                ? $etablissement->typeMedia->nom_fr_type_media ?? ''
-                : '');
+                    ? $etablissement->typeMedia->nom_fr_type_media ?? ''
+                    : '');
 
             if ($type_media === '' && $secteur_travail !== 'Privé') {
                 Log::warning('⚠️ Type média non récupéré', [
                     'etablissement_id' => $etablissement ? $etablissement->id_etab : null,
-                    'id_type_media' => $etablissement ? $etablissement->id_type_media : null,
+                    'id_type_media'    => $etablissement ? $etablissement->id_type_media : null,
                 ]);
             }
 
             $specialite_name = $etablissement && $etablissement->specialite ? $etablissement->specialite->name_fr : '';
 
-            $fichiers = $person->dossier ? Fichier::where('id_dossier', $person->id_dossier)
+            $fichiers = $person->dossier ? fichier::where('id_dossier', $person->id_dossier)
                 ->where('type', 'attestation_travail')
                 ->whereNull('id_oeuvre')
                 ->get()
                 ->map(function ($fichier) {
                     return [
-                        'id_fichier' => $fichier->id_fichier,
+                        'id_fichier'     => $fichier->id_fichier,
                         'nom_fichier_ar' => $fichier->nom_fichier_ar,
                         'nom_fichier_fr' => $fichier->nom_fichier_fr,
-                        'file_path' => $fichier->file_path,
-                        'type' => $fichier->type,
+                        'file_path'      => $fichier->file_path,
+                        'type'           => $fichier->type,
                     ];
                 })->toArray() : [];
 
             $data = [
                 'id_professional_card' => $person->id_professional_card,
-                'num_attes' => $occupation ? $occupation->num_attes : '',
-                'fonction_fr' => $person->fonction_fr ?? '',
-                'fonction_ar' => $person->fonction_ar ?? '',
-                'secteur_travail' => $secteur_travail,
-                'categorie' => $categorie,
-                'type_media' => $type_media,
-                'tv' => $etablissement ? $etablissement->tv : null,
-                'radio' => $etablissement ? $etablissement->radio : null,
-                'media' => $etablissement ? $etablissement->media : null,
-                'langue' => $etablissement ? $etablissement->langue : null, // Champ langue pour secteur privé
-                'specialite' => $specialite_name,
-                'nom_etablissement' => $etablissement ? $etablissement->nom_fr_etab : '',
+                'num_attes'            => $occupation ? $occupation->num_attes : '',
+                'fonction_fr'          => $person->fonction_fr ?? '',
+                'fonction_ar'          => $person->fonction_ar ?? '',
+                'secteur_travail'      => $secteur_travail,
+                'categorie'            => $categorie,
+                'type_media'           => $type_media,
+                'tv'                   => $etablissement ? $etablissement->tv : null,
+                'radio'                => $etablissement ? $etablissement->radio : null,
+                'media'                => $etablissement ? $etablissement->media : null,
+                'langue'               => $etablissement ? $etablissement->langue : null, // Champ langue pour secteur privé
+                'specialite'           => $specialite_name,
+                'nom_etablissement'    => $etablissement ? $etablissement->nom_fr_etab : '',
                 'nom_etablissement_ar' => $etablissement ? $etablissement->nom_ar_etab : '',
-                'email' => $etablissement ? $etablissement->email_etab : '',
-                'tel' => $etablissement ? $etablissement->tel_etab : '',
-                'fichiers' => $fichiers,
+                'email'                => $etablissement ? $etablissement->email_etab : '',
+                'tel'                  => $etablissement ? $etablissement->tel_etab : '',
+                'fichiers'             => $fichiers,
             ];
 
             Log::info('📤 Données envoyées pour la carte professionnelle', $data);
@@ -472,6 +475,73 @@ class SoumissionController extends Controller
         ], 200);
     }
 
+    //check if num_attes exists and return associated data
+    public function checkNumAttes(Request $request)
+{
+    Log::info('🟢 Début checkNumAttes', ['params' => $request->all()]);
+
+    $numAttes = $request->query('num_attes');
+    $locale = $request->query('locale', 'fr');
+    
+    // Configurer la locale
+    app()->setLocale($locale);
+    
+    // Log de début avec les paramètres reçus
+    Log::info('🟢 checkNumAttes', [
+        'num_attes' => $numAttes,
+        'locale' => $locale,
+    ]);
+
+    // Vérification que num_attes est fourni
+    if (!$numAttes) {
+        Log::warning('🚫 num_attes non fourni dans la requête');
+        return response()->json([
+            'exists' => false,
+            'error' => trans('formulaire.required', ['attribute' => trans('formulaire.num_attes')]),
+        ], 422);
+    }
+
+    try {
+        // Recherche dans la table occuper
+        $existing = Occuper::where('num_attes', $numAttes)->first();
+        
+        // Log du résultat de la recherche
+        Log::info('🔍 Résultat recherche num_attes', [
+            'num_attes' => $numAttes,
+            'exists' => !empty($existing),
+        ]);
+
+        if ($existing) {
+            // Cas où num_attes existe
+            Log::warning('🚫 num_attes déjà utilisé', [
+                'num_attes' => $numAttes,
+            ]);
+            return response()->json([
+                'exists' => true,
+                'error' => trans('formulaire.num_attes_exists'),
+            ], 422);
+        }
+
+        // Cas où num_attes n'existe pas
+        Log::info('✅ num_attes non trouvé, nouveau numéro', ['num_attes' => $numAttes]);
+        return response()->json([
+            'exists' => false,
+        ], 200);
+
+    } catch (\Exception $e) {
+        // Log de l'erreur
+        Log::error('❌ Erreur lors de la vérification de num_attes', [
+            'num_attes' => $numAttes,
+            'error_message' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return response()->json([
+            'exists' => false,
+            'error' => trans('formulaire.error_check_num_attes'),
+        ], 500);
+    }
+}
+
     //🟢 ÉTAPE 2 - Établissement + mise à jour de la personne + attestation de travail
     public function storeStep2(Request $request)
     {
@@ -480,7 +550,7 @@ class SoumissionController extends Controller
         Log::info('🟢 Début storeStep2', ['request_data' => $request->all()]);
 
         $rules = [
-            'userId' => 'required|exists:personnes,id_personne',
+            'userId'               => 'required|exists:personnes,id_personne',
             'id_professional_card' => 'required|string|max:191',
             'num_attes'            => 'required|string|max:191',
             'fonction_fr'          => 'required|string|max:191',
@@ -495,9 +565,9 @@ class SoumissionController extends Controller
             'specialite'           => 'nullable|string|in:Culturel,Economique,Publique,Sport,Santé,Touristique,Agricole,Technologique,Automobile',
             'nom_etablissement'    => 'required|string|max:191',
             'nom_etablissement_ar' => 'required|string|max:191',
-            'email' => 'required|email|max:191',
-            'tel' => 'required|string|regex:/^(\+?\d{8,15})$/',
-            'attestation_travail' => 'nullable|file|mimes:pdf|max:10240',
+            'email'                => 'required|email|max:191',
+            'tel'                  => 'required|string|regex:/^(\+?\d{8,15})$/',
+            'attestation_travail'  => 'nullable|file|mimes:pdf|max:10240',
         ];
 
         $messages = [
@@ -534,7 +604,7 @@ class SoumissionController extends Controller
             ], 422);
         }
 
-        if ($validated['secteur_travail'] === 'Public' && !in_array($validated['categorie'], ['Média audio', 'Média écrit et électronique'])) {
+        if ($validated['secteur_travail'] === 'Public' && ! in_array($validated['categorie'], ['Média audio', 'Média écrit et électronique'])) {
             Log::warning('🚫 Catégorie incorrecte pour secteur public', ['categorie' => $validated['categorie']]);
             return response()->json([
                 'error' => trans('formulaire.invalid_category'),
@@ -571,7 +641,7 @@ class SoumissionController extends Controller
 
         DB::beginTransaction();
         try {
-            $existingPerson = Personne::where('id_professional_card', $validated['id_professional_card'])->first();
+            $existingPerson = personne::where('id_professional_card', $validated['id_professional_card'])->first();
             if ($existingPerson && $existingPerson->id_personne != $validated['userId']) {
                 Log::warning('🚫 Carte professionnelle déjà utilisée', ['id_professional_card' => $validated['id_professional_card'], 'userId' => $validated['userId']]);
                 return response()->json([
@@ -580,7 +650,7 @@ class SoumissionController extends Controller
             }
 
             $secteur = SecteurTravail::firstOrCreate(['nom_fr_sect' => $validated['secteur_travail']]);
-            if (!$secteur->id_sect) {
+            if (! $secteur->id_sect) {
                 throw new \Exception('Échec de la création ou récupération du secteur.');
             }
             $id_secteur = $secteur->id_sect;
@@ -590,15 +660,15 @@ class SoumissionController extends Controller
             if ($validated['secteur_travail'] === 'Privé') {
                 $categorie_etat = CategorieEtat::firstOrCreate([
                     'nom_fr_etat' => 'Privé',
-                    'id_sect' => $id_secteur,
+                    'id_sect'     => $id_secteur,
                 ]);
             } else {
                 $categorie_etat = CategorieEtat::firstOrCreate([
                     'nom_fr_etat' => $validated['categorie'],
-                    'id_sect' => $id_secteur,
+                    'id_sect'     => $id_secteur,
                 ]);
             }
-            if (!$categorie_etat->id_cat_etat) {
+            if (! $categorie_etat->id_cat_etat) {
                 throw new \Exception('Échec de la création ou récupération de la catégorie état.');
             }
             $id_cat_etat = $categorie_etat->id_cat_etat;
@@ -614,13 +684,13 @@ class SoumissionController extends Controller
 
             $id_specialite = null;
             if ($validated['specialite']) {
-                $specialite = Specialite::firstOrCreate(['name_fr' => $validated['specialite']]);
+                $specialite    = Specialite::firstOrCreate(['name_fr' => $validated['specialite']]);
                 $id_specialite = $specialite->id_specialite;
                 Log::info('✅ Spécialité récupérée', ['name_fr' => $specialite->name_fr, 'id_specialite' => $id_specialite]);
             }
 
-            $personne = Personne::findOrFail($validated['userId']);
-            if (!$personne->id_dossier) {
+            $personne = personne::findOrFail($validated['userId']);
+            if (! $personne->id_dossier) {
                 Log::error('🚫 Personne sans dossier associé', ['id_personne' => $validated['userId']]);
                 throw new \Exception(trans('formulaire.error_form_data'));
             }
@@ -628,9 +698,9 @@ class SoumissionController extends Controller
 
             $fichierAttestation = null;
             if ($request->hasFile('attestation_travail')) {
-                $file = $request->file('attestation_travail');
-                $path = $file->store('attestations', 'public');
-                $fichierAttestation = Fichier::create([
+                $file               = $request->file('attestation_travail');
+                $path               = $file->store('attestations', 'public');
+                $fichierAttestation = fichier::create([
                     'nom_fichier_fr' => 'Attestation de travail',
                     'nom_fichier_ar' => 'شهادة عمل',
                     'file_path'      => $path,
@@ -644,9 +714,9 @@ class SoumissionController extends Controller
                 Log::warning('⚠️ Aucun fichier d\'attestation de travail fourni');
             }
 
-            Personne::where('id_personne', $validated['userId'])->update([
-                'fonction_fr' => $validated['fonction_fr'],
-                'fonction_ar' => $validated['fonction_ar'],
+            personne::where('id_personne', $validated['userId'])->update([
+                'fonction_fr'          => $validated['fonction_fr'],
+                'fonction_ar'          => $validated['fonction_ar'],
                 'id_professional_card' => $validated['id_professional_card'],
             ]);
             Log::info('✅ Mise à jour de Personne', ['id_personne' => $validated['userId']]);
@@ -655,24 +725,24 @@ class SoumissionController extends Controller
             if ($occuper) {
                 $etablissement = Etablissement::find($occuper->id_etab);
                 $etablissement->update([
-                    'nom_fr_etab' => $validated['nom_etablissement'],
-                    'nom_ar_etab' => $validated['nom_etablissement_ar'],
-                    'email_etab' => $validated['email'],
-                    'tel_etab' => $validated['tel'],
-                    'langue' => $validated['langue'] ?? null, // Champ langue pour secteur privé
-                    'tv' => $validated['type_media'] === 'TV' ? $validated['tv'] : null,
-                    'radio' => $validated['type_media'] === 'Radio' ? $validated['radio'] : null,
-                    'media' => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
+                    'nom_fr_etab'   => $validated['nom_etablissement'],
+                    'nom_ar_etab'   => $validated['nom_etablissement_ar'],
+                    'email_etab'    => $validated['email'],
+                    'tel_etab'      => $validated['tel'],
+                    'langue'        => $validated['langue'] ?? null, // Champ langue pour secteur privé
+                    'tv'            => $validated['type_media'] === 'TV' ? $validated['tv'] : null,
+                    'radio'         => $validated['type_media'] === 'Radio' ? $validated['radio'] : null,
+                    'media'         => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
                     'id_type_media' => $id_type_media,
                     'id_specialite' => $id_specialite,
-                    'updated_at' => now(),
+                    'updated_at'    => now(),
                 ]);
                 Log::info('✅ Mise à jour de Etablissement', ['id_etab' => $etablissement->id_etab]);
                 $occuperData = [
-                    'id_etab' => $etablissement->id_etab,
+                    'id_etab'     => $etablissement->id_etab,
                     'date_recrut' => now()->toDateString(),
-                    'num_attes' => $validated['num_attes'],
-                    'updated_at' => now(),
+                    'num_attes'   => $validated['num_attes'],
+                    'updated_at'  => now(),
                 ];
                 if ($fichierAttestation) {
                     $occuperData['id_fichier'] = $fichierAttestation->id_fichier;
@@ -691,18 +761,18 @@ class SoumissionController extends Controller
                     'media'         => $validated['categorie'] === 'Média écrit et électronique' ? $validated['media'] : null,
                     'id_type_media' => $id_type_media,
                     'id_specialite' => $id_specialite,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at'    => now(),
+                    'updated_at'    => now(),
                 ]);
                 Log::info('✅ Création de Etablissement', ['id_etab' => $etablissement->id_etab]);
                 Occuper::create([
                     'id_personne' => $validated['userId'],
-                    'id_etab' => $etablissement->id_etab,
+                    'id_etab'     => $etablissement->id_etab,
                     'date_recrut' => now()->toDateString(),
-                    'num_attes' => $validated['num_attes'],
-                    'id_fichier' => $fichierAttestation ? $fichierAttestation->id_fichier : null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'num_attes'   => $validated['num_attes'],
+                    'id_fichier'  => $fichierAttestation ? $fichierAttestation->id_fichier : null,
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
                 ]);
                 Log::info('✅ Création de Occuper', ['id_personne' => $validated['userId'], 'id_etab' => $etablissement->id_etab]);
             }
@@ -730,11 +800,11 @@ class SoumissionController extends Controller
         if (! $compte) {
             return response()->json(['error' => 'Compte non trouvé.'], 404);
         }
-        $currentPerson = Personne::where('id_compte', $compte->id_compte)->first();
+        $currentPerson = personne::where('id_compte', $compte->id_compte)->first();
         if (! $currentPerson) {
             return response()->json(['error' => 'Personne non trouvée.'], 404);
         }
-        $membres = Personne::whereHas('formes', function ($query) {
+        $membres = personne::whereHas('formes', function ($query) {
             $query->where('role', 'membre');
             $query->where('situation_forme_equipe', 'active');
         })
@@ -771,215 +841,258 @@ class SoumissionController extends Controller
 
     // 🟢 ÉTAPE 3 - Ajout du fichier final (document) lié au dossier
     public function storeStep3(Request $request)
-{
-    $interfaceLocale = $request->input('locale', 'fr');
-    app()->setLocale($interfaceLocale);
-    Log::info('🟢 Début storeStep3', ['request_data' => $request->all()]);
-    
-    // CHANGEMENT : Valider files[] (nom envoyé par le frontend) et utiliser nbr_max_oeuvre dynamiquement
-    $categorie = Categorie::find($request->input('categorie'));
-    Log::info('Recherche de la catégorie', ['id_categorie' => $request->input('categorie'), 'found' => !is_null($categorie)]);
-    if (! $categorie) {
-        Log::warning('Catégorie invalide', ['id_categorie' => $request->input('categorie')]);
-        return response()->json(['error' => trans('formulaire.invalid_category')], 400);
-    }
-    
-    $maxFiles = $categorie->nbr_max_oeuvre;
-    Log::info('Validation des données d’entrée', [
-        'max_files' => $maxFiles,
-        'taille_equipe' => $request->input('taille_equipe'),
-        'descriptif_oeuvre_fr' => $request->input('descriptif_oeuvre_fr'),
-        'descriptif_oeuvre_ar' => $request->input('descriptif_oeuvre_ar')
-    ]);
-    
-    // Ajouter la validation des descriptions pour le rôle principal
-    $validationRules = [
-        'theme'            => 'required|exists:themes,id_theme',
-        'video_url'        => 'nullable|url|max:255',
-        'titre_oeuvre_fr'  => 'required|string|max:255',
-        'titre_oeuvre_ar'  => 'required|string|max:255',
-        'categorie'        => 'required|exists:categories,id_categorie',
-        'id_personne'      => 'required|exists:personnes,id_personne',
-        'role'             => 'required|string|in:principal,membre',
-        'taille_equipe'    => 'required|integer|min:1|max:4',
-        'files'            => ['required_if:role,principal', 'array', 'min:1', 'max:' . $maxFiles],
-        'files.*'          => 'file|mimes:pdf,doc,docx,mp4,avi,mov,jpeg,png,jpg|max:20480',
-        'collaborateurs'   => ['sometimes', 'array', Rule::requiredIf($request->taille_equipe > 1), 'size:' . ($request->input('taille_equipe') - 1)],
-        'collaborateurs.*' => 'exists:personnes,id_personne|distinct',
-    ];
-    
-    // Ajouter les règles de validation pour les descriptions si rôle est principal
-    if ($request->role === 'principal') {
-        $validationRules['descriptif_oeuvre_fr'] = 'required|string|max:5000';
-        $validationRules['descriptif_oeuvre_ar'] = 'required|string|max:5000';
-    }
-    
-    $validated = $request->validate($validationRules, [
-        'files.required_if'   => trans('formulaire.required', ['attribute' => trans('formulaire.file')]),
-        'files.max'           => trans('formulaire.file') . ' (' . trans('formulaire.max_files', ['max' => $maxFiles]) . ')',
-        'collaborateurs.size' => trans('formulaire.required', ['attribute' => trans('formulaire.collaborators')]) . ' (' . trans('formulaire.exact_collaborators', ['count' => $request->input('taille_equipe') - 1]) . ')',
-        'descriptif_oeuvre_fr.required' => trans('formulaire.required', ['attribute' => trans('formulaire.descriptif_oeuvre_fr')]),
-        'descriptif_oeuvre_fr.max'      => trans('formulaire.max_length', ['attribute' => trans('formulaire.descriptif_oeuvre_fr'), 'max' => 5000]),
-        'descriptif_oeuvre_ar.required' => trans('formulaire.required', ['attribute' => trans('formulaire.descriptif_oeuvre_ar')]),
-        'descriptif_oeuvre_ar.max'      => trans('formulaire.max_length', ['attribute' => trans('formulaire.descriptif_oeuvre_ar'), 'max' => 5000]),
-    ]);
-    
-    $id_personne = $request->id_personne;
-    Log::info('Début de la transaction pour id_personne', ['id_personne' => $id_personne]);
-    DB::beginTransaction();
-    
-    try {
-        // Vérifier la personne et son dossier
-        $personne = Personne::find($id_personne);
-        Log::info('Vérification de la personne', ['id_personne' => $id_personne, 'found' => !is_null($personne), 'has_dossier' => !is_null($personne?->id_dossier)]);
-        if (! $personne || ! $personne->id_dossier) {
-            Log::warning('Personne ou dossier non trouvé', ['id_personne' => $id_personne]);
-            return response()->json(['error' => trans('formulaire.person_or_dossier_not_found')], 400);
+    {
+        $interfaceLocale = $request->input('locale', 'fr');
+        app()->setLocale($interfaceLocale);
+        Log::info('🟢 Début storeStep3', ['request_data' => $request->all()]);
+
+        // Valider la catégorie
+        $categorie = categorie::find($request->input('categorie'));
+        Log::info('Recherche de la catégorie', ['id_categorie' => $request->input('categorie'), 'found' => ! is_null($categorie)]);
+        if (! $categorie) {
+            Log::warning('Catégorie invalide', ['id_categorie' => $request->input('categorie')]);
+            return response()->json(['error' => trans('formulaire.invalid_category')], 400);
         }
-        
-        // CHANGEMENT : Récupérer équipe existante et forme
-        $forme = Forme::where('id_personne', $id_personne)
-            ->where('situation_forme_equipe', 'active')
-            ->first();
-        Log::info('Recherche de la forme active', ['id_personne' => $id_personne, 'found' => !is_null($forme)]);
-        
-        $equipe = Equipe::find($forme->id_equipe);
-        Log::info('Recherche de l’équipe', ['id_equipe' => $forme->id_equipe, 'found' => !is_null($equipe)]);
-        
-        $participer =  \App\Models\Participer::where('id_equipe', $equipe->id_equipe)
-            ->first();
-            if(!$participer) {
-            
-        // CHANGEMENT : Gestion du rôle "principal"
-        if ($request->role === 'principal') {
-            Log::info('Traitement du rôle principal', ['id_personne' => $id_personne]);
-            
-            // Si teamSize == 1 : mettre    à jour forme son rôle de collaborateur a principal
-            if ($request->taille_equipe == 1) {
-                Log::info('Mise à jour de la forme pour équipe de taille 1', ['id_equipe' => $equipe->id_equipe]);
-                // Mettre à jour le rôle dans forme
-                $forme->update([
-                    'role'             => $request->role,
-                    'date_integration' => now()->toDateString(),
-                ]);
-                Log::info('Forme mise à jour', ['id_equipe' => $equipe->id_equipe, 'role' => $request->role]);
-                
-            // IMPORTANT: une fois il cree son euipe il ne peu pas la changer
-            // Si teamSize > 1 : Gérer collaborateurs
-            } elseif ($request->has('collaborateurs')) {
-                Log::info('Traitement des collaborateurs', ['collaborateurs' => $request->collaborateurs]);
-                foreach ($request->collaborateurs as $collabId) {
-                    $collabForme = Forme::where('id_personne', $collabId)
-                        ->where('situation_forme_equipe', 'active')
-                        ->first();
-                    Log::info('Recherche de la forme du collaborateur', ['id_personne' => $collabId, 'found' => !is_null($collabForme)]);
-                    
-                    //supprimer l equipe de ce  collaborateur puisque il va integrer une autre equipe(du principal)
-                    $collabequipe = Equipe::find($collabForme->id_equipe);
-                    if ($collabequipe) {
-                        Log::info('Suppression de l’équipe du collaborateur', ['id_equipe' => $collabequipe->id_equipe]);
-                        $collabequipe->delete();
-                    }
-                    
-                    // Mettre à jour la forme du collaborateur
-                    if ($collabForme) {
-                        Log::info('Mise à jour de la forme du collaborateur', ['id_personne' => $collabId, 'new_id_equipe' => $equipe->id_equipe]);
-                        // Mettre à jour id_equipe et rôle
-                        $collabForme->update([
-                            'id_equipe'        => $equipe->id_equipe,
-                            'role'             => 'membre',
-                            'date_integration' => now()->toDateString(),
-                        ]);
-                        Log::info('Forme du collaborateur mise à jour', ['id_personne' => $collabId, 'id_equipe' => $equipe->id_equipe]);
+
+        $maxFiles = $categorie->nbr_max_oeuvre;
+        Log::info('Validation des données d’entrée', [
+            'max_files'            => $maxFiles,
+            'taille_equipe'        => $request->input('taille_equipe'),
+            'descriptif_oeuvre_fr' => $request->input('descriptif_oeuvre_fr'),
+            'descriptif_oeuvre_ar' => $request->input('descriptif_oeuvre_ar'),
+            'titre_oeuvre_fr'      => $request->input('titre_oeuvre_fr'),
+            'titre_oeuvre_ar'      => $request->input('titre_oeuvre_ar'),
+            'video_url'            => $request->input('video_url'),
+        ]);
+
+        // Définir les règles de validation
+        $validationRules = [
+            'theme'                => 'required|exists:themes,id_theme',
+            'categorie'            => 'required|exists:categories,id_categorie',
+            'id_personne'          => 'required|exists:personnes,id_personne',
+            'role'                 => 'required|string|in:principal,membre',
+            'taille_equipe'        => 'required|integer|min:1|max:4',
+            'files'                => [
+                'required_if:role,principal,video_url,null', // Requis si video_url n'est pas fourni
+                'array',
+                'min:1',
+                'max:' . $maxFiles,
+            ],
+            'files.*'              => 'file|mimes:pdf,doc,docx,mp4,avi,mov,jpeg,png,jpg|max:20480', // 20 Mo
+            'collaborateurs'       => [
+                'sometimes',
+                'array',
+                Rule::requiredIf($request->taille_equipe > 1),
+                'size:' . ($request->input('taille_equipe') - 1),
+            ],
+            'collaborateurs.*'     => 'exists:personnes,id_personne|distinct',
+            'video_url'            => [
+                'nullable',
+                'url',
+                'max:255',
+                'regex:/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&\n?#]+)/', // Validation YouTube
+                Rule::requiredIf(function () use ($request) {
+                    return $request->role === 'principal' && ! $request->hasFile('files');
+                }), // Requis si aucun fichier n'est uploadé
+            ],
+            'titre_oeuvre_fr'      => 'required_if:role,principal|string|max:191',
+            'titre_oeuvre_ar'      => 'required_if:role,principal|string|max:191',
+            'descriptif_oeuvre_fr' => 'required_if:role,principal|string|max:5000',
+            'descriptif_oeuvre_ar' => 'required_if:role,principal|string|max:5000',
+        ];
+
+        // Messages de validation personnalisés
+        $validationMessages = [
+            'files.required_if'                => trans('formulaire.video_or_url_required'),
+            'files.max'                        => trans('formulaire.max_files', ['attribute' => trans('formulaire.file'), 'max' => $maxFiles]),
+            'collaborateurs.size'              => trans('formulaire.required', ['attribute' => trans('formulaire.collaborators')]) . ' (' . trans('formulaire.exact_collaborators', ['count' => $request->input('taille_equipe') - 1]) . ')',
+            'titre_oeuvre_fr.required_if'      => trans('formulaire.required', ['attribute' => trans('formulaire.titre_oeuvre_fr')]),
+            'titre_oeuvre_fr.max'              => trans('formulaire.max_length', ['attribute' => trans('formulaire.titre_oeuvre_fr'), 'max' => 191]),
+            'titre_oeuvre_ar.required_if'      => trans('formulaire.required', ['attribute' => trans('formulaire.titre_oeuvre_ar')]),
+            'titre_oeuvre_ar.max'              => trans('formulaire.max_length', ['attribute' => trans('formulaire.titre_oeuvre_ar'), 'max' => 191]),
+            'descriptif_oeuvre_fr.required_if' => trans('formulaire.required', ['attribute' => trans('formulaire.descriptif_oeuvre_fr')]),
+            'descriptif_oeuvre_fr.max'         => trans('formulaire.max_length', ['attribute' => trans('formulaire.descriptif_oeuvre_fr'), 'max' => 5000]),
+            'descriptif_oeuvre_ar.required_if' => trans('formulaire.required', ['attribute' => trans('formulaire.descriptif_oeuvre_ar')]),
+            'descriptif_oeuvre_ar.max'         => trans('formulaire.max_length', ['attribute' => trans('formulaire.descriptif_oeuvre_ar'), 'max' => 5000]),
+            'video_url.regex'                  => trans('formulaire.invalid_youtube_url'),
+            'video_url.required_if'            => trans('formulaire.video_or_url_required'),
+        ];
+
+        // Valider la requête
+        $validated = $request->validate($validationRules, $validationMessages);
+
+        $id_personne = $request->id_personne;
+        Log::info('Début de la transaction pour id_personne', ['id_personne' => $id_personne]);
+
+        DB::beginTransaction();
+
+        try {
+            // Vérifier la personne et son dossier
+            $personne = personne::find($id_personne);
+            Log::info('Vérification de la personne', ['id_personne' => $id_personne, 'found' => ! is_null($personne), 'has_dossier' => ! is_null($personne?->id_dossier)]);
+            if (! $personne || ! $personne->id_dossier) {
+                Log::warning('Personne ou dossier non trouvé', ['id_personne' => $id_personne]);
+                return response()->json(['error' => trans('formulaire.person_or_dossier_not_found')], 400);
+            }
+
+            // Récupérer équipe existante et forme
+            $forme = forme::where('id_personne', $id_personne)
+                ->where('situation_forme_equipe', 'active')
+                ->first();
+            Log::info('Recherche de la forme active', ['id_personne' => $id_personne, 'found' => ! is_null($forme)]);
+
+            if (! $forme) {
+                Log::warning('Forme active non trouvée', ['id_personne' => $id_personne]);
+                return response()->json(['error' => trans('formulaire.forme_not_found')], 400);
+            }
+
+            $equipe = equipe::find($forme->id_equipe);
+            Log::info('Recherche de l’équipe', ['id_equipe' => $forme->id_equipe, 'found' => ! is_null($equipe)]);
+
+            // Vérifier si une œuvre a déjà été soumise pour cette équipe
+            $participer = participe::where('id_equipe', $equipe->id_equipe)->first();
+            if ($participer) {
+                Log::info('Cette personne a déjà soumis une œuvre avec cette équipe.', ['id_personne' => $id_personne]);
+                return response()->json([
+                    'error' => trans('formulaire.already_submitted', [
+                        'attribute' => trans('formulaire.oeuvre'),
+                    ]),
+                ], 400);
+            }
+
+            // Gestion du rôle "principal"
+            if ($request->role === 'principal') {
+                Log::info('Traitement du rôle principal', ['id_personne' => $id_personne]);
+
+                // Si teamSize == 1 : Réaffecter anciens collaborateurs à leurs équipes individuelles
+                if ($request->taille_equipe == 1) {
+                    Log::info('Mise à jour de la forme pour équipe de taille 1', ['id_equipe' => $equipe->id_equipe]);
+                    $forme->update([
+                        'role'             => $request->role,
+                        'date_integration' => now()->toDateString(),
+                    ]);
+                    Log::info('Forme mise à jour', ['id_equipe' => $equipe->id_equipe, 'role' => $request->role]);
+
+                    // Si teamSize > 1 : Gérer collaborateurs
+                } elseif ($request->has('collaborateurs')) {
+                    Log::info('Traitement des collaborateurs', ['collaborateurs' => $request->collaborateurs]);
+                    foreach ($request->collaborateurs as $collabId) {
+                        $collabForme = forme::where('id_personne', $collabId)
+                            ->where('situation_forme_equipe', 'active')
+                            ->first();
+                        Log::info('Recherche de la forme du collaborateur', ['id_personne' => $collabId, 'found' => ! is_null($collabForme)]);
+
+                        $collabEquipe = equipe::find($collabForme->id_equipe);
+                        if ($collabEquipe) {
+                            Log::info('Suppression de l’équipe du collaborateur', ['id_equipe' => $collabEquipe->id_equipe]);
+                            $collabEquipe->delete();
+                        }
+
+                        if ($collabForme) {
+                            Log::info('Mise à jour de la forme du collaborateur', ['id_personne' => $collabId, 'new_id_equipe' => $equipe->id_equipe]);
+                            $collabForme->update([
+                                'id_equipe'        => $equipe->id_equipe,
+                                'role'             => 'membre',
+                                'date_integration' => now()->toDateString(),
+                            ]);
+                            Log::info('Forme du collaborateur mise à jour', ['id_personne' => $collabId, 'id_equipe' => $equipe->id_equipe]);
+                        }
                     }
                 }
-            }
-            
-            // CHANGEMENT : Gérer multiples fichiers (jusqu'à nbr_max_oeuvre)
-            if ($request->hasFile('files')) {
-                Log::info('Traitement des fichiers uploadés', ['file_count' => count($request->file('files'))]);
-                foreach ($request->file('files') as $index => $file) {
-                    Log::info('Stockage du fichier', ['index' => $index, 'filename' => $file->getClientOriginalName()]);
-                    $path = $file->store('oeuvres', 'public');
-                    
-                    // Créer œuvre pour chaque fichier
-                    $oeuvre = \App\Models\Travail::create([
-                        'titre_oeuvre_ar'       =>$request->input('titre_oeuvre_ar', ''),
-                        'titre_oeuvre_fr'       => $request->input('titre_oeuvre_fr', ''),
-                        'video_url'             => $request->input('video_url', null),
+
+                // Gérer les fichiers et l'URL vidéo
+                if ($request->hasFile('files') || $request->filled('video_url')) {
+                    Log::info('Traitement des fichiers uploadés ou URL vidéo', [
+                        'file_count' => $request->hasFile('files') ? count($request->file('files')) : 0,
+                        'video_url'  => $request->input('video_url'),
+                    ]);
+
+                    // Créer une œuvre
+                    $oeuvre = travail::create([
+                        'titre_oeuvre_ar'       => $request->input('titre_oeuvre_ar', 'عمل-' . now()->timestamp),
+                        'titre_oeuvre_fr'       => $request->input('titre_oeuvre_fr', 'Œuvre-' . now()->timestamp),
                         'Duree_nbr_signes'      => '00:00:00', // À ajuster si nécessaire
-                        'date_publication'      => now()->toDateString(),
+                        'date_publication'      => $request->input('date_publication', now()->toDateString()),
                         'description_oeuvre_ar' => $request->input('descriptif_oeuvre_ar', ''),
                         'description_oeuvre_fr' => $request->input('descriptif_oeuvre_fr', ''),
                         'statut_oeuvre_ar'      => 'قيد الانتظار',
                         'statut_oeuvre_fr'      => 'En attente',
                         'valider_oeuvre'        => 'non validé',
+                        'video_url'             => $request->input('video_url'), // Enregistrer l'URL vidéo
                         'date_creation_oeuvre'  => now(),
                     ]);
                     Log::info('Œuvre créée', [
-                        'id_oeuvre' => $oeuvre->id_oeuvre,
-                        'titre_oeuvre_fr' => $oeuvre->titre_oeuvre_fr,
+                        'id_oeuvre'             => $oeuvre->id_oeuvre,
+                        'titre_oeuvre_fr'       => $oeuvre->titre_oeuvre_fr,
+                        'titre_oeuvre_ar'       => $oeuvre->titre_oeuvre_ar,
                         'description_oeuvre_fr' => $oeuvre->description_oeuvre_fr,
-                        'description_oeuvre_ar' => $oeuvre->description_oeuvre_ar
+                        'description_oeuvre_ar' => $oeuvre->description_oeuvre_ar,
+                        'video_url'             => $oeuvre->video_url,
                     ]);
-                    
-                    // Stocker fichier dans table fichiers
-                    $fichier = Fichier::create([
-                        'nom_fichier_ar' => 'عمل ' . $personne->nom_personne_ar . '-' . ($index + 1),
-                        'nom_fichier_fr' => 'Œuvre de ' . $personne->nom_personne_fr . '-' . ($index + 1),
-                        'file_path'      => $path,
-                        'type'           => $file->getClientOriginalExtension(),
-                        'size'           => $file->getSize(),
-                        'date_upload'    => now(),
-                        'id_dossier'     => $personne->id_dossier,
-                        'id_oeuvre'      => $oeuvre->id_oeuvre,
-                    ]);
-                    Log::info('Fichier créé', ['id_fichier' => $fichier->id_fichier, 'file_path' => $path]);
-                    
-                    // Créer entrée dans participer
-                    \App\Models\Contient::create([
+
+                    // Gérer les fichiers uploadés
+                    if ($request->hasFile('files')) {
+                        foreach ($request->file('files') as $index => $file) {
+                            Log::info('Stockage du fichier', ['index' => $index, 'filename' => $file->getClientOriginalName()]);
+                            $path = $file->store('oeuvres', 'public');
+
+                            // Stocker fichier dans la table fichiers
+                            $fichier = fichier::create([
+                                'nom_fichier_ar' => 'عمل ' . $personne->nom_personne_ar . '-' . ($index + 1),
+                                'nom_fichier_fr' => 'Œuvre de ' . $personne->nom_personne_fr . '-' . ($index + 1),
+                                'file_path'      => $path,
+                                'type'           => $file->getClientOriginalExtension(),
+                                'size'           => $file->getSize(),
+                                'date_upload'    => now(),
+                                'id_dossier'     => $personne->id_dossier,
+                                'id_oeuvre'      => $oeuvre->id_oeuvre,
+                            ]);
+                            Log::info('Fichier créé', ['id_fichier' => $fichier->id_fichier, 'file_path' => $path]);
+                        }
+                    }
+
+                    // Créer entrée dans Contient
+                    Contient::create([
                         'id_oeuvre'    => $oeuvre->id_oeuvre,
                         'id_categorie' => $request->categorie,
                         'created_at'   => now(),
                         'updated_at'   => now(),
                     ]);
                     Log::info('Entrée créée dans Contient', ['id_oeuvre' => $oeuvre->id_oeuvre, 'id_categorie' => $request->categorie]);
-                    
-                    // Créer entrée dans associes
-                    \App\Models\Associe::create([
+
+                    // Créer entrée dans Associe
+                    associe::create([
                         'id_oeuvre' => $oeuvre->id_oeuvre,
                         'id_theme'  => $request->theme,
                     ]);
                     Log::info('Entrée créée dans Associe', ['id_oeuvre' => $oeuvre->id_oeuvre, 'id_theme' => $request->theme]);
-                    
-                    // Créer entrée dans participer
-                    \App\Models\Participer::create([
+
+                    // Créer entrée dans Participer
+                    participe::create([
                         'id_equipe'          => $equipe->id_equipe,
                         'id_oeuvre'          => $oeuvre->id_oeuvre,
                         'date_participation' => now()->toDateString(),
                     ]);
                     Log::info('Entrée créée dans Participer', ['id_equipe' => $equipe->id_equipe, 'id_oeuvre' => $oeuvre->id_oeuvre]);
+                } else {
+                    Log::warning('Aucun fichier ou URL vidéo fourni pour le rôle principal', ['id_personne' => $id_personne]);
+                    return response()->json(['error' => trans('formulaire.video_or_url_required')], 400);
                 }
             }
+            // Pour rôle "membre", rien d’autre à faire
+            else {
+                Log::info('Rôle membre sélectionné, aucune œuvre ou fichier à enregistrer.', ['id_personne' => $id_personne]);
+            }
+
+            DB::commit();
+            Log::info('Transaction validée avec succès', ['id_personne' => $id_personne]);
+            return response()->json(['message' => trans('formulaire.step3_saved')], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Erreur lors de l\'enregistrement de l\'étape 3 : ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
+            return response()->json([
+                'error' => trans('formulaire.save_error', ['message' => $e->getMessage()]),
+            ], 500);
         }
-        // CHANGEMENT : Pour rôle "membre", rien d’autre à faire
-        else {
-            // Role membre : aucune œuvre ou fichier à traiter
-            Log::info('Rôle membre sélectionné, aucune œuvre ou fichier à enregistrer.', ['id_personne' => $id_personne]);
-        }
-    }else{
-        Log::info('Cette personne a déjà soumis une œuvre avec cette équipe.', ['id_personne' => $id_personne]);
-        return response()->json(['error' =>'Vous avez déjà soumis une œuvre avec cette équipe.'], 400);
     }
-        DB::commit();
-        Log::info('Transaction validée avec succès', ['id_personne' => $id_personne]);
-        return response()->json(['message' => trans('formulaire.step3_saved')], 201);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        Log::error('Erreur lors de l\'enregistrement de l\'étape 3 : ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
-        return response()->json([
-            'error' => trans('formulaire.save_error', ['message' => $e->getMessage()]),
-        ], 500);
-    }
-}
 }

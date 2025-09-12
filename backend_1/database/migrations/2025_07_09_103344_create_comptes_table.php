@@ -6,11 +6,14 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('comptes', function (Blueprint $table) {
             $table->engine = 'InnoDB';
-            $table->unsignedBigInteger('id_compte')->primary()->autoIncrement(); // Changed to unsignedBigInteger
+            $table->integer('id_compte')->primary()->autoIncrement();
             $table->string('username')->unique();
             $table->string('email')->unique();
             $table->string('mot_passe_hash');
@@ -22,10 +25,13 @@ return new class extends Migration
             $table->dateTime('date_verification_email')->nullable();
             $table->unsignedBigInteger('id');
             $table->foreign('id')->references('id')->on('users')->onDelete('cascade');
+
         });
-        
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('comptes');
