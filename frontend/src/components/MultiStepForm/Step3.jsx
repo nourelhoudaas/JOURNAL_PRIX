@@ -197,6 +197,18 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
     onChange({ target: { name: 'role', value } });
   }, [onChange]);
 
+ // Nouvelle fonction pour supprimer un fichier sélectionné
+  const handleRemoveFile = (index) => {
+    const updatedFiles = selectedFiles.filter((_, i) => i !== index); // Filtrer pour enlever le fichier à l'index
+    setSelectedFiles(updatedFiles); // Mettre à jour l'état
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''; // Réinitialiser l'input file pour permettre de resélectionner
+    }
+    const event = { target: { files: updatedFiles, name: 'file' } };
+    onFileChange(event); // Notifier le parent si nécessaire
+    validateFormErrors(); // Revalider le formulaire après suppression
+  };
+
   const handleTempCollaboratorChange = (id) => {
     if (tempCollaborators.includes(id)) {
       setTempCollaborators(tempCollaborators.filter(c => c !== id));
@@ -700,6 +712,15 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
                         className="text-blue-600 hover:underline"
                       >
                         {interfaceLocale === 'fr' ? '(Voir)' : '(عرض)'}
+                      </button>
+
+                      {/* Ajout du boutton suppression */}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveFile(index)} // Appel de la nouvelle fonction de suppression
+                        className="text-red-600 hover:underline"
+                      >
+                        {interfaceLocale === 'fr' ? '(Supprimer)' : '(حذف)'} {/* Bouton de suppression */}
                       </button>
                     </li>
                   ))}

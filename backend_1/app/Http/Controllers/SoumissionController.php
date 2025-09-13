@@ -477,70 +477,70 @@ class SoumissionController extends Controller
 
     //check if num_attes exists and return associated data
     public function checkNumAttes(Request $request)
-{
-    Log::info('🟢 Début checkNumAttes', ['params' => $request->all()]);
+    {
+        Log::info('🟢 Début checkNumAttes', ['params' => $request->all()]);
 
-    $numAttes = $request->query('num_attes');
-    $locale = $request->query('locale', 'fr');
-    
-    // Configurer la locale
-    app()->setLocale($locale);
-    
-    // Log de début avec les paramètres reçus
-    Log::info('🟢 checkNumAttes', [
-        'num_attes' => $numAttes,
-        'locale' => $locale,
-    ]);
+        $numAttes = $request->query('num_attes');
+        $locale   = $request->query('locale', 'fr');
 
-    // Vérification que num_attes est fourni
-    if (!$numAttes) {
-        Log::warning('🚫 num_attes non fourni dans la requête');
-        return response()->json([
-            'exists' => false,
-            'error' => trans('formulaire.required', ['attribute' => trans('formulaire.num_attes')]),
-        ], 422);
-    }
+        // Configurer la locale
+        app()->setLocale($locale);
 
-    try {
-        // Recherche dans la table occuper
-        $existing = Occuper::where('num_attes', $numAttes)->first();
-        
-        // Log du résultat de la recherche
-        Log::info('🔍 Résultat recherche num_attes', [
+        // Log de début avec les paramètres reçus
+        Log::info('🟢 checkNumAttes', [
             'num_attes' => $numAttes,
-            'exists' => !empty($existing),
+            'locale'    => $locale,
         ]);
 
-        if ($existing) {
-            // Cas où num_attes existe
-            Log::warning('🚫 num_attes déjà utilisé', [
-                'num_attes' => $numAttes,
-            ]);
+        // Vérification que num_attes est fourni
+        if (! $numAttes) {
+            Log::warning('🚫 num_attes non fourni dans la requête');
             return response()->json([
-                'exists' => true,
-                'error' => trans('formulaire.num_attes_exists'),
+                'exists' => false,
+                'error'  => trans('formulaire.required', ['attribute' => trans('formulaire.num_attes')]),
             ], 422);
         }
 
-        // Cas où num_attes n'existe pas
-        Log::info('✅ num_attes non trouvé, nouveau numéro', ['num_attes' => $numAttes]);
-        return response()->json([
-            'exists' => false,
-        ], 200);
+        try {
+            // Recherche dans la table occuper
+            $existing = Occuper::where('num_attes', $numAttes)->first();
 
-    } catch (\Exception $e) {
-        // Log de l'erreur
-        Log::error('❌ Erreur lors de la vérification de num_attes', [
-            'num_attes' => $numAttes,
-            'error_message' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-        ]);
-        return response()->json([
-            'exists' => false,
-            'error' => trans('formulaire.error_check_num_attes'),
-        ], 500);
+            // Log du résultat de la recherche
+            Log::info('🔍 Résultat recherche num_attes', [
+                'num_attes' => $numAttes,
+                'exists'    => ! empty($existing),
+            ]);
+
+            if ($existing) {
+                // Cas où num_attes existe
+                Log::warning('🚫 num_attes déjà utilisé', [
+                    'num_attes' => $numAttes,
+                ]);
+                return response()->json([
+                    'exists' => true,
+                    'error'  => trans('formulaire.num_attes_exists'),
+                ], 422);
+            }
+
+            // Cas où num_attes n'existe pas
+            Log::info('✅ num_attes non trouvé, nouveau numéro', ['num_attes' => $numAttes]);
+            return response()->json([
+                'exists' => false,
+            ], 200);
+
+        } catch (\Exception $e) {
+            // Log de l'erreur
+            Log::error('❌ Erreur lors de la vérification de num_attes', [
+                'num_attes'     => $numAttes,
+                'error_message' => $e->getMessage(),
+                'trace'         => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'exists' => false,
+                'error'  => trans('formulaire.error_check_num_attes'),
+            ], 500);
+        }
     }
-}
 
     //🟢 ÉTAPE 2 - Établissement + mise à jour de la personne + attestation de travail
     public function storeStep2(Request $request)
@@ -845,6 +845,12 @@ class SoumissionController extends Controller
         $interfaceLocale = $request->input('locale', 'fr');
         app()->setLocale($interfaceLocale);
         Log::info('🟢 Début storeStep3', ['request_data' => $request->all()]);
+
+        // Vérifier le rôle au début
+        if ($request->role !== 'principal') {
+            Log::info('Rôle membre sélectionné, soumission directe sans enregistrement.', ['id_personne' => $request->id_personne]);
+            return response()->json(['message' => trans('formulaire.step3_saved')], 201);
+        }
 
         // Valider la catégorie
         $categorie = categorie::find($request->input('categorie'));

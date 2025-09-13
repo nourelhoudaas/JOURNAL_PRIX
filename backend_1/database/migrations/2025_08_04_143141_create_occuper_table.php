@@ -16,7 +16,7 @@ return new class extends Migration
             $table->Integer('id_personne');
             $table->Integer('id_fichier');
 
-            $table->string('num_attes', 191)->unique();
+            $table->string('num_attes', 191);
             $table->foreign('id_etab')->references('id_etab')->on('etablissement')->onDelete('cascade');
             $table->foreign('id_personne')->references('id_personne')->on('personnes')->onDelete('cascade');
             $table->foreign('id_fichier')->references('id_fichier')->on('fichiers')->onDelete('cascade');
