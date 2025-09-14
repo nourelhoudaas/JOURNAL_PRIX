@@ -242,14 +242,17 @@ class SoumissionController extends Controller
                     ->where('id_equipe', $equipe->id_equipe)
                     ->exists();
                 if (! $formeExists) {
-                    forme::create([
-                        'id_equipe'              => $equipe->id_equipe,
-                        'id_personne'            => $person->id_personne,
-                        'date_forme_equipe'      => now(),
-                        'situation_forme_equipe' => 'active',
-                        'role'                   => 'membre',
-                        'date_integration'       => now()->toDateString(),
+                   $forme= forme::create([
+                        'id_equipe'         => $equipe->id_equipe,
+                        'id_personne'       => $person->id_personne,
+                        'date_forme_equipe' => now(),
+                        'role_personne'     => 'membre',
+                        'situation'         => 'active',
+                        'date_integration'  => now()->toDateString(),
                     ]);
+                    Log::info('✅ Forme created', ['forme_id' => $forme->id_forme, 'id_personne' => $forme->id_personne,
+                    'id_equipe'                              => $forme->id_equipe, 'situation'  => $forme->situation, 'role_personne' => $forme->role_personne,
+                    'date_integration'                       => $forme->date_integration]);
                 }
             } else {
                 // Créer un nouveau dossier
@@ -266,14 +269,19 @@ class SoumissionController extends Controller
                     'nom_equipe_fr' => $validated['nom_personne_fr'] . ' ' . $validated['prenom_personne_fr'],
                 ]);
                 // Ajouter la personne comme membre dans la table forme
-                forme::create([
-                    'id_equipe'              => $equipe->id_equipe,
-                    'id_personne'            => $person->id_personne,
-                    'date_forme_equipe'      => now(),
-                    'situation_forme_equipe' => 'active',
-                    'role'                   => 'membre',
-                    'date_integration'       => now()->toDateString(),
+                $forme = forme::create([
+                    'id_equipe'         => $equipe->id_equipe,
+                    'id_personne'       => $person->id_personne,
+                    'date_forme_equipe' => now(),
+                    'role_personne'     => 'membre',
+                    'situation'         => 'active',
+                    'date_integration'  => now()->toDateString(),
                 ]);
+                
+                Log::info('✅ Forme created', ['forme_id' => $forme->id_forme, 'id_personne' => $forme->id_personne,
+                    'id_equipe'                              => $forme->id_equipe, 'situation'  => $forme->situation, 'role_personne' => $forme->role_personne,
+                    'date_integration'                       => $forme->date_integration]);
+
                 // Ajouter la personne à participant
                 $participant = participant::create([
                     'date_debut_activité' => now()->toDateString(),
@@ -805,8 +813,8 @@ class SoumissionController extends Controller
             return response()->json(['error' => 'Personne non trouvée.'], 404);
         }
         $membres = personne::whereHas('formes', function ($query) {
-            $query->where('role', 'membre');
-            $query->where('situation_forme_equipe', 'active');
+            $query->where('role_personne', 'membre');
+            $query->where('situation', 'active');
         })
             ->where('id_personne', '!=', $currentPerson->id_personne)
             ->with(['dossier.fichiers' => function ($query) {
@@ -846,12 +854,6 @@ class SoumissionController extends Controller
         app()->setLocale($interfaceLocale);
         Log::info('🟢 Début storeStep3', ['request_data' => $request->all()]);
 
-        // Vérifier le rôle au début
-        if ($request->role !== 'principal') {
-            Log::info('Rôle membre sélectionné, soumission directe sans enregistrement.', ['id_personne' => $request->id_personne]);
-            return response()->json(['message' => trans('formulaire.step3_saved')], 201);
-        }
-
         // Valider la catégorie
         $categorie = categorie::find($request->input('categorie'));
         Log::info('Recherche de la catégorie', ['id_categorie' => $request->input('categorie'), 'found' => ! is_null($categorie)]);
@@ -876,7 +878,7 @@ class SoumissionController extends Controller
             'theme'                => 'required|exists:themes,id_theme',
             'categorie'            => 'required|exists:categories,id_categorie',
             'id_personne'          => 'required|exists:personnes,id_personne',
-            'role'                 => 'required|string|in:principal,membre',
+            'role_personne'        => 'required|string|in:principal,membre',
             'taille_equipe'        => 'required|integer|min:1|max:4',
             'files'                => [
                 'required_if:role,principal,video_url,null', // Requis si video_url n'est pas fourni
@@ -943,7 +945,7 @@ class SoumissionController extends Controller
 
             // Récupérer équipe existante et forme
             $forme = forme::where('id_personne', $id_personne)
-                ->where('situation_forme_equipe', 'active')
+                ->where('situation', 'active')
                 ->first();
             Log::info('Recherche de la forme active', ['id_personne' => $id_personne, 'found' => ! is_null($forme)]);
 
@@ -974,17 +976,17 @@ class SoumissionController extends Controller
                 if ($request->taille_equipe == 1) {
                     Log::info('Mise à jour de la forme pour équipe de taille 1', ['id_equipe' => $equipe->id_equipe]);
                     $forme->update([
-                        'role'             => $request->role,
+                        'role_personne'    => $request->role,
                         'date_integration' => now()->toDateString(),
                     ]);
-                    Log::info('Forme mise à jour', ['id_equipe' => $equipe->id_equipe, 'role' => $request->role]);
+                    Log::info('Forme mise à jour', ['id_equipe' => $equipe->id_equipe, 'role_personne' => $request->role]);
 
                     // Si teamSize > 1 : Gérer collaborateurs
                 } elseif ($request->has('collaborateurs')) {
                     Log::info('Traitement des collaborateurs', ['collaborateurs' => $request->collaborateurs]);
                     foreach ($request->collaborateurs as $collabId) {
                         $collabForme = forme::where('id_personne', $collabId)
-                            ->where('situation_forme_equipe', 'active')
+                            ->where('situation', 'active')
                             ->first();
                         Log::info('Recherche de la forme du collaborateur', ['id_personne' => $collabId, 'found' => ! is_null($collabForme)]);
 
@@ -998,7 +1000,7 @@ class SoumissionController extends Controller
                             Log::info('Mise à jour de la forme du collaborateur', ['id_personne' => $collabId, 'new_id_equipe' => $equipe->id_equipe]);
                             $collabForme->update([
                                 'id_equipe'        => $equipe->id_equipe,
-                                'role'             => 'membre',
+                                'role_personne'    => 'membre',
                                 'date_integration' => now()->toDateString(),
                             ]);
                             Log::info('Forme du collaborateur mise à jour', ['id_personne' => $collabId, 'id_equipe' => $equipe->id_equipe]);

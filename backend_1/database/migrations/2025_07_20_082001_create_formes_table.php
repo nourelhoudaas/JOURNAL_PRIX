@@ -18,8 +18,8 @@ return new class extends Migration
             //$table->string('role_personne');
             //$table->string('situation');
 
-            $table->string('situation_forme_equipe', 191);
-            $table->enum('role', ['principal', 'membre'])->default('membre');
+            $table->string('situation', 191);
+            $table->enum('role_personne', ['principal', 'membre'])->default('membre');
             $table->date('date_integration')->nullable();
             $table->timestamps();
             

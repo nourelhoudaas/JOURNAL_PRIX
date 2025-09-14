@@ -15,8 +15,8 @@ class forme extends Model
         'id_equipe',
         'id_personne',
         'date_forme_equipe',
-        'situation_forme_equipe',
-        'role',
+        'situation',
+        'role_personne',
         'date_integration',
     ];
 
