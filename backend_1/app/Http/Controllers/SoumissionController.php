@@ -30,75 +30,87 @@ use Illuminate\Validation\Rule;
 class SoumissionController extends Controller
 {
     // Check if NIN exists and return person data
-    // Check if NIN exists and return person data
-    public function checkNin(Request $request)
-    {
-        $interfaceLocale = $request->input('locale', 'fr'); // Récupérer la langue, par défaut 'fr'
-        app()->setLocale($interfaceLocale);                 // Définir la locale pour les traductions
+public function checkNin(Request $request)
+{
+    $interfaceLocale = $request->input('locale', 'fr'); // Récupérer la langue, par défaut 'fr'
+    app()->setLocale($interfaceLocale); // Définir la locale pour les traductions
+    $nin = $request->query('nin');
 
-        $nin = $request->query('nin');
-
-        if (! preg_match('/^[0-9]{18}$/', $nin)) {
-            return response()->json([
-                'exists'  => false,
-                'message' => trans('formulaire.nin_invalid'),
-                'data'    => null,
-            ], 422);
-        }
-
-        $person = personne::where('id_nin_personne', $nin)
-            ->with(['dossier.fichiers' => function ($query) {
-                $query->select('id_fichier', 'nom_fichier_ar', 'nom_fichier_fr', 'file_path', 'type', 'id_dossier')
-                    ->whereIn('type', ['carte_nationale', 'photo'])
-                    ->whereNull('id_oeuvre');
-            }])
-            ->first();
-
-        if ($person) {
-            $fichiers = $person->dossier ? $person->dossier->fichiers->map(function ($fichier) {
-                return [
-                    'id_fichier'     => $fichier->id_fichier,
-                    'nom_fichier_ar' => $fichier->nom_fichier_ar,
-                    'nom_fichier_fr' => $fichier->nom_fichier_fr,
-                    'file_path'      => $fichier->file_path,
-                    'type'           => $fichier->type,
-                ];
-            })->toArray() : [];
-
-            return response()->json([
-                'exists'  => true,
-                'message' => trans('formulaire.nin_exists'),
-                'data'    => [
-                    'id_nin_personne'      => $person->id_nin_personne,
-                    'nom_personne_fr'      => $person->nom_personne_fr,
-                    'prenom_personne_fr'   => $person->prenom_personne_fr,
-                    'nom_personne_ar'      => $person->nom_personne_ar,
-                    'prenom_personne_ar'   => $person->prenom_personne_ar,
-                    'date_naissance'       => $person->date_naissance instanceof \Carbon\Carbon  ? $person->date_naissance->format('Y-m-d') : (string) $person->date_naissance,
-                    'lieu_naissance_fr'    => $person->lieu_naissance_fr,
-                    'lieu_naissance_ar'    => $person->lieu_naissance_ar,
-                    'nationalite_fr'       => $person->nationalite_fr,
-                    'nationalite_ar'       => $person->nationalite_ar,
-                    'num_tlf_personne'     => $person->num_tlf_personne,
-                    'adresse_fr'           => $person->adresse_fr,
-                    'adresse_ar'           => $person->adresse_ar,
-                    'sexe_personne_fr'     => $person->sexe_personne_fr,
-                    'sexe_personne_ar'     => $person->sexe_personne_ar,
-                    'groupage'             => $person->groupage,
-                    'id_professional_card' => $person->id_professional_card,
-                    'fonction_fr'          => $person->fonction_fr,
-                    'fonction_ar'          => $person->fonction_ar,
-                    'fichiers'             => $fichiers,
-                ],
-            ], 200);
-        }
-
+    // Valider le format du NIN
+    if (!preg_match('/^[0-9]{18}$/', $nin)) {
         return response()->json([
             'exists'  => false,
-            'message' => trans('formulaire.nin_not_found'),
+            'message' => trans('formulaire.nin_invalid'),
             'data'    => null,
+        ], 422);
+    }
+
+    // Vérifier si une personne existe avec ce NIN
+    $person = personne::where('id_nin_personne', $nin)
+        ->with(['dossier.fichiers' => function ($query) {
+            $query->select('id_fichier', 'nom_fichier_ar', 'nom_fichier_fr', 'file_path', 'type', 'id_dossier')
+                ->whereIn('type', ['carte_nationale', 'photo'])
+                ->whereNull('id_oeuvre');
+        }])
+        ->first();
+
+    // Si la personne existe
+    if ($person) {
+        // Vérifier si la personne appartient à l'utilisateur authentifié
+        if (Auth::check() && $person->id_compte !== Auth::id()) {
+            return response()->json([
+                'exists'  => true,
+                'message' => trans('formulaire.nin_belongs_to_another_user'),
+                'data'    => null,
+            ], 403); // 403 Forbidden pour accès non autorisé
+        }
+
+        // Si la personne appartient à l'utilisateur authentifié, retourner ses données
+        $fichiers = $person->dossier ? $person->dossier->fichiers->map(function ($fichier) {
+            return [
+                'id_fichier'     => $fichier->id_fichier,
+                'nom_fichier_ar' => $fichier->nom_fichier_ar,
+                'nom_fichier_fr' => $fichier->nom_fichier_fr,
+                'file_path'      => $fichier->file_path,
+                'type'           => $fichier->type,
+            ];
+        })->toArray() : [];
+
+        return response()->json([
+            'exists'  => true,
+            'message' => trans('formulaire.nin_exists'),
+            'data'    => [
+                'id_nin_personne'      => $person->id_nin_personne,
+                'nom_personne_fr'      => $person->nom_personne_fr,
+                'prenom_personne_fr'   => $person->prenom_personne_fr,
+                'nom_personne_ar'      => $person->nom_personne_ar,
+                'prenom_personne_ar'   => $person->prenom_personne_ar,
+                'date_naissance'       => $person->date_naissance instanceof \Carbon\Carbon ? $person->date_naissance->format('Y-m-d') : (string) $person->date_naissance,
+                'lieu_naissance_fr'    => $person->lieu_naissance_fr,
+                'lieu_naissance_ar'    => $person->lieu_naissance_ar,
+                'nationalite_fr'       => $person->nationalite_fr,
+                'nationalite_ar'       => $person->nationalite_ar,
+                'num_tlf_personne'     => $person->num_tlf_personne,
+                'adresse_fr'           => $person->adresse_fr,
+                'adresse_ar'           => $person->adresse_ar,
+                'sexe_personne_fr'     => $person->sexe_personne_fr,
+                'sexe_personne_ar'     => $person->sexe_personne_ar,
+                'groupage'             => $person->groupage,
+                'id_professional_card' => $person->id_professional_card,
+                'fonction_fr'          => $person->fonction_fr,
+                'fonction_ar'          => $person->fonction_ar,
+                'fichiers'             => $fichiers,
+            ],
         ], 200);
     }
+
+    // Si la personne n'existe pas
+    return response()->json([
+        'exists'  => false,
+        'message' => trans('formulaire.nin_not_found'),
+        'data'    => null,
+    ], 200);
+}
 
     // 🟢 ÉTAPE 1 - Données personnelles + création du dossier et fichiers associés
     public function storeStep1(Request $request)
@@ -242,7 +254,7 @@ class SoumissionController extends Controller
                     ->where('id_equipe', $equipe->id_equipe)
                     ->exists();
                 if (! $formeExists) {
-                   $forme= forme::create([
+                    $forme = forme::create([
                         'id_equipe'         => $equipe->id_equipe,
                         'id_personne'       => $person->id_personne,
                         'date_forme_equipe' => now(),
@@ -251,8 +263,8 @@ class SoumissionController extends Controller
                         'date_integration'  => now()->toDateString(),
                     ]);
                     Log::info('✅ Forme created', ['forme_id' => $forme->id_forme, 'id_personne' => $forme->id_personne,
-                    'id_equipe'                              => $forme->id_equipe, 'situation'  => $forme->situation, 'role_personne' => $forme->role_personne,
-                    'date_integration'                       => $forme->date_integration]);
+                        'id_equipe'                              => $forme->id_equipe, 'situation'  => $forme->situation, 'role_personne' => $forme->role_personne,
+                        'date_integration'                       => $forme->date_integration]);
                 }
             } else {
                 // Créer un nouveau dossier
@@ -277,7 +289,7 @@ class SoumissionController extends Controller
                     'situation'         => 'active',
                     'date_integration'  => now()->toDateString(),
                 ]);
-                
+
                 Log::info('✅ Forme created', ['forme_id' => $forme->id_forme, 'id_personne' => $forme->id_personne,
                     'id_equipe'                              => $forme->id_equipe, 'situation'  => $forme->situation, 'role_personne' => $forme->role_personne,
                     'date_integration'                       => $forme->date_integration]);
@@ -657,7 +669,7 @@ class SoumissionController extends Controller
                 ], 422);
             }
 
-            $secteur = SecteurTravail::firstOrCreate(['nom_fr_sect' => $validated['secteur_travail']]);
+            $secteur = secteurTravail::firstOrCreate(['nom_fr_sect' => $validated['secteur_travail']]);
             if (! $secteur->id_sect) {
                 throw new \Exception('Échec de la création ou récupération du secteur.');
             }
@@ -854,14 +866,18 @@ class SoumissionController extends Controller
         app()->setLocale($interfaceLocale);
         Log::info('🟢 Début storeStep3', ['request_data' => $request->all()]);
 
+/*if ($request->input('role') !== 'principal') {
+    Log::info('Transaction validée avec 5555succès', ['id_personne' => $request->id_personne]);
+    return response()->json(['message' => trans('formulaire.step3_saved')], 201);
+}*/
+
         // Valider la catégorie
-        $categorie = categorie::find($request->input('categorie'));
+        $categorie = Categorie::find($request->input('categorie'));
         Log::info('Recherche de la catégorie', ['id_categorie' => $request->input('categorie'), 'found' => ! is_null($categorie)]);
         if (! $categorie) {
             Log::warning('Catégorie invalide', ['id_categorie' => $request->input('categorie')]);
             return response()->json(['error' => trans('formulaire.invalid_category')], 400);
         }
-
         $maxFiles = $categorie->nbr_max_oeuvre;
         Log::info('Validation des données d’entrée', [
             'max_files'            => $maxFiles,
@@ -878,13 +894,14 @@ class SoumissionController extends Controller
             'theme'                => 'required|exists:themes,id_theme',
             'categorie'            => 'required|exists:categories,id_categorie',
             'id_personne'          => 'required|exists:personnes,id_personne',
-            'role_personne'        => 'required|string|in:principal,membre',
+            'role_personne'                 => 'required|string|in:principal,membre',
             'taille_equipe'        => 'required|integer|min:1|max:4',
             'files'                => [
-                'required_if:role,principal,video_url,null', // Requis si video_url n'est pas fourni
                 'array',
-                'min:1',
                 'max:' . $maxFiles,
+                Rule::requiredIf(function () use ($request) {
+                    return $request->role_personne === 'principal' && ! $request->filled('video_url');
+                }), // Requis si video_url est vide
             ],
             'files.*'              => 'file|mimes:pdf,doc,docx,mp4,avi,mov,jpeg,png,jpg|max:20480', // 20 Mo
             'collaborateurs'       => [
@@ -899,19 +916,17 @@ class SoumissionController extends Controller
                 'url',
                 'max:255',
                 'regex:/^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&\n?#]+)/', // Validation YouTube
-                Rule::requiredIf(function () use ($request) {
-                    return $request->role === 'principal' && ! $request->hasFile('files');
-                }), // Requis si aucun fichier n'est uploadé
             ],
-            'titre_oeuvre_fr'      => 'required_if:role,principal|string|max:191',
-            'titre_oeuvre_ar'      => 'required_if:role,principal|string|max:191',
-            'descriptif_oeuvre_fr' => 'required_if:role,principal|string|max:5000',
-            'descriptif_oeuvre_ar' => 'required_if:role,principal|string|max:5000',
+            'titre_oeuvre_fr'      => 'required_if:role_personne,principal|string|max:191',
+            'titre_oeuvre_ar'      => 'required_if:role_personne,principal|string|max:191',
+            'descriptif_oeuvre_fr' => 'required_if:role_personne,principal|string|max:5000',
+            'descriptif_oeuvre_ar' => 'required_if:role_personne,principal|string|max:5000',
+            'date_publication'     => 'required_if:role_personne,principal|date',
         ];
 
         // Messages de validation personnalisés
         $validationMessages = [
-            'files.required_if'                => trans('formulaire.video_or_url_required'),
+            'files.required_if'                => trans('formulaire.file_required_if_no_url'),
             'files.max'                        => trans('formulaire.max_files', ['attribute' => trans('formulaire.file'), 'max' => $maxFiles]),
             'collaborateurs.size'              => trans('formulaire.required', ['attribute' => trans('formulaire.collaborators')]) . ' (' . trans('formulaire.exact_collaborators', ['count' => $request->input('taille_equipe') - 1]) . ')',
             'titre_oeuvre_fr.required_if'      => trans('formulaire.required', ['attribute' => trans('formulaire.titre_oeuvre_fr')]),
@@ -923,20 +938,18 @@ class SoumissionController extends Controller
             'descriptif_oeuvre_ar.required_if' => trans('formulaire.required', ['attribute' => trans('formulaire.descriptif_oeuvre_ar')]),
             'descriptif_oeuvre_ar.max'         => trans('formulaire.max_length', ['attribute' => trans('formulaire.descriptif_oeuvre_ar'), 'max' => 5000]),
             'video_url.regex'                  => trans('formulaire.invalid_youtube_url'),
-            'video_url.required_if'            => trans('formulaire.video_or_url_required'),
+            'date_publication.required_if'     => trans('formulaire.required', ['attribute' => trans('formulaire.date_publication')]),
         ];
 
         // Valider la requête
-        $validated = $request->validate($validationRules, $validationMessages);
-
+        $validated   = $request->validate($validationRules, $validationMessages);
         $id_personne = $request->id_personne;
         Log::info('Début de la transaction pour id_personne', ['id_personne' => $id_personne]);
 
         DB::beginTransaction();
-
         try {
             // Vérifier la personne et son dossier
-            $personne = personne::find($id_personne);
+            $personne = Personne::find($id_personne);
             Log::info('Vérification de la personne', ['id_personne' => $id_personne, 'found' => ! is_null($personne), 'has_dossier' => ! is_null($personne?->id_dossier)]);
             if (! $personne || ! $personne->id_dossier) {
                 Log::warning('Personne ou dossier non trouvé', ['id_personne' => $id_personne]);
@@ -944,21 +957,20 @@ class SoumissionController extends Controller
             }
 
             // Récupérer équipe existante et forme
-            $forme = forme::where('id_personne', $id_personne)
+            $forme = Forme::where('id_personne', $id_personne)
                 ->where('situation', 'active')
                 ->first();
             Log::info('Recherche de la forme active', ['id_personne' => $id_personne, 'found' => ! is_null($forme)]);
-
             if (! $forme) {
                 Log::warning('Forme active non trouvée', ['id_personne' => $id_personne]);
                 return response()->json(['error' => trans('formulaire.forme_not_found')], 400);
             }
 
-            $equipe = equipe::find($forme->id_equipe);
+            $equipe = Equipe::find($forme->id_equipe);
             Log::info('Recherche de l’équipe', ['id_equipe' => $forme->id_equipe, 'found' => ! is_null($equipe)]);
 
             // Vérifier si une œuvre a déjà été soumise pour cette équipe
-            $participer = participe::where('id_equipe', $equipe->id_equipe)->first();
+            $participer = Participe::where('id_equipe', $equipe->id_equipe)->first();
             if ($participer) {
                 Log::info('Cette personne a déjà soumis une œuvre avec cette équipe.', ['id_personne' => $id_personne]);
                 return response()->json([
@@ -969,33 +981,31 @@ class SoumissionController extends Controller
             }
 
             // Gestion du rôle "principal"
-            if ($request->role === 'principal') {
+            if ($request->role_personne === 'principal') {
                 Log::info('Traitement du rôle principal', ['id_personne' => $id_personne]);
 
                 // Si teamSize == 1 : Réaffecter anciens collaborateurs à leurs équipes individuelles
                 if ($request->taille_equipe == 1) {
                     Log::info('Mise à jour de la forme pour équipe de taille 1', ['id_equipe' => $equipe->id_equipe]);
                     $forme->update([
-                        'role_personne'    => $request->role,
+                        'role_personne'    => $request->role_personne,
                         'date_integration' => now()->toDateString(),
                     ]);
-                    Log::info('Forme mise à jour', ['id_equipe' => $equipe->id_equipe, 'role_personne' => $request->role]);
+                    Log::info('Forme mise à jour', ['id_equipe' => $equipe->id_equipe, 'role_personne' => $request->role_personne]);
 
                     // Si teamSize > 1 : Gérer collaborateurs
                 } elseif ($request->has('collaborateurs')) {
                     Log::info('Traitement des collaborateurs', ['collaborateurs' => $request->collaborateurs]);
                     foreach ($request->collaborateurs as $collabId) {
-                        $collabForme = forme::where('id_personne', $collabId)
+                        $collabForme = Forme::where('id_personne', $collabId)
                             ->where('situation', 'active')
                             ->first();
                         Log::info('Recherche de la forme du collaborateur', ['id_personne' => $collabId, 'found' => ! is_null($collabForme)]);
-
-                        $collabEquipe = equipe::find($collabForme->id_equipe);
+                        $collabEquipe = Equipe::find($collabForme->id_equipe);
                         if ($collabEquipe) {
                             Log::info('Suppression de l’équipe du collaborateur', ['id_equipe' => $collabEquipe->id_equipe]);
                             $collabEquipe->delete();
                         }
-
                         if ($collabForme) {
                             Log::info('Mise à jour de la forme du collaborateur', ['id_personne' => $collabId, 'new_id_equipe' => $equipe->id_equipe]);
                             $collabForme->update([
@@ -1008,7 +1018,7 @@ class SoumissionController extends Controller
                     }
                 }
 
-                // Gérer les fichiers et l'URL vidéo
+                // Vérifier si au moins un fichier ou une URL vidéo est fourni
                 if ($request->hasFile('files') || $request->filled('video_url')) {
                     Log::info('Traitement des fichiers uploadés ou URL vidéo', [
                         'file_count' => $request->hasFile('files') ? count($request->file('files')) : 0,
@@ -1026,8 +1036,8 @@ class SoumissionController extends Controller
                         'statut_oeuvre_ar'      => 'قيد الانتظار',
                         'statut_oeuvre_fr'      => 'En attente',
                         'valider_oeuvre'        => 'non validé',
-                        'video_url'             => $request->input('video_url'), // Enregistrer l'URL vidéo
-                        'date_creation_oeuvre'  => now(),
+                        'video_url'             => $request->input('video_url'), // Enregistrer l'URL vidéo (peut être null)
+                        
                     ]);
                     Log::info('Œuvre créée', [
                         'id_oeuvre'             => $oeuvre->id_oeuvre,
@@ -1043,9 +1053,8 @@ class SoumissionController extends Controller
                         foreach ($request->file('files') as $index => $file) {
                             Log::info('Stockage du fichier', ['index' => $index, 'filename' => $file->getClientOriginalName()]);
                             $path = $file->store('oeuvres', 'public');
-
                             // Stocker fichier dans la table fichiers
-                            $fichier = fichier::create([
+                            $fichier = Fichier::create([
                                 'nom_fichier_ar' => 'عمل ' . $personne->nom_personne_ar . '-' . ($index + 1),
                                 'nom_fichier_fr' => 'Œuvre de ' . $personne->nom_personne_fr . '-' . ($index + 1),
                                 'file_path'      => $path,
@@ -1069,26 +1078,24 @@ class SoumissionController extends Controller
                     Log::info('Entrée créée dans Contient', ['id_oeuvre' => $oeuvre->id_oeuvre, 'id_categorie' => $request->categorie]);
 
                     // Créer entrée dans Associe
-                    associe::create([
+                    Associe::create([
                         'id_oeuvre' => $oeuvre->id_oeuvre,
                         'id_theme'  => $request->theme,
                     ]);
                     Log::info('Entrée créée dans Associe', ['id_oeuvre' => $oeuvre->id_oeuvre, 'id_theme' => $request->theme]);
 
                     // Créer entrée dans Participer
-                    participe::create([
+                    Participe::create([
                         'id_equipe'          => $equipe->id_equipe,
                         'id_oeuvre'          => $oeuvre->id_oeuvre,
-                        'date_participation' => now()->toDateString(),
+                        'date_creation_oeuvre'  => now(),
                     ]);
                     Log::info('Entrée créée dans Participer', ['id_equipe' => $equipe->id_equipe, 'id_oeuvre' => $oeuvre->id_oeuvre]);
                 } else {
-                    Log::warning('Aucun fichier ou URL vidéo fourni pour le rôle principal', ['id_personne' => $id_personne]);
-                    return response()->json(['error' => trans('formulaire.video_or_url_required')], 400);
+                    Log::warning('Aucun fichier fourni et aucune URL vidéo fournie pour le rôle principal', ['id_personne' => $id_personne]);
+                    return response()->json(['error' => trans('formulaire.file_required_if_no_url')], 400);
                 }
-            }
-            // Pour rôle "membre", rien d’autre à faire
-            else {
+            } else {
                 Log::info('Rôle membre sélectionné, aucune œuvre ou fichier à enregistrer.', ['id_personne' => $id_personne]);
             }
 

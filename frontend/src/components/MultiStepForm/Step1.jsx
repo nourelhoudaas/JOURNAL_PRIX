@@ -38,82 +38,47 @@ const Step1 = ({
   }, []);
 
   // Valider le NIN
-  const validateNin = useCallback(
-    async (value) => {
-      if (!value) {
-        setNinError(t.required.replace(":attribute", t.id_nin_personne));
-        setNinExistsMessage("");
-        return false;
-      }
+const validateNin = useCallback(
+  async (value) => {
+    if (!value) {
+      setNinError(t.required.replace(":attribute", t.id_nin_personne));
+      setNinExistsMessage("");
+      return false;
+    }
 
-      if (value.length !== 18) {
-        setNinError(t.nin_invalid);
-        setNinExistsMessage("");
-        return false;
-      }
+    if (value.length !== 18) {
+      setNinError(t.nin_invalid);
+      setNinExistsMessage("");
+      return false;
+    }
 
-      if (!/^[0-9]{18}$/.test(value)) {
-        setNinError(t.nin_invalid);
-        setNinExistsMessage("");
-        return false;
-      }
+    if (!/^[0-9]{18}$/.test(value)) {
+      setNinError(t.nin_invalid);
+      setNinExistsMessage("");
+      return false;
+    }
 
-      try {
-        const response = await fetch(
-          `http://localhost:8000/check-nin?nin=${value}&locale=${interfaceLocale}`,
-          {
-            headers: { Accept: "application/json" },
-          }
-        );
+    try {
+      const response = await fetch(
+        `http://localhost:8000/check-nin?nin=${value}&locale=${interfaceLocale}`,
+        {
+          headers: { Accept: "application/json" },
+          credentials: "include", // Inclure les cookies pour l'authentification
+        }
+      );
 
-        const result = await response.json();
+      const result = await response.json();
 
-        console.log("Réponse API check-nin:", result); // Log pour débogage
+      console.log("Réponse API check-nin:", result); // Log pour débogage
 
-        if (response.ok) {
-          if (result.exists) {
-            setNinExistsMessage(
-              interfaceLocale === "fr"
-                ? "Ce numéro NIN existe déjà dans la base de données."
-                : "رقم الهوية الوطنية موجود مسبقًا في قاعدة البيانات."
-            );
-
-            setIsNinDisabled(true);
-
-            if (result.data) {
-              onChange({
-                target: {
-                  name: "batch",
-                  value: {
-                    id_nin_personne: result.data.id_nin_personne || "",
-                    nom_personne_fr: result.data.nom_personne_fr || "",
-                    prenom_personne_fr: result.data.prenom_personne_fr || "",
-                    nom_personne_ar: result.data.nom_personne_ar || "",
-                    prenom_personne_ar: result.data.prenom_personne_ar || "",
-                    date_naissance:
-                      formatDateForInput(result.data.date_naissance) || "",
-                    lieu_naissance_fr: result.data.lieu_naissance_fr || "",
-                    lieu_naissance_ar: result.data.lieu_naissance_ar || "",
-                    nationalite_fr: result.data.nationalite_fr || "Algerienne",
-                    nationalite_ar: result.data.nationalite_ar || "جزائرية",
-                    num_tlf_personne: result.data.num_tlf_personne || "",
-                    adresse_fr: result.data.adresse_fr || "",
-                    adresse_ar: result.data.adresse_ar || "",
-                    sexe_personne_fr: result.data.sexe_personne_fr || "",
-                    sexe_personne_ar: result.data.sexe_personne_ar || "",
-                    groupage: result.data.groupage || "",
-                    id_professional_card:
-                      result.data.id_professional_card || "",
-                    fonction_fr: result.data.fonction_fr || "",
-                    fonction_ar: result.data.fonction_ar || "",
-                    fichiers: result.data.fichiers || [],
-                  },
-                },
-              });
-            }
-          } else {
+      if (response.ok) {
+        if (result.exists) {
+          // Si le NIN existe et appartient à un autre utilisateur
+          if (result.message === t.nin_belongs_to_another_user) {
+            setNinError(t.nin_belongs_to_another_user);
             setNinExistsMessage("");
             setIsNinDisabled(false);
+            // Réinitialiser les champs du formulaire pour éviter d'afficher les données d'un autre utilisateur
             onChange({
               target: {
                 name: "batch",
@@ -143,28 +108,102 @@ const Step1 = ({
                 },
               },
             });
+            return false;
           }
 
+          // Si le NIN existe et appartient à l'utilisateur actuel
+          setNinExistsMessage(
+            interfaceLocale === "fr"
+              ? "Ce numéro NIN existe déjà dans la base de données."
+              : "رقم الهوية الوطنية موجود مسبقًا في قاعدة البيانات."
+          );
+          setIsNinDisabled(true);
+
+          if (result.data) {
+            onChange({
+              target: {
+                name: "batch",
+                value: {
+                  id_nin_personne: result.data.id_nin_personne || "",
+                  nom_personne_fr: result.data.nom_personne_fr || "",
+                  prenom_personne_fr: result.data.prenom_personne_fr || "",
+                  nom_personne_ar: result.data.nom_personne_ar || "",
+                  prenom_personne_ar: result.data.prenom_personne_ar || "",
+                  date_naissance:
+                    formatDateForInput(result.data.date_naissance) || "",
+                  lieu_naissance_fr: result.data.lieu_naissance_fr || "",
+                  lieu_naissance_ar: result.data.lieu_naissance_ar || "",
+                  nationalite_fr: result.data.nationalite_fr || "Algerienne",
+                  nationalite_ar: result.data.nationalite_ar || "جزائرية",
+                  num_tlf_personne: result.data.num_tlf_personne || "",
+                  adresse_fr: result.data.adresse_fr || "",
+                  adresse_ar: result.data.adresse_ar || "",
+                  sexe_personne_fr: result.data.sexe_personne_fr || "",
+                  sexe_personne_ar: result.data.sexe_personne_ar || "",
+                  groupage: result.data.groupage || "",
+                  id_professional_card: result.data.id_professional_card || "",
+                  fonction_fr: result.data.fonction_fr || "",
+                  fonction_ar: result.data.fonction_ar || "",
+                  fichiers: result.data.fichiers || [],
+                },
+              },
+            });
+          }
           setNinError("");
           return true;
         } else {
-          setNinError(
-            result.message ||
-            t.required.replace(":attribute", t.id_nin_personne)
-          );
-
+          // Si le NIN n'existe pas
           setNinExistsMessage("");
-          return false;
+          setIsNinDisabled(false);
+          onChange({
+            target: {
+              name: "batch",
+              value: {
+                id_nin_personne: value,
+                nom_personne_fr: "",
+                prenom_personne_fr: "",
+                nom_personne_ar: "",
+                prenom_personne_ar: "",
+                date_naissance: "",
+                lieu_naissance_fr: "",
+                lieu_naissance_ar: "",
+                nationalite_fr: "Algerienne",
+                nationalite_ar: "جزائرية",
+                num_tlf_personne: "",
+                adresse_fr: "",
+                adresse_ar: "",
+                sexe_personne_fr: "",
+                sexe_personne_ar: "",
+                groupage: "",
+                carte_nationale: null,
+                photo: null,
+                id_professional_card: "",
+                fonction_fr: "",
+                fonction_ar: "",
+                fichiers: [],
+              },
+            },
+          });
+          setNinError("");
+          return true;
         }
-      } catch (error) {
-        console.error("Erreur lors de la vérification du NIN :", error);
-        setNinError(t.required.replace(":attribute", t.id_nin_personne));
+      } else {
+        setNinError(
+          result.message ||
+            t.required.replace(":attribute", t.id_nin_personne)
+        );
         setNinExistsMessage("");
         return false;
       }
-    },
-    [onChange, formatDateForInput, t, interfaceLocale]
-  );
+    } catch (error) {
+      console.error("Erreur lors de la vérification du NIN :", error);
+      setNinError(t.required.replace(":attribute", t.id_nin_personne));
+      setNinExistsMessage("");
+      return false;
+    }
+  },
+  [onChange, formatDateForInput, t, interfaceLocale]
+);
 
   // Gérer le changement du NIN
   const handleNinChange = useCallback(
@@ -179,6 +218,24 @@ const Step1 = ({
     },
     [data.id_nin_personne, onChange, validateNin]
   );
+
+  // Valider le numéro de téléphone
+  const validatePhoneNumber = (value) => {
+    if (!value || value.length !== 10 || !/^[0-9]{10}$/.test(value)) {
+      return t.phone_invalid || "Le numéro de téléphone doit contenir exactement 10 chiffres.";
+    }
+    return "";
+  };
+
+  // Gérer la perte de focus sur le champ num_tlf_personne
+  const handlePhoneBlur = (e) => {
+    const { value } = e.target;
+    const phoneError = validatePhoneNumber(value);
+    setFormErrors((prev) => ({
+      ...prev,
+      num_tlf_personne: phoneError,
+    }));
+  };
 
   // Gérer les changements avec synchronisation
   const handleChange = (e) => {
@@ -284,6 +341,7 @@ const Step1 = ({
   }, [data, isLoadingWilayas, ninError]);
 
   // Valider les erreurs du formulaire
+  // Valider les erreurs du formulaire (mise à jour pour inclure la validation du numéro)
   const validateFormErrors = useCallback(() => {
     const errors = {};
     if (!data.id_nin_personne || data.id_nin_personne.length !== 18 || !/^[0-9]{18}$/.test(data.id_nin_personne)) {
@@ -752,14 +810,55 @@ const Step1 = ({
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {t.num_tlf_personne}
           </label>
-          <input
-            name="num_tlf_personne"
-            value={data.num_tlf_personne || ""}
-            onChange={onChange}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
-            placeholder={t.num_tlf_personne}
-            required
-          />
+          <div className="flex items-center">
+            <div className="relative">
+              <button
+                type="button"
+                className={`shrink-0 z-10 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center text-gray-900 bg-gray-100 border border-gray-300 rounded-s-lg hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 ${interfaceLocale === "ar" ? "rounded-e-lg rounded-s-none" : ""}`}
+                disabled
+              >
+                <svg
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 900 600"
+                className="h-4 w-6"
+              >
+                <rect width="450" height="600" fill="#006233" />
+                <rect x="450" width="450" height="600" fill="#FFFFFF" />
+                <path
+                  fill="#D21034"
+                  d="M 510 300 A 150 150 0 1 1 510 299 A 90 90 0 1 0 510 301 Z"
+                />
+                <polygon
+                  fill="#D21034"
+                  points="570,300 542,312 550,340 525,322 500,340 508,312 480,300 508,288 500,260 525,278 550,260 542,288"
+                />
+              </svg>
+                 (+213)
+              </button>
+            </div>
+            <div className="relative w-full">
+              <input
+                type="text"
+                name="num_tlf_personne"
+                value={data.num_tlf_personne || ""}
+                onChange={onChange}
+                onBlur={handlePhoneBlur}
+                onKeyPress={(e) => {
+                  const charCode = e.charCode;
+                  if (charCode < 48 || charCode > 57) {
+                    e.preventDefault();
+                  }
+                }}
+                //className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right"
+                className={`block p-2.5 w-full text-sm text-gray-900 bg-white border border-gray-300 focus:ring-blue-500 focus:border-blue-500 ${interfaceLocale === "ar" ? "text-right rounded-s-lg border-e-0" : "rounded-e-lg border-s-0"}`}
+                placeholder={interfaceLocale === "fr" ? "0123456789" : "0123456789"}
+                required
+                pattern="[0-9]{10}"
+                maxLength="10"
+                //title={t.phone_invalid || "Le numéro de téléphone doit contenir 10 chiffres."}
+              />
+            </div>
+          </div>
           {formErrors.num_tlf_personne && (
             <p className="text-red-500 text-sm">{formErrors.num_tlf_personne}</p>
           )}

@@ -122,24 +122,16 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
         cat.id_categorie == data.categorie &&
         (cat.nom_categorie_fr.toLowerCase() === 'illustration' || cat.nom_categorie_ar.toLowerCase() === 'الرسومات التوضيحية')
       );
-      const totalFiles = selectedFiles.length;
-      if (isIllustration) {
-        if (totalFiles === 0 && !data.video_url) {
-          errors.file = t.video_or_url_required;
-        } else if (totalFiles > 0 && data.video_url) {
-          errors.file = t.video_or_url_required;
-        } else if (totalFiles > 10) {
-          errors.file = t.required.replace(':attribute', t.file) + ` (${interfaceLocale === 'fr' ? 'Maximum 10 fichiers' : 'الحد الأقصى 10 ملفات'})`;
-        }
-      } else {
-        if (totalFiles === 0 && !data.video_url) {
-          errors.file = t.video_or_url_required;
-        } else if (totalFiles > 1) {
-          errors.file = t.required.replace(':attribute', t.file) + ` (${interfaceLocale === 'fr' ? 'Maximum 1 fichier' : 'الحد الأقصى 1 ملف'})`;
-        } else if (totalFiles > 0 && data.video_url) {
-          errors.file = t.video_or_url_required;
-        }
+      const maxFiles = isIllustration ? 10 : 1;
+      // Vérifier si aucun fichier n'est fourni et video_url est vide
+      if (!data.video_url && selectedFiles.length === 0) {
+        errors.file = t.required.replace(':attribute', t.file) + ` (${interfaceLocale === 'fr' ? 'Au moins un fichier est requis si aucune URL vidéo n\'est fournie' : 'ملف واحد على الأقل مطلوب إذا لم يتم تقديم رابط فيديو'})`;
       }
+      // Vérifier le nombre maximum de fichiers
+      if (selectedFiles.length > maxFiles) {
+        errors.file = t.required.replace(':attribute', t.file) + ` (${interfaceLocale === 'fr' ? 'Maximum' : 'الحد الأقصى'} ${maxFiles} ${interfaceLocale === 'fr' ? maxFiles > 1 ? 'fichiers' : 'fichier' : maxFiles > 1 ? 'ملفات' : 'ملف'})`;
+      }
+      // Vérifier la validité de l'URL YouTube si fournie
       if (data.video_url && !validateYouTubeUrl(data.video_url)) {
         errors.video_url = t.invalid_youtube_url;
       }
@@ -159,7 +151,7 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
       descriptif_oeuvre_ar: !!data.descriptif_oeuvre_ar,
       date_publication: !!data.date_publication,
       collaborators: teamSize > 1 ? collaborators.length === teamSize - 1 : true,
-      file: selectedFiles.length > 0 || !!data.video_url,
+      file: selectedFiles.length > 0 || !!data.video_url, // Au moins un fichier ou une URL
     };
     return Object.values(checks).every(Boolean);
   }, [data, themes, categories, role, teamSize, collaborators, selectedFiles]);
@@ -197,7 +189,7 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
     onChange({ target: { name: 'role', value } });
   }, [onChange]);
 
- // Nouvelle fonction pour supprimer un fichier sélectionné
+  // Nouvelle fonction pour supprimer un fichier sélectionné
   const handleRemoveFile = (index) => {
     const updatedFiles = selectedFiles.filter((_, i) => i !== index); // Filtrer pour enlever le fichier à l'index
     setSelectedFiles(updatedFiles); // Mettre à jour l'état
@@ -242,11 +234,10 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
       cat.id_categorie == data.categorie &&
       (cat.nom_categorie_fr.toLowerCase() === 'illustration' || cat.nom_categorie_ar.toLowerCase() === 'الرسومات التوضيحية')
     );
-    const totalFiles = files.length;
     const maxFiles = isIllustration ? 10 : 1;
     const maxSize = 100 * 1024 * 1024; // 100 Mo en octets
 
-    if (totalFiles > maxFiles) {
+    if (files.length > maxFiles) {
       setFormErrors(prev => ({
         ...prev,
         file: `${t.required.replace(':attribute', t.file)} (${interfaceLocale === 'fr' ? 'Maximum' : 'الحد الأقصى'} ${maxFiles} ${interfaceLocale === 'fr' ? maxFiles > 1 ? 'fichiers' : 'fichier' : maxFiles > 1 ? 'ملفات' : 'ملف'})`,
@@ -293,7 +284,7 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
     form.append('categorie', data.categorie || '');
     form.append('id_personne', userId || '');
     form.append('taille_equipe', teamSize);
-    form.append('role', role);
+    form.append('role_personne', role); // Changé de 'role' à 'role_personne'
     form.append('titre_oeuvre_fr', data.titre_oeuvre_fr || '');
     form.append('titre_oeuvre_ar', data.titre_oeuvre_ar || '');
     form.append('descriptif_oeuvre_fr', data.descriptif_oeuvre_fr || '');
@@ -518,7 +509,9 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
               {formErrors.date_publication && <p className="text-red-500 text-sm">{formErrors.date_publication}</p>}
             </div>
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-900">{t.video_url}</label>
+              <label className="block mb-2 text-sm font-medium text-gray-900">
+                {t.video_url} {interfaceLocale === 'fr' ? '(facultatif)' : '(اختياري)'}
+              </label>
               <input
                 type="url"
                 name="video_url"
@@ -527,6 +520,9 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
                 className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === 'ar' ? 'text-right' : ''}`}
                 placeholder={interfaceLocale === 'fr' ? 'https://www.youtube.com/watch?v=...' : 'https://www.youtube.com/watch?v=...'}
               />
+              <p className="text-sm text-gray-600 mt-1">
+                {interfaceLocale === 'fr' ? 'Facultatif. Fournissez une URL YouTube valide ou téléchargez un fichier.' : 'اختياري. قم بتوفير رابط يوتيوب صالح أو قم بتحميل ملف.'}
+              </p>
               {formErrors.video_url && <p className="text-red-500 text-sm">{formErrors.video_url}</p>}
             </div>
           </div>

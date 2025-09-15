@@ -256,7 +256,7 @@ export default function Step2({ data, onChange, onFileChange, onNext, onBack, er
 
             setProfessionalCardError('');
 
-            setProfessionalCardExistsMessage(t.new_professional_card);
+            // setProfessionalCardExistsMessage(t.new_professional_card);
 
             setIsProfessionalCardDisabled(false);
 
@@ -954,20 +954,22 @@ export default function Step2({ data, onChange, onFileChange, onNext, onBack, er
 
           <label className="block mb-2 text-sm font-medium text-gray-900">{t.id_professional_card}</label>
 
+
           <input
-
             name="id_professional_card"
-
             value={data.id_professional_card || ''}
-
             onChange={handleProfessionalCardChange}
-
+            onKeyPress={(e) => {
+              const charCode = e.charCode;
+              // Autoriser uniquement les chiffres (charCode entre 48 et 57 correspond à 0-9)
+              if (charCode < 48 || charCode > 57) {
+                e.preventDefault();
+              }
+            }}
+            className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === 'ar' ? 'text-right' : ''}`}
             placeholder={t.id_professional_card}
-
-            className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${isProfessionalCardDisabled ? 'bg-gray-100 cursor-not-allowed' : ''} ${interfaceLocale === 'ar' ? 'text-right' : ''}`}
-
+            disabled={isProfessionalCardDisabled}
             required
-
           />
 
           {formErrors.id_professional_card && <p className="text-red-500 text-sm">{formErrors.id_professional_card}</p>}
