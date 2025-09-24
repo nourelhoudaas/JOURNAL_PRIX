@@ -23,7 +23,6 @@ return new class extends Migration
             $table->string('statut_oeuvre_ar');
             $table->string('statut_oeuvre_fr');
             $table->string('valider_oeuvre');
-             $table->string('video_url')->nullable();
             $table->timestamps();
            // $table->dateTime('date_creation_oeuvre');
     

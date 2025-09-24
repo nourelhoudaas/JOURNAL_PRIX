@@ -14,12 +14,13 @@ return new class extends Migration
         Schema::create('fichiers', function (Blueprint $table) {
                 $table->engine = 'InnoDB';
             $table->integer('id_fichier')->primary()->autoIncrement();
-            $table->string('nom_fichier_ar');
-            $table->string('nom_fichier_fr');
-            $table->string('file_path'); 
-            $table->string('type'); 
-            $table->integer('size');
-            $table->dateTime('date_upload');
+            $table->string('nom_fichier_ar')->nullable();
+            $table->string('nom_fichier_fr')->nullable();
+            $table->string('file_path')->nullable(); 
+            $table->string('type')->nullable(); 
+            $table->string('extension')->nullable();
+            $table->integer('size')->nullable();
+            $table->dateTime('date_upload')->nullable();
 
            $table->integer('id_oeuvre')->nullable();
             $table->foreign('id_oeuvre')->references('id_oeuvre')->on('travails')->onDelete('cascade');

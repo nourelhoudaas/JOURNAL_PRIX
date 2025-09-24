@@ -16,7 +16,7 @@ return new class extends Migration
             $table->string('nom_ar_etab');
             $table->string('nom_fr_etab');
             $table->string('email_etab');
-            $table->string('tel_etab');
+            $table->string('tel_etab')->nullable();
             $table->string('langue')->nullable();
             $table->string('tv')->nullable();
             $table->string('radio')->nullable();

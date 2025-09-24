@@ -13,7 +13,7 @@ class fichier extends Model
     public $timestamps = false; 
     protected $fillable = ['id_fichier','nom_fichier_ar',
     'nom_fichier_fr','file_path','size','date_upload',
-    'type','id_dossier','id_oeuvre'
+    'type','id_dossier','id_oeuvre','extension'
 ];
   public function dossierfichier()
     {

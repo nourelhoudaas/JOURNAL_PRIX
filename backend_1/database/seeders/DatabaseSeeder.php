@@ -70,6 +70,7 @@ class DatabaseSeeder extends Seeder
             SpecialiteSeeder::class,
             TypeMediaSeeder::class,
             CategorieSeeder::class,
+            EditionSeeder::class,
             WilayaSeeder::class,
         ]);
     }

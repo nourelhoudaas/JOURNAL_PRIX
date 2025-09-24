@@ -21,12 +21,13 @@ return new class extends Migration
             $table->date('date_lancement_edition');
             $table->date('date_limite_depotDossier');
             $table->string('statut_edition');
-            $table->string('path_image_edition');
+            $table->string('path_image_edition')->nullable();
 
-            $table->integer('id_fichier');
+            $table->integer('id_fichier')->nullable();
             $table->foreign('id_fichier')->references('id_fichier')->on('fichiers')->onDelete('cascade');
            
         });
+
     }
 
     /**

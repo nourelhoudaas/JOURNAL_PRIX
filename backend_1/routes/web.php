@@ -77,6 +77,7 @@ Route::get('/translations/{locale}', function ($locale) {
     return response()->json(trans('formulaire'));
 })->name('translations');
     
+
 // ✅ Récupération des données pour le formulaire (thèmes, catégories, userId)
 Route::get('/form-data', function () {
     return response()->json([

@@ -19,7 +19,7 @@ return new class extends Migration
             //$table->string('situation');
 
             $table->string('situation', 191);
-            $table->enum('role_personne', ['principal', 'membre'])->default('membre');
+            $table->enum('role_personne', ['principal', 'collaborateur'])->default('collaborateur');
             $table->date('date_integration')->nullable();
             $table->timestamps();
             

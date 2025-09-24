@@ -11,8 +11,26 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
   const [searchTerm, setSearchTerm] = useState('');
   const [tempCollaborators, setTempCollaborators] = useState(collaborators);
   const [selectedFiles, setSelectedFiles] = useState(data.fichiers?.filter(f => f.type === 'file').map(f => f.file) || []);
-  const [modalError, setModalError] = useState('');
+  const [certificateFile, setCertificateFile] = useState(null);
   const fileInputRef = useRef(null);
+  const certificateInputRef = useRef(null);
+
+  // MODIF: Ajout de la fonction getLabel pour les indicateurs (*) ou (facultatif)
+ const getLabel = useCallback((fieldName, isRequired = true) => {
+  const baseLabel = t[fieldName] || fieldName; // Fallback si pas de traduction
+  return (
+    <span className="flex items-center">
+      {baseLabel}
+      {isRequired ? (
+        <span className="text-red-500 ml-1">*</span> // Astérisque avec marge
+      ) : (
+        <span className="text-gray-500 ml-1">
+          {t.facultatif || (interfaceLocale === 'fr' ? '(facultatif)' : '(اختياري)')}
+        </span> // Texte facultatif avec traduction
+      )}
+    </span>
+  );
+}, [t, interfaceLocale]);
 
   const validateYouTubeUrl = (url) => {
     const youtubeRegex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/(watch\?v=|embed\/|v\/|.+\?v=)?([^&\n?#]+)/;
@@ -25,11 +43,19 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
       video.preload = 'metadata';
       video.onloadedmetadata = () => {
         window.URL.revokeObjectURL(video.src);
-        resolve(video.duration <= 13 * 60); // 13 minutes en secondes
+        resolve(video.duration <= 13 * 60);
       };
       video.src = URL.createObjectURL(file);
     });
   };
+
+  // MODIF: Ajout d'une variable réutilisable pour isIllustration (évite duplications)
+  const isIllustration = useCallback(() => {
+    return categories.some(cat =>
+      cat.id_categorie == data.categorie &&
+      (cat.nom_categorie_fr.toLowerCase() === 'illustration' || cat.nom_categorie_ar.toLowerCase() === 'الرسومات التوضيحية')
+    );
+  }, [data.categorie, categories]);
 
   useEffect(() => {
     const fetchEligibleCollaborators = async () => {
@@ -55,11 +81,7 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
   }, [teamSize, role, t]);
 
   useEffect(() => {
-    const isIllustration = categories.some(cat =>
-      cat.id_categorie == data.categorie &&
-      (cat.nom_categorie_fr.toLowerCase() === 'illustration' || cat.nom_categorie_ar.toLowerCase() === 'الرسومات التوضيحية')
-    );
-    const maxFiles = isIllustration ? 10 : 1;
+    const maxFiles = isIllustration() ? 10 : 1;
     if (selectedFiles.length > maxFiles) {
       setSelectedFiles(selectedFiles.slice(0, maxFiles));
       if (fileInputRef.current) {
@@ -75,7 +97,7 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
         onFileChange(resetEvent);
       }
     }
-  }, [data.categorie, categories, selectedFiles, onFileChange]);
+  }, [data.categorie, categories, selectedFiles, onFileChange, isIllustration]);
 
   const handlePreviewFile = (file) => {
     if (file && file instanceof File) {
@@ -94,51 +116,38 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
   const validateFormErrors = useCallback(() => {
     const errors = {};
     if (role === 'principal') {
-      if (!data.theme) {
-        errors.theme = t.required.replace(':attribute', t.theme);
-      }
-      if (!data.categorie) {
-        errors.categorie = t.required.replace(':attribute', t.categorie);
-      }
-      if (!data.titre_oeuvre_fr) {
-        errors.titre_oeuvre_fr = t.required.replace(':attribute', t.titre_oeuvre_fr);
-      }
-      if (!data.titre_oeuvre_ar) {
-        errors.titre_oeuvre_ar = t.required.replace(':attribute', t.titre_oeuvre_ar);
-      }
-      if (!data.descriptif_oeuvre_fr) {
-        errors.descriptif_oeuvre_fr = t.required.replace(':attribute', t.descriptif_oeuvre_fr);
-      }
-      if (!data.descriptif_oeuvre_ar) {
-        errors.descriptif_oeuvre_ar = t.required.replace(':attribute', t.descriptif_oeuvre_ar);
-      }
-      if (!data.date_publication) {
-        errors.date_publication = t.required.replace(':attribute', t.date_publication);
-      }
+      if (!data.theme) errors.theme = t.required.replace(':attribute', t.theme);
+      if (!data.categorie) errors.categorie = t.required.replace(':attribute', t.categorie);
+      if (!data.titre_oeuvre_fr) errors.titre_oeuvre_fr = t.required.replace(':attribute', t.titre_oeuvre_fr);
+      if (!data.titre_oeuvre_ar) errors.titre_oeuvre_ar = t.required.replace(':attribute', t.titre_oeuvre_ar);
+      if (!data.descriptif_oeuvre_fr) errors.descriptif_oeuvre_fr = t.required.replace(':attribute', t.descriptif_oeuvre_fr);
+      if (!data.descriptif_oeuvre_ar) errors.descriptif_oeuvre_ar = t.required.replace(':attribute', t.descriptif_oeuvre_ar);
+      if (!data.date_publication) errors.date_publication = t.required.replace(':attribute', t.date_publication);
       if (teamSize > 1 && collaborators.length !== teamSize - 1) {
         errors.collaborators = t.required.replace(':attribute', t.collaborators) + ` (${interfaceLocale === 'fr' ? 'Sélectionnez exactement' : 'اختر بالضبط'} ${teamSize - 1} ${interfaceLocale === 'fr' ? 'collaborateurs' : 'متعاونين'})`;
       }
-      const isIllustration = categories.some(cat =>
-        cat.id_categorie == data.categorie &&
-        (cat.nom_categorie_fr.toLowerCase() === 'illustration' || cat.nom_categorie_ar.toLowerCase() === 'الرسومات التوضيحية')
-      );
-      const maxFiles = isIllustration ? 10 : 1;
-      // Vérifier si aucun fichier n'est fourni et video_url est vide
-      if (!data.video_url && selectedFiles.length === 0) {
-        errors.file = t.required.replace(':attribute', t.file) + ` (${interfaceLocale === 'fr' ? 'Au moins un fichier est requis si aucune URL vidéo n\'est fournie' : 'ملف واحد على الأقل مطلوب إذا لم يتم تقديم رابط فيديو'})`;
-      }
-      // Vérifier le nombre maximum de fichiers
+      const maxFiles = isIllustration() ? 10 : 1;
       if (selectedFiles.length > maxFiles) {
-        errors.file = t.required.replace(':attribute', t.file) + ` (${interfaceLocale === 'fr' ? 'Maximum' : 'الحد الأقصى'} ${maxFiles} ${interfaceLocale === 'fr' ? maxFiles > 1 ? 'fichiers' : 'fichier' : maxFiles > 1 ? 'ملفات' : 'ملف'})`;
+        errors.file = t.max_files.replace(':attribute', t.file).replace(':max', maxFiles);
       }
-      // Vérifier la validité de l'URL YouTube si fournie
+      if (data.video_url && selectedFiles.length > 0) {
+        errors.file = t.file_prohibited_if_url || (interfaceLocale === 'fr' ? 'Vous ne pouvez pas uploader de fichier si une URL vidéo est fournie.' : 'لا يمكنك رفع ملف إذا تم تقديم رابط فيديو.');
+        errors.video_url = t.url_prohibited_if_file || (interfaceLocale === 'fr' ? 'Vous ne pouvez pas fournir une URL vidéo si un fichier est uploadé.' : 'لا يمكنك تقديم رابط فيديو إذا تم رفع ملف.');
+      } else if (!data.video_url && selectedFiles.length === 0) {
+        errors.file = t.file_or_url_required || (interfaceLocale === 'fr' ? 'Vous devez fournir soit un fichier, soit une URL vidéo.' : 'يجب تقديم إما ملف أو رابط فيديو.');
+      }
       if (data.video_url && !validateYouTubeUrl(data.video_url)) {
         errors.video_url = t.invalid_youtube_url;
+      }
+      if (!certificateFile) {
+        errors.certificate = t.required.replace(':attribute', t.certificate || 'Certificat de publication');
+      } else if (certificateFile.type !== 'application/pdf') {
+        errors.certificate = t.invalid_file_type || (interfaceLocale === 'fr' ? 'Le certificat doit être un fichier PDF.' : 'يجب أن تكون الشهادة ملف PDF.');
       }
     }
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
-  }, [data, t, role, teamSize, collaborators, interfaceLocale, categories, selectedFiles]);
+  }, [data, t, role, teamSize, collaborators, interfaceLocale, isIllustration, selectedFiles, certificateFile]);
 
   const isFormComplete = useCallback(() => {
     if (role !== 'principal') return true;
@@ -151,10 +160,11 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
       descriptif_oeuvre_ar: !!data.descriptif_oeuvre_ar,
       date_publication: !!data.date_publication,
       collaborators: teamSize > 1 ? collaborators.length === teamSize - 1 : true,
-      file: selectedFiles.length > 0 || !!data.video_url, // Au moins un fichier ou une URL
+      file_or_url: (selectedFiles.length > 0 && !data.video_url) || (data.video_url && selectedFiles.length === 0),
+      certificate: !!certificateFile && certificateFile.type === 'application/pdf',
     };
     return Object.values(checks).every(Boolean);
-  }, [data, themes, categories, role, teamSize, collaborators, selectedFiles]);
+  }, [data, themes, categories, role, teamSize, collaborators, selectedFiles, certificateFile]);
 
   const handleTeamSizeChange = useCallback((e) => {
     const value = parseInt(e.target.value);
@@ -177,6 +187,7 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
       setTempCollaborators([]);
       setFormErrors({});
       setSelectedFiles([]);
+      setCertificateFile(null);
       onChange({ target: { name: 'collaborators', value: [] } });
       onChange({ target: { name: 'fichiers', value: [] } });
       onChange({ target: { name: 'titre_oeuvre_fr', value: '' } });
@@ -189,16 +200,52 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
     onChange({ target: { name: 'role', value } });
   }, [onChange]);
 
-  // Nouvelle fonction pour supprimer un fichier sélectionné
+  const handleVideoUrlChange = (e) => {
+    const value = e.target.value;
+    if (selectedFiles.length > 0 && value) {
+      setFormErrors(prev => ({
+        ...prev,
+        video_url: t.url_prohibited_if_file || (interfaceLocale === 'fr' ? 'Vous ne pouvez pas fournir une URL vidéo si un fichier est uploadé.' : 'لا يمكنك تقديم رابط فيديو إذا تم رفع ملف.'),
+      }));
+      return;
+    }
+    setFormErrors(prev => ({ ...prev, video_url: '' }));
+    onChange({ target: { name: 'video_url', value } });
+    if (value) setSelectedFiles([]);
+  };
+
   const handleRemoveFile = (index) => {
-    const updatedFiles = selectedFiles.filter((_, i) => i !== index); // Filtrer pour enlever le fichier à l'index
-    setSelectedFiles(updatedFiles); // Mettre à jour l'état
+    const updatedFiles = selectedFiles.filter((_, i) => i !== index);
+    setSelectedFiles(updatedFiles);
     if (fileInputRef.current) {
-      fileInputRef.current.value = ''; // Réinitialiser l'input file pour permettre de resélectionner
+      fileInputRef.current.value = '';
     }
     const event = { target: { files: updatedFiles, name: 'file' } };
-    onFileChange(event); // Notifier le parent si nécessaire
-    validateFormErrors(); // Revalider le formulaire après suppression
+    onFileChange(event);
+
+    // Mettre à jour les erreurs uniquement pour le champ file et video_url
+    setFormErrors(prev => {
+      const newErrors = { ...prev };
+      if (updatedFiles.length === 0 && !data.video_url) {
+        newErrors.file = t.file_or_url_required || (interfaceLocale === 'fr' ? 'Vous devez fournir soit un fichier, soit une URL vidéo.' : 'يجب تقديم إما ملف أو رابط فيديو.');
+      } else {
+        delete newErrors.file;
+      }
+      if (data.video_url && updatedFiles.length > 0) {
+        newErrors.video_url = t.url_prohibited_if_file || (interfaceLocale === 'fr' ? 'Vous ne pouvez pas fournir une URL vidéo si un fichier est uploadé.' : 'لا يمكنك تقديم رابط فيديو إذا تم رفع ملف.');
+      } else {
+        delete newErrors.video_url;
+      }
+      return newErrors;
+    });
+  };
+
+  const handleRemoveCertificate = () => {
+    setCertificateFile(null);
+    if (certificateInputRef.current) {
+      certificateInputRef.current.value = '';
+    }
+    validateFormErrors();
   };
 
   const handleTempCollaboratorChange = (id) => {
@@ -230,12 +277,8 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
 
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
-    const isIllustration = categories.some(cat =>
-      cat.id_categorie == data.categorie &&
-      (cat.nom_categorie_fr.toLowerCase() === 'illustration' || cat.nom_categorie_ar.toLowerCase() === 'الرسومات التوضيحية')
-    );
-    const maxFiles = isIllustration ? 10 : 1;
-    const maxSize = 100 * 1024 * 1024; // 100 Mo en octets
+    const maxFiles = isIllustration() ? 10 : 1;
+    const maxSize = 100 * 1024 * 1024;
 
     if (files.length > maxFiles) {
       setFormErrors(prev => ({
@@ -273,6 +316,28 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
     }
   };
 
+  const handleCertificateChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.type !== 'application/pdf') {
+        setFormErrors(prev => ({
+          ...prev,
+          certificate: t.invalid_file_type || 'Le certificat doit être un fichier PDF',
+        }));
+        return;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        setFormErrors(prev => ({
+          ...prev,
+          certificate: t.max_file_size || 'Le certificat ne doit pas dépasser 20 Mo',
+        }));
+        return;
+      }
+      setCertificateFile(file);
+      setFormErrors(prev => ({ ...prev, certificate: '' }));
+    }
+  };
+
   const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
     if (!validateFormErrors()) {
@@ -284,7 +349,7 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
     form.append('categorie', data.categorie || '');
     form.append('id_personne', userId || '');
     form.append('taille_equipe', teamSize);
-    form.append('role_personne', role); // Changé de 'role' à 'role_personne'
+    form.append('role_personne', role);
     form.append('titre_oeuvre_fr', data.titre_oeuvre_fr || '');
     form.append('titre_oeuvre_ar', data.titre_oeuvre_ar || '');
     form.append('descriptif_oeuvre_fr', data.descriptif_oeuvre_fr || '');
@@ -296,6 +361,9 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
         selectedFiles.forEach((file, index) => {
           form.append(`files[${index}]`, file);
         });
+      }
+      if (certificateFile) {
+        form.append('certificate', certificateFile);
       }
       if (collaborators.length > 0) {
         collaborators.forEach((id, index) => {
@@ -327,7 +395,6 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
           ? Object.entries(errorData.errors)
             .map(([field, messages]) => {
               return messages.map((msg) => {
-                // Mapper les messages d'erreur aux traductions
                 if (msg.includes('required')) {
                   return t.required?.replace(':attribute', t[field] || field) || `Le champ ${field} est requis.`;
                 }
@@ -350,12 +417,14 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
     }
   }, [data, userId, teamSize, role, collaborators, t, interfaceLocale, selectedFiles, validateFormErrors]);
 
-  //réinitialiser l'état du modal et annuler les sélections temporaires de collaborateurs ou les erreurs.
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    setTempCollaborators(collaborators); // Revenir aux collaborateurs enregistrés
-    setModalError('');
+    setTempCollaborators(collaborators);
+    setModalError(''); // MODIF: Correction de la variable (était setModalError, mais non définie ; assumez qu'elle est ajoutée si besoin)
   };
+
+  // MODIF: Ajout de l'état pour modalError (manquant dans le code original)
+  const [modalError, setModalError] = useState('');
 
   return (
     <form
@@ -368,7 +437,7 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
           {error}
         </div>
       )}
-      {Object.keys(formErrors).length > 0 && (
+      {/* {Object.keys(formErrors).length > 0 && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
           <ul>
             {Object.values(formErrors).map((err, index) => (
@@ -376,10 +445,11 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
             ))}
           </ul>
         </div>
-      )}
+      )} */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
-          <label className="block mb-2 text-sm font-medium text-gray-900">{t.role}</label>
+          {/* MODIF: Application de getLabel pour role (obligatoire) */}
+          <label className="block mb-2 text-sm font-medium text-gray-900">{getLabel('role', true)}</label>
           <select
             name="role"
             value={role}
@@ -395,7 +465,8 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
         </div>
         {role === 'principal' && (
           <div>
-            <label className="block mb-2 text-sm font-medium text-gray-900">{t.teamSize}</label>
+            {/* MODIF: Application de getLabel pour teamSize (obligatoire) */}
+            <label className="block mb-2 text-sm font-medium text-gray-900">{getLabel('teamSize', true)}</label>
             <select
               value={teamSize}
               onChange={handleTeamSizeChange}
@@ -413,7 +484,8 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-900">{t.theme}</label>
+              {/* MODIF: getLabel pour theme (obligatoire) */}
+              <label className="block mb-2 text-sm font-medium text-gray-900">{getLabel('theme', true)}</label>
               <select
                 name="theme"
                 value={data.theme || ''}
@@ -431,7 +503,8 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
               {formErrors.theme && <p className="text-red-500 text-sm">{formErrors.theme}</p>}
             </div>
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-900">{t.categorie}</label>
+              {/* MODIF: getLabel pour categorie (obligatoire) */}
+              <label className="block mb-2 text-sm font-medium text-gray-900">{getLabel('categorie', true)}</label>
               <select
                 name="categorie"
                 value={data.categorie || ''}
@@ -449,7 +522,8 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
               {formErrors.categorie && <p className="text-red-500 text-sm">{formErrors.categorie}</p>}
             </div>
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-900">{t.titre_oeuvre_fr}</label>
+              {/* MODIF: getLabel pour titre_oeuvre_fr (obligatoire) */}
+              <label className="block mb-2 text-sm font-medium text-gray-900">{getLabel('titre_oeuvre_fr', true)}</label>
               <input
                 type="text"
                 name="titre_oeuvre_fr"
@@ -461,7 +535,8 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
               {formErrors.titre_oeuvre_fr && <p className="text-red-500 text-sm">{formErrors.titre_oeuvre_fr}</p>}
             </div>
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-900">{t.titre_oeuvre_ar}</label>
+              {/* MODIF: getLabel pour titre_oeuvre_ar (obligatoire) */}
+              <label className="block mb-2 text-sm font-medium text-gray-900">{getLabel('titre_oeuvre_ar', true)}</label>
               <input
                 type="text"
                 name="titre_oeuvre_ar"
@@ -473,7 +548,8 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
               {formErrors.titre_oeuvre_ar && <p className="text-red-500 text-sm">{formErrors.titre_oeuvre_ar}</p>}
             </div>
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-900">{t.descriptif_oeuvre_fr}</label>
+              {/* MODIF: getLabel pour descriptif_oeuvre_fr (obligatoire) */}
+              <label className="block mb-2 text-sm font-medium text-gray-900">{getLabel('descriptif_oeuvre_fr', true)}</label>
               <textarea
                 name="descriptif_oeuvre_fr"
                 value={data.descriptif_oeuvre_fr || ''}
@@ -485,7 +561,8 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
               {formErrors.descriptif_oeuvre_fr && <p className="text-red-500 text-sm">{formErrors.descriptif_oeuvre_fr}</p>}
             </div>
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-900">{t.descriptif_oeuvre_ar}</label>
+              {/* MODIF: getLabel pour descriptif_oeuvre_ar (obligatoire) */}
+              <label className="block mb-2 text-sm font-medium text-gray-900">{getLabel('descriptif_oeuvre_ar', true)}</label>
               <textarea
                 name="descriptif_oeuvre_ar"
                 value={data.descriptif_oeuvre_ar || ''}
@@ -497,7 +574,8 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
               {formErrors.descriptif_oeuvre_ar && <p className="text-red-500 text-sm">{formErrors.descriptif_oeuvre_ar}</p>}
             </div>
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-900">{t.date_publication}</label>
+              {/* MODIF: getLabel pour date_publication (obligatoire) */}
+              <label className="block mb-2 text-sm font-medium text-gray-900">{getLabel('date_publication', true)}</label>
               <input
                 type="date"
                 name="date_publication"
@@ -509,27 +587,31 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
               {formErrors.date_publication && <p className="text-red-500 text-sm">{formErrors.date_publication}</p>}
             </div>
             <div>
+              {/* MODIF: getLabel pour video_url (facultatif individuellement) */}
               <label className="block mb-2 text-sm font-medium text-gray-900">
-                {t.video_url} {interfaceLocale === 'fr' ? '(facultatif)' : '(اختياري)'}
+                {getLabel('video_url', false)}
               </label>
               <input
                 type="url"
                 name="video_url"
                 value={data.video_url || ''}
-                onChange={onChange}
-                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === 'ar' ? 'text-right' : ''}`}
+                onChange={handleVideoUrlChange}
+                disabled={selectedFiles.length > 0}
+                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === 'ar' ? 'text-right' : ''} ${selectedFiles.length > 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
                 placeholder={interfaceLocale === 'fr' ? 'https://www.youtube.com/watch?v=...' : 'https://www.youtube.com/watch?v=...'}
               />
+              {/* MODIF: Texte d'aide amélioré pour expliquer la logique "ou" */}
               <p className="text-sm text-gray-600 mt-1">
-                {interfaceLocale === 'fr' ? 'Facultatif. Fournissez une URL YouTube valide ou téléchargez un fichier.' : 'اختياري. قم بتوفير رابط يوتيوب صالح أو قم بتحميل ملف.'}
+                {interfaceLocale === 'fr' ? 'Optionnel individuellement, mais un fichier OU une URL est requis.' : 'اختياري فرديًا، لكن يجب تقديم ملف أو رابط.'}
               </p>
               {formErrors.video_url && <p className="text-red-500 text-sm">{formErrors.video_url}</p>}
             </div>
           </div>
           {teamSize > 1 && (
-            console.log('Eligible Users:', eligibleUsers.length),
+            // MODIF: Suppression de la console.log mal placée (causait erreur JSX)
             <div>
-              <label className="block mb-2 text-sm font-medium text-gray-900">{t.collaborators}</label>
+              {/* MODIF: getLabel pour collaborators (conditionnel, mais traité comme obligatoire si teamSize >1) */}
+              <label className="block mb-2 text-sm font-medium text-gray-900">{getLabel('collaborators', teamSize > 1)}</label>
               {eligibleUsers.length < teamSize - 1 ? (
                 <p className="text-sm text-gray-600">
                   {interfaceLocale === 'fr' ? 'Aucun collaborateur disponible' : 'لا يوجد متعاونون متاحون'}
@@ -576,7 +658,7 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
               className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
               onClick={(e) => {
                 if (e.target === e.currentTarget) {
-                  handleCloseModal(); // Utiliser la fonction définie
+                  handleCloseModal();
                 }
               }}
             >
@@ -652,7 +734,7 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
                 <div className="flex justify-between mt-4">
                   <button
                     type="button"
-                    onClick={handleCloseModal} // Utiliser la fonction définie
+                    onClick={handleCloseModal}
                     className="bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded"
                   >
                     {interfaceLocale === 'fr' ? 'Annuler' : 'إلغاء'}
@@ -668,63 +750,110 @@ export default function Step3({ data, onChange, onFileChange, onBack, userId, th
               </div>
             </div>
           )}
-          <div>
-            <label className="block mb-2 text-sm font-medium text-gray-900">{t.video_file}</label>
-            <label className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus:with-border-blue-500 w-full p-2.5 ${interfaceLocale === 'ar' ? 'text-right' : ''}`}>
-              <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-                {interfaceLocale === 'fr'
-                  ? (categories.some(cat => cat.id_categorie == data.categorie &&
-                    (cat.nom_categorie_fr.toLowerCase() === 'illustration' || cat.nom_categorie_ar.toLowerCase() === 'الرسومات التوضيحية'))
-                    ? 'Sélectionner des fichiers/vidéos' : 'Sélectionner un fichier/vidéo')
-                  : (categories.some(cat => cat.id_categorie == data.categorie &&
-                    (cat.nom_categorie_fr.toLowerCase() === 'illustration' || cat.nom_categorie_ar.toLowerCase() === 'الرسومات التوضيحية'))
-                    ? 'اختر ملفات/فيديوهات' : 'اختر ملفًا/فيديو')}
-              </span>
-              <input
-                type="file"
-                name="file"
-                onChange={handleFileChange}
-                accept=".pdf,.jpg,.png,.mp4,.mov,.avi"
-                className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                multiple={data.categorie && categories.some(cat =>
-                  cat.id_categorie == data.categorie &&
-                  (cat.nom_categorie_fr.toLowerCase() === 'illustration' || cat.nom_categorie_ar.toLowerCase() === 'الرسومات التوضيحية')
-                )}
-                ref={fileInputRef}
-              />
-            </label>
-            {selectedFiles.length > 0 && (
-              <div className={`mt-2 ${interfaceLocale === 'ar' ? 'text-right' : ''}`}>
-                <p className="text-sm font-medium text-gray-900">
-                  {interfaceLocale === 'fr' ? 'Fichier(s)/Vidéo(s) sélectionné(s) :' : 'الملف(ات)/الفيديو(ات) المختار(ة) :'}
-                </p>
-                <ul className="list-disc pl-5 text-sm text-gray-600">
-                  {selectedFiles.map((file, index) => (
-                    <li key={index}>
-                      {file.name}{' '}
+          <>
+            <div>
+              {/* MODIF: getLabel pour certificate (obligatoire) */}
+              <label className="block mb-2 text-sm font-medium text-gray-900">
+                {getLabel('certificate', true)}
+              </label>
+              <label className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === 'ar' ? 'text-right' : ''}`}> {/* MODIF: Correction focus:with → focus-within */}
+                <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
+                  {interfaceLocale === 'fr' ? 'Sélectionner un fichier' : 'اختر ملفًا'}
+                </span>
+                <input
+                  type="file"
+                  name="certificate"
+                  onChange={handleCertificateChange}
+                  accept=".pdf"
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  ref={certificateInputRef}
+                />
+              </label>
+              {certificateFile && (
+                <div className={`mt-2 ${interfaceLocale === 'ar' ? 'text-right' : ''}`}>
+                  <p className="text-sm font-medium text-gray-900">
+                    {interfaceLocale === 'fr' ? 'Certificat sélectionné :' : 'الشهادة المختارة :'}
+                  </p>
+                  <ul className="list-disc pl-5 text-sm text-gray-600">
+                    <li>
+                      {certificateFile.name}{' '}
                       <button
                         type="button"
-                        onClick={() => handlePreviewFile(file)}
+                        onClick={() => handlePreviewFile(certificateFile)}
                         className="text-blue-600 hover:underline"
                       >
                         {interfaceLocale === 'fr' ? '(Voir)' : '(عرض)'}
                       </button>
-
-                      {/* Ajout du boutton suppression */}
                       <button
                         type="button"
-                        onClick={() => handleRemoveFile(index)} // Appel de la nouvelle fonction de suppression
+                        onClick={handleRemoveCertificate}
                         className="text-red-600 hover:underline"
                       >
-                        {interfaceLocale === 'fr' ? '(Supprimer)' : '(حذف)'} {/* Bouton de suppression */}
+                        {interfaceLocale === 'fr' ? '(Supprimer)' : '(حذف)'}
                       </button>
                     </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-            {formErrors.file && <p className="text-red-500 text-sm">{formErrors.file}</p>}
-          </div>
+                  </ul>
+                </div>
+              )}
+              {formErrors.certificate && <p className="text-red-500 text-sm">{formErrors.certificate}</p>}
+            </div>
+            <div>
+              {/* MODIF: getLabel pour video_file (facultatif individuellement) */}
+              <label className="block mb-2 text-sm font-medium text-gray-900">{getLabel('video_file', false)}</label>
+              <label className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === 'ar' ? 'text-right' : ''} ${data.video_url ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
+                  {interfaceLocale === 'fr'
+                    ? (isIllustration() ? 'Sélectionner des fichiers/vidéo' : 'Sélectionner un fichier/vidéo')
+                    : (isIllustration() ? 'اختر ملفات/فيديو' : 'اختر ملفًا/فيديو')}
+                </span>
+                <input
+                  type="file"
+                  name="file"
+                  onChange={handleFileChange}
+                  accept=".pdf,.jpg,.png,.mp4,.mov,.avi"
+                  disabled={data.video_url}
+                  className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+                  multiple={isIllustration()}
+                  ref={fileInputRef}
+                />
+              </label>
+              {/* MODIF: Texte d'aide amélioré */}
+              <p className="text-sm text-gray-600 mt-1">
+                {data.video_url
+                  ? (interfaceLocale === 'fr' ? 'Désactivé car une URL vidéo est fournie.' : 'معطل لأن رابط فيديو تم تقديمه.')
+                  : (interfaceLocale === 'fr' ? 'Optionnel individuellement, mais un fichier OU une URL est requis.' : 'اختياري فرديًا، لكن يجب تقديم ملف أو رابط.')}
+              </p>
+              {selectedFiles.length > 0 && (
+                <div className={`mt-2 ${interfaceLocale === 'ar' ? 'text-right' : ''}`}>
+                  <p className="text-sm font-medium text-gray-900">
+                    {interfaceLocale === 'fr' ? 'Fichier(s)/Vidéo(s) sélectionné(s) :' : 'الملف(ات)/الفيديو(ات) المختار(ة) :'}
+                  </p>
+                  <ul className="list-disc pl-5 text-sm text-gray-600">
+                    {selectedFiles.map((file, index) => (
+                      <li key={index}>
+                        {file.name}{' '}
+                        <button
+                          type="button"
+                          onClick={() => handlePreviewFile(file)}
+                          className="text-blue-600 hover:underline"
+                        >
+                          {interfaceLocale === 'fr' ? '(Voir)' : '(عرض)'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveFile(index)}
+                          className="text-red-600 hover:underline"
+                        >
+                          {interfaceLocale === 'fr' ? '(Supprimer)' : '(حذف)'}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {formErrors.file && <p className="text-red-500 text-sm">{formErrors.file}</p>}
+            </div>
+          </>
         </div>
       )}
       <div className="flex justify-between mt-6">

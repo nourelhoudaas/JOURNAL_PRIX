@@ -22,7 +22,7 @@ class travail extends Model
         'statut_oeuvre_fr',
         'valider_oeuvre',
         'id_fichier',
-        'video_url',
+       
 
     ];
 
