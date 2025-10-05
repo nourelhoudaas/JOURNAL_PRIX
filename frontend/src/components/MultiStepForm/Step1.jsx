@@ -27,10 +27,8 @@ const Step1 = ({
 
   const [formErrors, setFormErrors] = useState({});
 
-  const [selectedCarteNationaleName, setSelectedCarteNationaleName] =
-    useState("");
-
-  const [selectedPhotoName, setSelectedPhotoName] = useState("");
+ const [selectedCarteNationale, setSelectedCarteNationale] = useState(null);
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   //console.log('step1 - interfaceLocale:', interfaceLocale, 't:', t);
 
@@ -322,7 +320,6 @@ const Step1 = ({
   );
 
   // Gérer le changement du NIN
-
   const handleNinChange = useCallback(
     async (e) => {
       const { value } = e.target;
@@ -338,7 +335,6 @@ const Step1 = ({
   );
 
   // Valider le numéro de téléphone
-
   const validatePhoneNumber = (value) => {
     if (!value || value.length !== 10 || !/^[0-9]{10}$/.test(value)) {
       return (
@@ -351,7 +347,6 @@ const Step1 = ({
   };
 
   // Gérer la perte de focus sur le champ num_tlf_personne
-
   const handlePhoneBlur = (e) => {
     const { value } = e.target;
 
@@ -401,7 +396,28 @@ const Step1 = ({
     return `${baseName.slice(0, maxLength - 10 - extension.length)}...${baseName.slice(-5)}.${extension}`;
   };
 
-  // Gestion du changement de fichier pour carte_nationale
+  // Fonction pour prévisualiser un fichier
+  const handlePreviewFile = (file) => {
+    if (file && file instanceof File) {
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL, "_blank");
+      setTimeout(() => URL.revokeObjectURL(fileURL), 1000);
+    } else {
+      console.error("Fichier non valide pour la prévisualisation:", file);
+    }
+  };
+
+  // Fonction pour supprimer un fichier
+  const handleRemoveCarteNationale = () => {
+    setSelectedCarteNationale(null);
+    onChange({ target: { name: "carte_nationale", value: null } });
+  };
+  const handleRemovePhoto = () => {
+    setSelectedPhoto(null);
+    onChange({ target: { name: "photo", value: null } });
+  };
+
+ // Gestion du changement de fichier pour carte_nationale
   const handleCarteNationaleChange = (e) => {
     const file = e.target.files[0];
     const maxSize = 2 * 1024 * 1024; // 2 Mo en octets
@@ -418,7 +434,7 @@ const Step1 = ({
               ? `Nom du fichier trop long (maximum ${maxNameLength} caractères). Veuillez renommer le fichier.`
               : `اسم الملف طويل جدًا (حد أقصى ${maxNameLength} حرف). يرجى إعادة تسمية الملف.`),
         }));
-        setSelectedCarteNationaleName("");
+        setSelectedCarteNationale(null);
         return;
       }
 
@@ -432,23 +448,23 @@ const Step1 = ({
               ? "La taille de la carte nationale ne doit pas dépasser 2 Mo."
               : "حجم البطاقة الوطنية يجب ألا يتجاوز 2 ميغابايت."),
         }));
-        setSelectedCarteNationaleName("");
+        setSelectedCarteNationale(null);
         return;
-      } else {
-        // Effacer l'erreur si le fichier est valide
-        setFormErrors((prev) => ({
-          ...prev,
-          carte_nationale: "",
-        }));
       }
-      setSelectedCarteNationaleName(truncateFileName(file.name)); // Affichage tronqué si long
+
+      // Effacer l'erreur si le fichier est valide
+      setFormErrors((prev) => ({
+        ...prev,
+        carte_nationale: "",
+      }));
+      setSelectedCarteNationale(file); // Stocker le fichier
       onFileChange(e);
     } else {
-      setSelectedCarteNationaleName("");
+      setSelectedCarteNationale(null);
     }
   };
 
-  // Gestion du changement de fichier pour photo
+// Gestion du changement de fichier pour photo
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     const maxSize = 2 * 1024 * 1024; // 2 Mo en octets
@@ -465,7 +481,7 @@ const Step1 = ({
               ? `Nom du fichier trop long (maximum ${maxNameLength} caractères). Veuillez renommer le fichier.`
               : `اسم الملف طويل جدًا (حد أقصى ${maxNameLength} حرف). يرجى إعادة تسمية الملف.`),
         }));
-        setSelectedPhotoName("");
+        setSelectedPhoto(null);
         return;
       }
 
@@ -479,19 +495,19 @@ const Step1 = ({
               ? "La taille de la photo ne doit pas dépasser 2 Mo."
               : "حجم الصورة يجب ألا يتجاوز 2 ميغابايت."),
         }));
-        setSelectedPhotoName("");
+        setSelectedPhoto(null);
         return;
-      } else {
-        // Effacer l'erreur si le fichier est valide
-        setFormErrors((prev) => ({
-          ...prev,
-          photo: "",
-        }));
       }
-      setSelectedPhotoName(truncateFileName(file.name)); // Affichage tronqué si long
+
+      // Effacer l'erreur si le fichier est valide
+      setFormErrors((prev) => ({
+        ...prev,
+        photo: "",
+      }));
+      setSelectedPhoto(file); // Stocker le fichier
       onFileChange(e);
     } else {
-      setSelectedPhotoName("");
+      setSelectedPhoto(null);
     }
   };
 
@@ -870,7 +886,7 @@ const Step1 = ({
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={(e) => { e.preventDefault(); onNext(); }}
       className={`space-y-6 w-full max-w-5xl bg-white shadow-md rounded-lg p-8 ${interfaceLocale === "ar" ? "text-right" : ""
         }`}
     >
@@ -1383,6 +1399,7 @@ const Step1 = ({
 
       {/* ************UPLODE FICHIERS */}
 
+      {/* Section carte_nationale */}
       <div>
         <label
           className="block mb-2 text-sm font-medium text-gray-900"
@@ -1397,19 +1414,12 @@ const Step1 = ({
               <p className="text-sm text-gray-600">
                 {interfaceLocale === "fr"
                   ? "Fichier existant :"
-                  : "الملف الموجود :"}
+                  : "الملف الموجود :"}{" "}
                 {interfaceLocale === "fr"
                   ? data.fichiers.find((f) => f.type === "carte_nationale").nom_fichier_fr
-                  : data.fichiers.find((f) => f.type === "carte_nationale").nom_fichier_ar
-                }{" "}
-                {/* {
-                  data.fichiers.find((f) => f.type === "carte_nationale")
-                    .nom_fichier_fr
-                }{" "} */}
+                  : data.fichiers.find((f) => f.type === "carte_nationale").nom_fichier_ar}{" "}
                 <a
-                  href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === "carte_nationale")
-                    .file_path
-                    }`}
+                  href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === "carte_nationale").file_path}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline"
@@ -1421,38 +1431,46 @@ const Step1 = ({
           )}
 
         <label
-          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-            }`}
+          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""}`}
         >
           <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-            {interfaceLocale === "fr"
-              ? "Sélectionner un fichier"
-              : "اختر ملفًا"}
+            {interfaceLocale === "fr" ? "Sélectionner un fichier" : "اختر ملفًا"}
           </span>
-
           <input
             type="file"
             name="carte_nationale"
             onChange={handleCarteNationaleChange}
             accept="application/pdf"
             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-            required={
-              !data.fichiers ||
-              !data.fichiers.some((f) => f.type === "carte_nationale")
-            }
+            required={!data.fichiers || !data.fichiers.some((f) => f.type === "carte_nationale")}
           />
         </label>
 
-        {selectedCarteNationaleName && (
-          <p
-            className={`text-sm text-gray-600 mt-2 ${interfaceLocale === "ar" ? "text-right" : ""
-              }`}
-          >
-            {interfaceLocale === "fr"
-              ? "Fichier sélectionné :"
-              : "الملف المختار :"}{" "}
-            {selectedCarteNationaleName}
-          </p>
+        {selectedCarteNationale && (
+          <div className={`mt-2 ${interfaceLocale === "ar" ? "text-right" : ""}`}>
+            <p className="text-sm font-medium text-gray-900">
+              {interfaceLocale === "fr" ? "Fichier sélectionné :" : "الملف المختار :"}
+            </p>
+            <ul className="list-disc pl-5 text-sm text-gray-600">
+              <li>
+                {selectedCarteNationale.name}{" "}
+                <button
+                  type="button"
+                  onClick={() => handlePreviewFile(selectedCarteNationale)}
+                  className="text-blue-600 hover:underline"
+                >
+                  {interfaceLocale === "fr" ? "(Voir)" : "(عرض)"}
+                </button>{" "}
+                <button
+                  type="button"
+                  onClick={handleRemoveCarteNationale}
+                  className="text-red-600 hover:underline"
+                >
+                  {interfaceLocale === "fr" ? "(Supprimer)" : "(حذف)"}
+                </button>
+              </li>
+            </ul>
+          </div>
         )}
 
         {formErrors.carte_nationale && (
@@ -1460,6 +1478,7 @@ const Step1 = ({
         )}
       </div>
 
+      {/* Section photo */}
       <div>
         <label
           className="block mb-2 text-sm font-medium text-gray-900"
@@ -1471,17 +1490,12 @@ const Step1 = ({
         {data.fichiers && data.fichiers.some((f) => f.type === "photo") && (
           <div className="mb-2">
             <p className="text-sm text-gray-600">
-              {interfaceLocale === "fr"
-                ? "Fichier existant :"
-                : "الملف الموجود :"}
+              {interfaceLocale === "fr" ? "Fichier existant :" : "الملف الموجود :"}{" "}
               {interfaceLocale === "fr"
                 ? data.fichiers.find((f) => f.type === "photo").nom_fichier_fr
-                : data.fichiers.find((f) => f.type === "photo").nom_fichier_ar
-              }{" "}
-              {/* {data.fichiers.find((f) => f.type === "photo").nom_fichier_fr}{" "} */}
+                : data.fichiers.find((f) => f.type === "photo").nom_fichier_ar}{" "}
               <a
-                href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === "photo").file_path
-                  }`}
+                href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === "photo").file_path}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline"
@@ -1493,37 +1507,46 @@ const Step1 = ({
         )}
 
         <label
-          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-            }`}
+          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""}`}
         >
           <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-            {interfaceLocale === "fr"
-              ? "Sélectionner un fichier"
-              : "اختر ملفًا"}
+            {interfaceLocale === "fr" ? "Sélectionner un fichier" : "اختر ملفًا"}
           </span>
-
           <input
             type="file"
             name="photo"
             onChange={handlePhotoChange}
             accept="image/jpeg,image/png,image/jpg"
             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-            required={
-              !data.fichiers || !data.fichiers.some((f) => f.type === "photo")
-            }
+            required={!data.fichiers || !data.fichiers.some((f) => f.type === "photo")}
           />
         </label>
 
-        {selectedPhotoName && (
-          <p
-            className={`text-sm text-gray-600 mt-2 ${interfaceLocale === "ar" ? "text-right" : ""
-              }`}
-          >
-            {interfaceLocale === "fr"
-              ? "Fichier sélectionné :"
-              : "الملف المختار :"}{" "}
-            {selectedPhotoName}
-          </p>
+        {selectedPhoto && (
+          <div className={`mt-2 ${interfaceLocale === "ar" ? "text-right" : ""}`}>
+            <p className="text-sm font-medium text-gray-900">
+              {interfaceLocale === "fr" ? "Fichier sélectionné :" : "الملف المختار :"}
+            </p>
+            <ul className="list-disc pl-5 text-sm text-gray-600">
+              <li>
+                {selectedPhoto.name}{" "}
+                <button
+                  type="button"
+                  onClick={() => handlePreviewFile(selectedPhoto)}
+                  className="text-blue-600 hover:underline"
+                >
+                  {interfaceLocale === "fr" ? "(Voir)" : "(عرض)"}
+                </button>{" "}
+                <button
+                  type="button"
+                  onClick={handleRemovePhoto}
+                  className="text-red-600 hover:underline"
+                >
+                  {interfaceLocale === "fr" ? "(Supprimer)" : "(حذف)"}
+                </button>
+              </li>
+            </ul>
+          </div>
         )}
 
         {formErrors.photo && (

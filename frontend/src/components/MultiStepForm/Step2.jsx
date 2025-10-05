@@ -21,11 +21,8 @@ export default function Step2({
   const [isAttestationNumberDisabled, setIsAttestationNumberDisabled] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const debounceTimer = useRef(null);
-  const [selectedFileName, setSelectedFileName] = useState("");
-  const [
-    selectedCarteProfessionnelleFileName,
-    setSelectedCarteProfessionnelleFileName,
-  ] = useState("");
+  const [selectedAttestationTravail, setSelectedAttestationTravail] = useState(null);
+  const [selectedCarteProfessionnelle, setSelectedCarteProfessionnelle] = useState(null);
 
   const secteurs = [
     { nom_fr_sect: "Public", nom_ar_sect: "عام" },
@@ -136,6 +133,29 @@ export default function Step2({
         </span>
       </>
     );
+  };
+
+
+  // Fonction pour prévisualiser un fichier
+  const handlePreviewFile = (file) => {
+    if (file && file instanceof File) {
+      const fileURL = URL.createObjectURL(file);
+      window.open(fileURL, "_blank");
+      setTimeout(() => URL.revokeObjectURL(fileURL), 1000);
+    } else {
+      console.error("Fichier non valide pour la prévisualisation:", file);
+    }
+  };
+
+  // Fonctions pour supprimer les fichiers
+  const handleRemoveAttestationTravail = () => {
+    setSelectedAttestationTravail(null);
+    onChange({ target: { name: "attestation_travail", value: null } });
+  };
+
+  const handleRemoveCarteProfessionnelle = () => {
+    setSelectedCarteProfessionnelle(null);
+    onChange({ target: { name: "carte_professionnelle", value: null } });
   };
 
   const validateProfessionalCard = useCallback(
@@ -524,13 +544,16 @@ export default function Step2({
     return `${baseName.slice(0, maxLength - 10 - extension.length)}...${baseName.slice(-5)}.${extension}`;
   };
 
+  // Gestion du changement de fichier
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-    const { name } = e.target;
-    const maxSize = 10 * 1024 * 1024; // 10 Mo en octets (aligné avec serveur)
-    const maxNameLength = 100; // Limite pour le nom du fichier (caractères)
+    const { name, files } = e.target;
+    const maxSizeAttestation = 10 * 1024 * 1024; // 10 Mo pour attestation_travail
+    const maxSizeCarteProfessionnelle = 2 * 1024 * 1024; // 2 Mo pour carte_professionnelle
+    const maxNameLength = 100; // Limite pour le nom du fichier
 
-    if (file) {
+    if (files.length > 0) {
+      const file = files[0];
+
       // Vérification de la longueur du nom
       if (file.name.length > maxNameLength) {
         setFormErrors((prev) => ({
@@ -541,52 +564,55 @@ export default function Step2({
               ? `Nom du fichier trop long (maximum ${maxNameLength} caractères). Veuillez renommer le fichier.`
               : `اسم الملف طويل جدًا (حد أقصى ${maxNameLength} حرف). يرجى إعادة تسمية الملف.`),
         }));
-        if (name === "attestation_travail") {
-          setSelectedFileName("");
-        } else if (name === "carte_professionnelle") {
-          setSelectedCarteProfessionnelleFileName("");
-        }
+        if (name === "attestation_travail") setSelectedAttestationTravail(null);
+        else if (name === "carte_professionnelle") setSelectedCarteProfessionnelle(null);
         return;
       }
 
       // Vérification de la taille
-      if (file.size > maxSize) {
+      if (name === "attestation_travail" && file.size > maxSizeAttestation) {
         setFormErrors((prev) => ({
           ...prev,
-          [name]:
-            t.max_file_size?.replace(":attribute", t[name])?.replace(":max", "10") ||
+          attestation_travail:
+            t.max_file_size?.replace(":attribute", t.attestation_travail)?.replace(":max", "10 Mo") ||
             (interfaceLocale === "fr"
-              ? `La taille du fichier ne doit pas dépasser 10 Mo.`
-              : `حجم الملف يجب ألا يتجاوز 10 ميغابايت.`),
+              ? "La taille de l'attestation de travail ne doit pas dépasser 10 Mo."
+              : "حجم شهادة العمل يجب ألا يتجاوز 10 ميغابايت."),
         }));
-        if (name === "attestation_travail") {
-          setSelectedFileName("");
-        } else if (name === "carte_professionnelle") {
-          setSelectedCarteProfessionnelleFileName("");
-        }
+        setSelectedAttestationTravail(null);
         return;
-      } else {
-        // Effacer l'erreur si le fichier est valide
-        setFormErrors((prev) => ({
-          ...prev,
-          [name]: "",
-        }));
       }
 
-      // Mise à jour du nom affiché et appel à onFileChange
-      const truncatedName = truncateFileName(file.name);
-      if (name === "attestation_travail") {
-        setSelectedFileName(truncatedName);
-      } else if (name === "carte_professionnelle") {
-        setSelectedCarteProfessionnelleFileName(truncatedName);
+      if (name === "carte_professionnelle" && file.size > maxSizeCarteProfessionnelle) {
+        setFormErrors((prev) => ({
+          ...prev,
+          carte_professionnelle:
+            t.max_file_size?.replace(":attribute", t.carte_professionnelle)?.replace(":max", "2 Mo") ||
+            (interfaceLocale === "fr"
+              ? "La taille de la carte professionnelle ne doit pas dépasser 2 Mo."
+              : "حجم البطاقة المهنية يجب ألا يتجاوز 2 ميغابايت."),
+        }));
+        setSelectedCarteProfessionnelle(null);
+        return;
       }
+
+      // Effacer l'erreur si le fichier est valide
+      setFormErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+
+      // Mettre à jour l'état du fichier
+      if (name === "attestation_travail") {
+        setSelectedAttestationTravail(file);
+      } else if (name === "carte_professionnelle") {
+        setSelectedCarteProfessionnelle(file);
+      }
+
       onFileChange(e);
     } else {
-      if (name === "attestation_travail") {
-        setSelectedFileName("");
-      } else if (name === "carte_professionnelle") {
-        setSelectedCarteProfessionnelleFileName("");
-      }
+      if (name === "attestation_travail") setSelectedAttestationTravail(null);
+      else if (name === "carte_professionnelle") setSelectedCarteProfessionnelle(null);
     }
   };
 
@@ -924,7 +950,7 @@ export default function Step2({
 
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={(e) => { e.preventDefault(); onNext(); }}
       className={`space-y-6 w-full max-w-5xl bg-white shadow-md rounded-lg p-8 ${interfaceLocale === "ar" ? "text-right" : ""
         }`}
     >
@@ -1468,6 +1494,7 @@ export default function Step2({
           )}
         </div>
       </div>
+      {/* Section attestation_travail */}
       <div>
         <label
           className="block mb-2 text-sm font-medium text-gray-900"
@@ -1479,17 +1506,12 @@ export default function Step2({
           data.fichiers.some((f) => f.type === "attestation_travail") && (
             <div className="mb-2">
               <p className="text-sm text-gray-600">
-                {interfaceLocale === "fr"
-                  ? "Fichier existant :"
-                  : "الملف الموجود :"}
+                {interfaceLocale === "fr" ? "Fichier existant :" : "الملف الموجود :"}{" "}
                 {interfaceLocale === "fr"
                   ? data.fichiers.find((f) => f.type === "attestation_travail").nom_fichier_fr
-                  : data.fichiers.find((f) => f.type === "attestation_travail").nom_fichier_ar
-                }{" "}
+                  : data.fichiers.find((f) => f.type === "attestation_travail").nom_fichier_ar}{" "}
                 <a
-                  href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === "attestation_travail")
-                    .file_path
-                    }`}
+                  href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === "attestation_travail").file_path}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline"
@@ -1500,13 +1522,10 @@ export default function Step2({
             </div>
           )}
         <label
-          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-            }`}
+          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""}`}
         >
           <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-            {interfaceLocale === "fr"
-              ? "Sélectionner un fichier"
-              : "اختر ملفًا"}
+            {interfaceLocale === "fr" ? "Sélectionner un fichier" : "اختر ملفًا"}
           </span>
           <input
             type="file"
@@ -1514,29 +1533,41 @@ export default function Step2({
             onChange={handleFileChange}
             accept="application/pdf"
             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-            required={
-              !data.fichiers ||
-              !data.fichiers.some((f) => f.type === "attestation_travail")
-            }
+            required={!data.fichiers || !data.fichiers.some((f) => f.type === "attestation_travail")}
           />
         </label>
-        {selectedFileName && (
-          <p
-            className={`text-sm text-gray-600 mt-2 ${interfaceLocale === "ar" ? "text-right" : ""
-              }`}
-          >
-            {interfaceLocale === "fr"
-              ? "Fichier sélectionné :"
-              : "الملف المختار :"}{" "}
-            {selectedFileName}
-          </p>
+        {selectedAttestationTravail && (
+          <div className={`mt-2 ${interfaceLocale === "ar" ? "text-right" : ""}`}>
+            <p className="text-sm font-medium text-gray-900">
+              {interfaceLocale === "fr" ? "Fichier sélectionné :" : "الملف المختار :"}
+            </p>
+            <ul className="list-disc pl-5 text-sm text-gray-600">
+              <li>
+                {selectedAttestationTravail.name}{" "}
+                <button
+                  type="button"
+                  onClick={() => handlePreviewFile(selectedAttestationTravail)}
+                  className="text-blue-600 hover:underline"
+                >
+                  {interfaceLocale === "fr" ? "(Voir)" : "(عرض)"}
+                </button>{" "}
+                <button
+                  type="button"
+                  onClick={handleRemoveAttestationTravail}
+                  className="text-red-600 hover:underline"
+                >
+                  {interfaceLocale === "fr" ? "(Supprimer)" : "(حذف)"}
+                </button>
+              </li>
+            </ul>
+          </div>
         )}
         {formErrors.attestation_travail && (
-          <p className="text-red-500 text-sm">
-            {formErrors.attestation_travail}
-          </p>
+          <p className="text-red-500 text-sm">{formErrors.attestation_travail}</p>
         )}
       </div>
+
+      {/* Section carte_professionnelle */}
       <div>
         <label
           className="block mb-2 text-sm font-medium text-gray-900"
@@ -1548,18 +1579,12 @@ export default function Step2({
           data.fichiers.some((f) => f.type === "carte_professionnelle") && (
             <div className="mb-2">
               <p className="text-sm text-gray-600">
-                {interfaceLocale === "fr"
-                  ? "Fichier existant :"
-                  : "الملف الموجود :"}
+                {interfaceLocale === "fr" ? "Fichier existant :" : "الملف الموجود :"}{" "}
                 {interfaceLocale === "fr"
                   ? data.fichiers.find((f) => f.type === "carte_professionnelle").nom_fichier_fr
-                  : data.fichiers.find((f) => f.type === "carte_professionnelle").nom_fichier_ar
-                }{" "}
+                  : data.fichiers.find((f) => f.type === "carte_professionnelle").nom_fichier_ar}{" "}
                 <a
-                  href={`http://localhost:8000/storage/${data.fichiers.find(
-                    (f) => f.type === "carte_professionnelle"
-                  ).file_path
-                    }`}
+                  href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === "carte_professionnelle").file_path}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline"
@@ -1570,13 +1595,10 @@ export default function Step2({
             </div>
           )}
         <label
-          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-            }`}
+          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""}`}
         >
           <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
-            {interfaceLocale === "fr"
-              ? "Sélectionner un fichier"
-              : "اختر ملفًا"}
+            {interfaceLocale === "fr" ? "Sélectionner un fichier" : "اختر ملفًا"}
           </span>
           <input
             type="file"
@@ -1584,27 +1606,37 @@ export default function Step2({
             onChange={handleFileChange}
             accept="application/pdf"
             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-            required={
-              !data.fichiers ||
-              !data.fichiers.some((f) => f.type === "carte_professionnelle")
-            }
+            required={!data.fichiers || !data.fichiers.some((f) => f.type === "carte_professionnelle")}
           />
         </label>
-        {selectedCarteProfessionnelleFileName && (
-          <p
-            className={`text-sm text-gray-600 mt-2 ${interfaceLocale === "ar" ? "text-right" : ""
-              }`}
-          >
-            {interfaceLocale === "fr"
-              ? "Fichier sélectionné :"
-              : "الملف المختار :"}{" "}
-            {selectedCarteProfessionnelleFileName}
-          </p>
+        {selectedCarteProfessionnelle && (
+          <div className={`mt-2 ${interfaceLocale === "ar" ? "text-right" : ""}`}>
+            <p className="text-sm font-medium text-gray-900">
+              {interfaceLocale === "fr" ? "Fichier sélectionné :" : "الملف المختار :"}
+            </p>
+            <ul className="list-disc pl-5 text-sm text-gray-600">
+              <li>
+                {selectedCarteProfessionnelle.name}{" "}
+                <button
+                  type="button"
+                  onClick={() => handlePreviewFile(selectedCarteProfessionnelle)}
+                  className="text-blue-600 hover:underline"
+                >
+                  {interfaceLocale === "fr" ? "(Voir)" : "(عرض)"}
+                </button>{" "}
+                <button
+                  type="button"
+                  onClick={handleRemoveCarteProfessionnelle}
+                  className="text-red-600 hover:underline"
+                >
+                  {interfaceLocale === "fr" ? "(Supprimer)" : "(حذف)"}
+                </button>
+              </li>
+            </ul>
+          </div>
         )}
         {formErrors.carte_professionnelle && (
-          <p className="text-red-500 text-sm">
-            {formErrors.carte_professionnelle}
-          </p>
+          <p className="text-red-500 text-sm">{formErrors.carte_professionnelle}</p>
         )}
       </div>
       <div className="flex justify-between mt-6">
