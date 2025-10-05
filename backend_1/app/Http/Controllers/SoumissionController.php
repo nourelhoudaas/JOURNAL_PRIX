@@ -47,61 +47,62 @@ class SoumissionController extends Controller
      * @return \App\Models\Fichier
      */
     private function storeFile($file, $id_personne, $nom_personne_fr, $id_dossier, $type_fichier, $nom_fichier_fr, $nom_fichier_ar, $id_oeuvre = null)
-{
-    // Définir les limites de taille par type de fichier
-    $maxSizes = [
-        'carte_nationale' => 2 * 1024 * 1024, // 2 Mo
-        'photo' => 2 * 1024 * 1024, // 2 Mo
-        'attestation_travail' => 10 * 1024 * 1024, // 10 Mo
-        'carte_professionnelle' => 10 * 1024 * 1024, // 10 Mo (ajout pour cohérence)
-        'file' => 100 * 1024 * 1024, // 100 Mo
-    ];
+    {
+        // Définir les limites de taille par type de fichier
+        $maxSizes = [
+            'carte_nationale' => 2 * 1024 * 1024, // 2 Mo
+            'photo' => 2 * 1024 * 1024, // 2 Mo
+            'attestation_travail' => 10 * 1024 * 1024, // 10 Mo
+            'carte_professionnelle' => 10 * 1024 * 1024, // 10 Mo
+            'certificate' => 10 * 1024 * 1024, // 10 Mo
+            'file' => 100 * 1024 * 1024, // 100 Mo par défaut
+        ];
 
-    // Vérifier la taille du fichier
-    if (isset($maxSizes[$type_fichier]) && $file->getSize() > $maxSizes[$type_fichier]) {
-        Log::error("🚫 Fichier trop volumineux", [
-            'type_fichier' => $type_fichier,
+        // Ajuster la taille max pour 'file' selon la catégorie
+        $categorie = Categorie::find(request()->input('categorie'));
+        if ($type_fichier === 'file' && $categorie) {
+            if (in_array($categorie->nom_categorie_fr, ['Information télévisuelle', 'Information radiophonique'])) {
+                $maxSizes['file'] = 200 * 1024 * 1024; // 200 Mo pour vidéos
+            }
+        }
+
+        // Vérifier la taille du fichier
+        if (isset($maxSizes[$type_fichier]) && $file->getSize() > $maxSizes[$type_fichier]) {
+            throw new \Exception(trans('formulaire.max_file_size', [
+                'attribute' => trans("formulaire.$type_fichier"),
+                'max' => ($maxSizes[$type_fichier] / (1024 * 1024)) . ' Mo',
+            ]));
+        }
+
+        // Vérifier la longueur du nom du fichier
+        if (strlen(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME)) > 100) {
+            throw new \Exception(trans('formulaire.file_name_too_long', [
+                'max' => 100,
+            ]));
+        }
+
+        // Troncature du nom pour éviter "data too long"
+        $originalName = substr(pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME), 0, 100);
+        $extension = $file->getClientOriginalExtension();
+        $cleanedNomPersonne = preg_replace('/[^A-Za-z0-9\-]/', '_', $nom_personne_fr);
+        $cleanedNomPersonne = preg_replace('/_+/', '_', trim($cleanedNomPersonne, '_'));
+        $path = "users/{$id_personne}-{$cleanedNomPersonne}/{$type_fichier}";
+        Storage::disk('public')->makeDirectory($path);
+        $uniqueName = "{$id_personne}_" . time() . "_{$originalName}.{$extension}";
+        $filePath = $file->storeAs($path, $uniqueName, 'public');
+
+        return fichier::create([
+            'nom_fichier_fr' => $nom_fichier_fr,
+            'nom_fichier_ar' => $nom_fichier_ar,
+            'file_path' => $filePath,
+            'type' => $type_fichier,
+            'extension' => $extension,
             'size' => $file->getSize(),
-            'max_size' => $maxSizes[$type_fichier],
+            'id_dossier' => $id_dossier,
+            'id_oeuvre' => $id_oeuvre,
+            'date_upload' => now(),
         ]);
-        throw new \Exception(trans('formulaire.max_file_size', [
-            'attribute' => trans("formulaire.$type_fichier"),
-            'max' => ($maxSizes[$type_fichier] / (1024 * 1024)) . ' Mo',
-        ]));
     }
-
-    // Nettoyer le nom_personne_fr pour les noms de dossiers
-    $cleanedNomPersonne = preg_replace('/[^A-Za-z0-9\-]/', '_', $nom_personne_fr);
-    $cleanedNomPersonne = preg_replace('/_+/', '_', $cleanedNomPersonne);
-    $cleanedNomPersonne = trim($cleanedNomPersonne, '_');
-
-    // Définir le chemin de stockage
-    $path = "users/{$id_personne}-{$cleanedNomPersonne}/{$type_fichier}";
-
-    // Créer le dossier si nécessaire
-    Storage::disk('public')->makeDirectory($path);
-
-    // Générer un nom de fichier unique
-    $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-    $extension = $file->getClientOriginalExtension();
-    $uniqueName = "{$id_personne}_" . time() . "_{$originalName}.{$extension}";
-
-    // Stocker le fichier
-    $filePath = $file->storeAs($path, $uniqueName, 'public');
-
-    // Créer une entrée dans la table fichiers
-    return fichier::create([
-        'nom_fichier_fr' => $nom_fichier_fr,
-        'nom_fichier_ar' => $nom_fichier_ar,
-        'file_path' => $filePath,
-        'type' => $type_fichier,
-        'extension' => $extension,
-        'size' => $file->getSize(),
-        'id_dossier' => $id_dossier,
-        'id_oeuvre' => $id_oeuvre,
-        'date_upload' => now(),
-    ]);
-}
 
     // Check if NIN exists and return person data
     public function checkNin(Request $request)
@@ -395,57 +396,57 @@ class SoumissionController extends Controller
             }
 
             // Gérer les fichiers (carte_nationale et photo)
-        if ($request->hasFile('carte_nationale')) {
-            Log::info('📁 Traitement fichier carte_nationale', ['id_personne' => $person->id_personne, 'id_dossier' => $dossier->id_dossier]);
-            // Supprimer tous les fichiers carte_nationale existants
-            $existingCarteNationals = fichier::where('id_dossier', $dossier->id_dossier)
-                ->where('type', 'carte_nationale')
-                ->get();
+            if ($request->hasFile('carte_nationale')) {
+                Log::info('📁 Traitement fichier carte_nationale', ['id_personne' => $person->id_personne, 'id_dossier' => $dossier->id_dossier]);
+                // Supprimer tous les fichiers carte_nationale existants
+                $existingCarteNationals = fichier::where('id_dossier', $dossier->id_dossier)
+                    ->where('type', 'carte_nationale')
+                    ->get();
 
-            foreach ($existingCarteNationals as $existingFile) {
-                Storage::disk('public')->delete($existingFile->file_path);
-                $existingFile->delete();
-                Log::info('🗑️ Fichier carte_nationale existant supprimé', ['file_path' => $existingFile->file_path]);
+                foreach ($existingCarteNationals as $existingFile) {
+                    Storage::disk('public')->delete($existingFile->file_path);
+                    $existingFile->delete();
+                    Log::info('🗑️ Fichier carte_nationale existant supprimé', ['file_path' => $existingFile->file_path]);
+                }
+
+                // Enregistrer le nouveau fichier
+                $this->storeFile(
+                    $request->file('carte_nationale'),
+                    $person->id_personne,
+                    $validated['nom_personne_fr'],
+                    $dossier->id_dossier,
+                    'carte_nationale',
+                    trans('formulaire.carte_nationale'),
+                    'البطاقة الوطنية'
+                );
+                Log::info('✅ Fichier carte_nationale uploadé', ['id_personne' => $person->id_personne]);
             }
 
-            // Enregistrer le nouveau fichier
-            $this->storeFile(
-                $request->file('carte_nationale'),
-                $person->id_personne,
-                $validated['nom_personne_fr'],
-                $dossier->id_dossier,
-                'carte_nationale',
-                trans('formulaire.carte_nationale'),
-                'البطاقة الوطنية'
-            );
-            Log::info('✅ Fichier carte_nationale uploadé', ['id_personne' => $person->id_personne]);
-        }
+            if ($request->hasFile('photo')) {
+                Log::info('📁 Traitement fichier photo', ['id_personne' => $person->id_personne, 'id_dossier' => $dossier->id_dossier]);
+                // Supprimer tous les fichiers photo existants
+                $existingPhotos = fichier::where('id_dossier', $dossier->id_dossier)
+                    ->where('type', 'photo')
+                    ->get();
 
-        if ($request->hasFile('photo')) {
-            Log::info('📁 Traitement fichier photo', ['id_personne' => $person->id_personne, 'id_dossier' => $dossier->id_dossier]);
-            // Supprimer tous les fichiers photo existants
-            $existingPhotos = fichier::where('id_dossier', $dossier->id_dossier)
-                ->where('type', 'photo')
-                ->get();
+                foreach ($existingPhotos as $existingFile) {
+                    Storage::disk('public')->delete($existingFile->file_path);
+                    $existingFile->delete();
+                    Log::info('🗑️ Fichier photo existant supprimé', ['file_path' => $existingFile->file_path]);
+                }
 
-            foreach ($existingPhotos as $existingFile) {
-                Storage::disk('public')->delete($existingFile->file_path);
-                $existingFile->delete();
-                Log::info('🗑️ Fichier photo existant supprimé', ['file_path' => $existingFile->file_path]);
+                // Enregistrer le nouveau fichier
+                $this->storeFile(
+                    $request->file('photo'),
+                    $person->id_personne,
+                    $validated['nom_personne_fr'],
+                    $dossier->id_dossier,
+                    'photo',
+                    trans('formulaire.photo'),
+                    'الصورة'
+                );
+                Log::info('✅ Fichier photo uploadé', ['id_personne' => $person->id_personne]);
             }
-
-            // Enregistrer le nouveau fichier
-            $this->storeFile(
-                $request->file('photo'),
-                $person->id_personne,
-                $validated['nom_personne_fr'],
-                $dossier->id_dossier,
-                'photo',
-                trans('formulaire.photo'),
-                'الصورة'
-            );
-            Log::info('✅ Fichier photo uploadé', ['id_personne' => $person->id_personne]);
-        }
 
             DB::commit();
             return response()->json([
@@ -559,6 +560,7 @@ class SoumissionController extends Controller
                     ];
                 })->toArray() : [];
 
+            Log::info('📁 Fichiers associés récupérés', ['fichiers' => $fichiers]);
             $data = [
                 'id_professional_card' => $person->id_professional_card,
                 'num_attes' => $occupation ? $occupation->num_attes : '',
@@ -597,70 +599,62 @@ class SoumissionController extends Controller
     }
 
     //check if num_attes exists and return associated data
-    public function checkNumAttes(Request $request)
+    public function checkAttestationNumber(Request $request)
     {
-        Log::info('🟢 Début checkNumAttes', ['params' => $request->all()]);
+        $interfaceLocale = $request->query('locale', 'fr');
+        app()->setLocale($interfaceLocale);
 
-        $numAttes = $request->query('num_attes');
-        $locale = $request->query('locale', 'fr');
-
-        // Configurer la locale
-        app()->setLocale($locale);
-
-        // Log de début avec les paramètres reçus
-        Log::info('🟢 checkNumAttes', [
-            'num_attes' => $numAttes,
-            'locale' => $locale,
+        // Log des paramètres reçus
+        Log::info('🟢 Début checkAttestationNumber', [
+            'num_attes' => $request->query('num_attes'),
+            'userId' => $request->query('userId'),
         ]);
 
-        // Vérification que num_attes est fourni
-        if (!$numAttes) {
-            Log::warning('🚫 num_attes non fourni dans la requête');
+        $num_attes = $request->query('num_attes');
+        $userId = $request->query('userId');
+
+        if (!$num_attes) {
+            Log::warning('🚫 num_attes manquant');
             return response()->json([
                 'exists' => false,
-                'error' => trans('formulaire.required', ['attribute' => trans('formulaire.num_attes')]),
+                'message' => trans('formulaire.attestation_number_required'),
             ], 422);
         }
 
-        try {
-            // Recherche dans la table occuper
-            $existing = Occuper::where('num_attes', $numAttes)->first();
+        // Vérifier si num_attes existe dans la table Occuper
+        $occupation = Occuper::where('num_attes', $num_attes)->first();
 
-            // Log du résultat de la recherche
-            Log::info('🔍 Résultat recherche num_attes', [
-                'num_attes' => $numAttes,
-                'exists' => !empty($existing),
-            ]);
-
-            if ($existing) {
-                // Cas où num_attes existe
-                Log::warning('🚫 num_attes déjà utilisé', [
-                    'num_attes' => $numAttes,
+        if ($occupation) {
+            // Vérifier si l'occupation appartient à un autre utilisateur
+            if ($occupation->id_personne != $userId) {
+                Log::warning('🚫 Numéro d\'attestation associé à un autre utilisateur', [
+                    'id_personne' => $occupation->id_personne,
+                    'userId' => $userId,
                 ]);
                 return response()->json([
                     'exists' => true,
-                    'error' => trans('formulaire.num_attes_exists'),
+                    'error' => trans('formulaire.attestation_number_exists'),
                 ], 422);
             }
 
-            // Cas où num_attes n'existe pas
-            Log::info('✅ num_attes non trouvé, nouveau numéro', ['num_attes' => $numAttes]);
-            return response()->json([
-                'exists' => false,
-            ], 200);
-
-        } catch (\Exception $e) {
-            // Log de l'erreur
-            Log::error('❌ Erreur lors de la vérification de num_attes', [
-                'num_attes' => $numAttes,
-                'error_message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
+            // Si l'occupation appartient à l'utilisateur actuel, ne rien retourner
+            // car checkProfessionalCard fournit déjà les données
+            Log::info('✅ Numéro d\'attestation trouvé pour l\'utilisateur actuel', [
+                'num_attes' => $num_attes,
+                'userId' => $userId,
             ]);
             return response()->json([
-                'exists' => false,
-                'error' => trans('formulaire.error_check_num_attes'),
-            ], 500);
+                'exists' => true,
+                'message' => trans('formulaire.attestation_number_found'),
+            ], 200);
         }
+
+        // Si num_attes n'existe pas
+        Log::info('🔎 Numéro d\'attestation non trouvé', ['num_attes' => $num_attes]);
+        return response()->json([
+            'exists' => false,
+            'message' => trans('formulaire.attestation_number_not_found'),
+        ], 200);
     }
 
     //🟢 ÉTAPE 2 - Établissement + mise à jour de la personne + attestation de travail
@@ -820,6 +814,18 @@ class SoumissionController extends Controller
 
             $fichierAttestation = null;
             if ($request->hasFile('attestation_travail')) {
+                Log::info('📁 Traitement fichier attestation_travail', ['id_personne' => $personne->id_personne, 'id_dossier' => $personne->id_dossier]);
+                // Supprimer tous les fichiers carte_nationale existants
+                $existingCarteNationals = fichier::where('id_dossier', $personne->id_dossier)
+                    ->where('type', 'attestation_travail')
+                    ->get();
+
+                foreach ($existingCarteNationals as $existingFile) {
+                    Storage::disk('public')->delete($existingFile->file_path);
+                    $existingFile->delete();
+                    Log::info('🗑️ Fichier attestation_travail existant supprimé', ['file_path' => $existingFile->file_path]);
+                }
+
                 $this->storeFile(
                     $request->file('attestation_travail'),
                     $personne->id_personne,
@@ -836,6 +842,18 @@ class SoumissionController extends Controller
 
             $fichierProfession = null;
             if ($request->hasFile('carte_professionnelle')) {
+                Log::info('📁 Traitement fichier carte_professionnelle', ['id_personne' => $personne->id_personne, 'id_dossier' => $personne->id_dossier]);
+                // Supprimer tous les fichiers photo existants
+                $existingPhotos = fichier::where('id_dossier', $personne->id_dossier)
+                    ->where('type', 'carte_professionnelle')
+                    ->get();
+
+                foreach ($existingPhotos as $existingFile) {
+                    Storage::disk('public')->delete($existingFile->file_path);
+                    $existingFile->delete();
+                    Log::info('🗑️ Fichier photo existant supprimé', ['file_path' => $existingFile->file_path]);
+                }
+
                 $this->storeFile(
                     $request->file('carte_professionnelle'),
                     $personne->id_personne,

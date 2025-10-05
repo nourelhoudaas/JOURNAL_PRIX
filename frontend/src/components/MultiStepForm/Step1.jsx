@@ -300,7 +300,7 @@ const Step1 = ({
         } else {
           setNinError(
             result.message ||
-              t.required.replace(":attribute", t.id_nin_personne)
+            t.required.replace(":attribute", t.id_nin_personne)
           );
 
           setNinExistsMessage("");
@@ -400,8 +400,8 @@ const Step1 = ({
     const baseName = name.slice(0, name.lastIndexOf('.'));
     return `${baseName.slice(0, maxLength - 10 - extension.length)}...${baseName.slice(-5)}.${extension}`;
   };
-  
-// Gestion du changement de fichier pour carte_nationale
+
+  // Gestion du changement de fichier pour carte_nationale
   const handleCarteNationaleChange = (e) => {
     const file = e.target.files[0];
     const maxSize = 2 * 1024 * 1024; // 2 Mo en octets
@@ -844,9 +844,9 @@ const Step1 = ({
 
       console.log(
         result.message ||
-          (interfaceLocale === "fr"
-            ? "Étape 1 soumise avec succès"
-            : "تم إرسال الخطوة 1 بنجاح")
+        (interfaceLocale === "fr"
+          ? "Étape 1 soumise avec succès"
+          : "تم إرسال الخطوة 1 بنجاح")
       );
 
       onNext(); // Passer à l'étape suivante uniquement si succès
@@ -871,9 +871,8 @@ const Step1 = ({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`space-y-6 w-full max-w-5xl bg-white shadow-md rounded-lg p-8 ${
-        interfaceLocale === "ar" ? "text-right" : ""
-      }`}
+      className={`space-y-6 w-full max-w-5xl bg-white shadow-md rounded-lg p-8 ${interfaceLocale === "ar" ? "text-right" : ""
+        }`}
     >
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
@@ -929,9 +928,8 @@ const Step1 = ({
               e.preventDefault();
             }
           }}
-          className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${
-            interfaceLocale === "ar" ? "text-right" : ""
-          }`}
+          className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
+            }`}
           placeholder={t.id_nin_personne}
           disabled={isNinDisabled}
           maxLength="18"
@@ -1285,13 +1283,11 @@ const Step1 = ({
             {getLabel("num_tlf_personne", t.num_tlf_personne)}
           </label>
 
-          <div className="flex items-center">
+          <div className={`flex items-center ${interfaceLocale === "ar" ? "flex-row-reverse" : "flex-row"}`} dir={interfaceLocale === "ar" ? "rtl" : "ltr"}>
             <div className="relative">
               <button
                 type="button"
-                className={`shrink-0 z-10 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center text-gray-900 bg-gray-100 border border-gray-300 rounded-s-lg hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 ${
-                  interfaceLocale === "ar" ? "rounded-e-lg rounded-s-none" : ""
-                }`}
+                className="shrink-0 z-10 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center text-gray-900 bg-gray-100 border border-gray-300 hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 rounded-l-lg border-r-0"
                 disabled
               >
                 <svg
@@ -1300,14 +1296,11 @@ const Step1 = ({
                   className="h-4 w-6"
                 >
                   <rect width="450" height="600" fill="#006233" />
-
                   <rect x="450" width="450" height="600" fill="#FFFFFF" />
-
                   <path
                     fill="#D21034"
                     d="M 510 300 A 150 150 0 1 1 510 299 A 90 90 0 1 0 510 301 Z"
                   />
-
                   <polygon
                     fill="#D21034"
                     points="570,300 542,312 550,340 525,322 500,340 508,312 480,300 508,288 500,260 525,278 550,260 542,288"
@@ -1316,7 +1309,6 @@ const Step1 = ({
                 &nbsp;
               </button>
             </div>
-
             <div className="relative w-full">
               <input
                 type="text"
@@ -1326,26 +1318,15 @@ const Step1 = ({
                 onBlur={handlePhoneBlur}
                 onKeyPress={(e) => {
                   const charCode = e.charCode;
-
                   if (charCode < 48 || charCode > 57) {
                     e.preventDefault();
                   }
                 }}
-                //className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right"
-
-                className={`block p-2.5 w-full text-sm text-gray-900 bg-white border border-gray-300 focus:ring-blue-500 focus:border-blue-500 ${
-                  interfaceLocale === "ar"
-                    ? "text-right rounded-s-lg border-e-0"
-                    : "rounded-e-lg border-s-0"
-                }`}
-                placeholder={
-                  interfaceLocale === "fr" ? "0123456789" : "0123456789"
-                }
+                className={`block p-2.5 w-full text-sm text-gray-900 bg-white border border-gray-300 focus:ring-blue-500 focus:border-blue-500 ${interfaceLocale === "ar" ? "text-right rounded-r-lg border-l-0" : "rounded-r-lg border-l-0"}`}
+                placeholder={interfaceLocale === "fr" ? "0123456789" : "0123456789"}
                 required
                 pattern="[0-9]{10}"
                 maxLength="10"
-
-                //title={t.phone_invalid || "Le numéro de téléphone doit contenir 10 chiffres."}
               />
             </div>
           </div>
@@ -1417,15 +1398,18 @@ const Step1 = ({
                 {interfaceLocale === "fr"
                   ? "Fichier existant :"
                   : "الملف الموجود :"}
-                {
+                {interfaceLocale === "fr"
+                  ? data.fichiers.find((f) => f.type === "carte_nationale").nom_fichier_fr
+                  : data.fichiers.find((f) => f.type === "carte_nationale").nom_fichier_ar
+                }{" "}
+                {/* {
                   data.fichiers.find((f) => f.type === "carte_nationale")
                     .nom_fichier_fr
-                }{" "}
+                }{" "} */}
                 <a
-                  href={`http://localhost:8000/storage/${
-                    data.fichiers.find((f) => f.type === "carte_nationale")
-                      .file_path
-                  }`}
+                  href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === "carte_nationale")
+                    .file_path
+                    }`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 hover:underline"
@@ -1437,9 +1421,8 @@ const Step1 = ({
           )}
 
         <label
-          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${
-            interfaceLocale === "ar" ? "text-right" : ""
-          }`}
+          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
+            }`}
         >
           <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
             {interfaceLocale === "fr"
@@ -1462,9 +1445,8 @@ const Step1 = ({
 
         {selectedCarteNationaleName && (
           <p
-            className={`text-sm text-gray-600 mt-2 ${
-              interfaceLocale === "ar" ? "text-right" : ""
-            }`}
+            className={`text-sm text-gray-600 mt-2 ${interfaceLocale === "ar" ? "text-right" : ""
+              }`}
           >
             {interfaceLocale === "fr"
               ? "Fichier sélectionné :"
@@ -1492,11 +1474,14 @@ const Step1 = ({
               {interfaceLocale === "fr"
                 ? "Fichier existant :"
                 : "الملف الموجود :"}
-              {data.fichiers.find((f) => f.type === "photo").nom_fichier_fr}{" "}
+              {interfaceLocale === "fr"
+                ? data.fichiers.find((f) => f.type === "photo").nom_fichier_fr
+                : data.fichiers.find((f) => f.type === "photo").nom_fichier_ar
+              }{" "}
+              {/* {data.fichiers.find((f) => f.type === "photo").nom_fichier_fr}{" "} */}
               <a
-                href={`http://localhost:8000/storage/${
-                  data.fichiers.find((f) => f.type === "photo").file_path
-                }`}
+                href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === "photo").file_path
+                  }`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline"
@@ -1508,9 +1493,8 @@ const Step1 = ({
         )}
 
         <label
-          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${
-            interfaceLocale === "ar" ? "text-right" : ""
-          }`}
+          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
+            }`}
         >
           <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
             {interfaceLocale === "fr"
@@ -1532,9 +1516,8 @@ const Step1 = ({
 
         {selectedPhotoName && (
           <p
-            className={`text-sm text-gray-600 mt-2 ${
-              interfaceLocale === "ar" ? "text-right" : ""
-            }`}
+            className={`text-sm text-gray-600 mt-2 ${interfaceLocale === "ar" ? "text-right" : ""
+              }`}
           >
             {interfaceLocale === "fr"
               ? "Fichier sélectionné :"

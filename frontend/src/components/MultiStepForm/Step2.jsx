@@ -16,6 +16,9 @@ export default function Step2({
     useState("");
   const [isProfessionalCardDisabled, setIsProfessionalCardDisabled] =
     useState(false);
+  const [attestationNumberError, setAttestationNumberError] = useState("");
+  const [attestationNumberExistsMessage, setAttestationNumberExistsMessage] = useState("");
+  const [isAttestationNumberDisabled, setIsAttestationNumberDisabled] = useState(false);
   const [formErrors, setFormErrors] = useState({});
   const debounceTimer = useRef(null);
   const [selectedFileName, setSelectedFileName] = useState("");
@@ -306,6 +309,95 @@ export default function Step2({
     [data.userId, onChange, setIsProfessionalCardValidated, interfaceLocale, t]
   );
 
+  // Validation du numéro d'attestation avec gestion des états
+  const validateAttestationNumber = useCallback(
+    async (value) => {
+      console.log("🔍 [validateAttestationNumber] Début de la validation pour num_attes :", value);
+      if (!value) {
+        console.log("🚫 [validateAttestationNumber] num_attes vide");
+        setAttestationNumberError(t.required.replace(":attribute", t.num_attes));
+        setAttestationNumberExistsMessage("");
+        return false;
+      }
+
+      try {
+        console.log("🔍 [validateAttestationNumber] Vérification du numéro d'attestation:", {
+          num_attes: value,
+          userId: data.userId,
+          interfaceLocale,
+        });
+        const response = await fetch(
+          `http://localhost:8000/check-attestation-number?num_attes=${value}&userId=${data.userId || ""}&locale=${interfaceLocale}`,
+          { headers: { Accept: "application/json" } }
+        );
+        const result = await response.json();
+        console.log("📥 [validateAttestationNumber] Réponse de checkAttestationNumber:", result);
+
+        if (response.ok) {
+          if (result.exists && result.error) {
+            console.log("🚫 [validateAttestationNumber] Numéro d'attestation déjà utilisé par un autre utilisateur");
+            setAttestationNumberError(result.error || t.attestation_number_exists);
+            setAttestationNumberExistsMessage("");
+            setIsAttestationNumberDisabled(false);
+            return false;
+          } else if (result.exists) {
+            console.log("✅ [validateAttestationNumber] Numéro d'attestation trouvé pour l'utilisateur actuel");
+            setAttestationNumberExistsMessage(t.attestation_number_found);
+            setAttestationNumberError("");
+            setIsAttestationNumberDisabled(true);
+            // Pas de mise à jour des données ici, car checkProfessionalCard s'en charge
+            return true;
+          } else {
+            console.log("🔎 [validateAttestationNumber] Nouveau numéro d'attestation détecté");
+            setAttestationNumberError("");
+            setAttestationNumberExistsMessage(t.attestation_number_not_found);
+            setIsAttestationNumberDisabled(false);
+            // Réinitialiser uniquement num_attes, sans affecter les autres champs
+            onChange({
+              target: {
+                name: "num_attes",
+                value: value,
+              },
+            });
+            return true;
+          }
+        } else {
+          console.log("🚫 [validateAttestationNumber] Erreur serveur lors de la vérification", { message: result.message });
+          setAttestationNumberError(result.message || t.attestation_number_exists);
+          setAttestationNumberExistsMessage("");
+          setIsAttestationNumberDisabled(false);
+          return false;
+        }
+      } catch (error) {
+        console.error("❌ [validateAttestationNumber] Erreur lors de la vérification du numéro d'attestation:", error);
+        setAttestationNumberError(t.error_check_attestation_number || "Erreur lors de la vérification du numéro d'attestation.");
+        setAttestationNumberExistsMessage("");
+        setIsAttestationNumberDisabled(false);
+        return false;
+      }
+    },
+    [data.userId, onChange, interfaceLocale, t]
+  );
+
+  // Gestion du changement avec debounce pour num_attes
+  const handleAttestationNumberChange = useCallback(
+    (e) => {
+      const { value } = e.target;
+      console.log("🔄 [handleAttestationNumberChange] Changement détecté pour num_attes :", value);
+      if (value === data.num_attes) return;
+      onChange(e);
+
+      if (debounceTimer.current) {
+        clearTimeout(debounceTimer.current);
+      }
+
+      debounceTimer.current = setTimeout(async () => {
+        await validateAttestationNumber(value);
+      }, 500);
+    },
+    [data.num_attes, onChange, validateAttestationNumber]
+  );
+
   const handleProfessionalCardChange = useCallback(
     (e) => {
       const { value } = e.target;
@@ -424,7 +516,7 @@ export default function Step2({
     }
   };
 
-// Fonction utilitaire pour tronquer les noms de fichiers longs (optionnel pour l'affichage)
+  // Fonction utilitaire pour tronquer les noms de fichiers longs (optionnel pour l'affichage)
   const truncateFileName = (name, maxLength = 50) => {
     if (name.length <= maxLength) return name;
     const extension = name.split('.').pop();
@@ -815,26 +907,18 @@ export default function Step2({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(
-      "📤 [handleSubmit] Soumission de Step2 déclenchée avec data :",
-      { data }
-    );
-    const professionalCardValid = await validateProfessionalCard(
-      data.id_professional_card
-    );
-    if (!professionalCardValid) {
-      console.error("❌ [handleSubmit] Carte professionnelle invalide.");
+    console.log("📤 [handleSubmit] Soumission de Step2 déclenchée avec data :", { data });
+    const professionalCardValid = await validateProfessionalCard(data.id_professional_card);
+    const attestationNumberValid = await validateAttestationNumber(data.num_attes);
+    if (!professionalCardValid || !attestationNumberValid) {
+      console.error("❌ [handleSubmit] Carte professionnelle ou numéro d'attestation invalide.");
       return;
     }
     if (!validateFormErrors()) {
-      console.error(
-        "❌ [handleSubmit] Formulaire incomplet, vérifiez les champs."
-      );
+      console.error("❌ [handleSubmit] Formulaire incomplet, vérifiez les champs.");
       return;
     }
-    console.log(
-      "✅ [handleSubmit] Formulaire valide, passage à l'étape suivante."
-    );
+    console.log("✅ [handleSubmit] Formulaire valide, passage à l'étape suivante.");
     onNext();
   };
 
@@ -857,6 +941,16 @@ export default function Step2({
       {professionalCardExistsMessage && (
         <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative">
           {professionalCardExistsMessage}
+        </div>
+      )}
+      {attestationNumberError && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          {attestationNumberError}
+        </div>
+      )}
+      {attestationNumberExistsMessage && (
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative">
+          {attestationNumberExistsMessage}
         </div>
       )}
       {/* {Object.keys(formErrors).length > 0 && (
@@ -902,10 +996,10 @@ export default function Step2({
           <input
             name="num_attes"
             value={data.num_attes || ""}
-            onChange={onChange}
+            onChange={handleAttestationNumberChange}
             placeholder={t.num_attes}
-            className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-              }`}
+            className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""}`}
+            disabled={isAttestationNumberDisabled}
             required
           />
           {formErrors.num_attes && (
@@ -1323,12 +1417,11 @@ export default function Step2({
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("tel", t.tel)}
           </label>
-          <div className="flex items-center">
+          <div className={`flex items-center ${interfaceLocale === "ar" ? "flex-row-reverse" : "flex-row"}`} dir={interfaceLocale === "ar" ? "rtl" : "ltr"}>
             <div className="relative">
               <button
                 type="button"
-                className={`shrink-0 z-10 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center text-gray-900 bg-gray-100 border border-gray-300 rounded-s-lg hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 ${interfaceLocale === "ar" ? "rounded-e-lg rounded-s-none" : ""
-                  }`}
+                className="shrink-0 z-10 inline-flex items-center py-2.5 px-4 text-sm font-medium text-center text-gray-900 bg-gray-100 border border-gray-300 hover:bg-gray-200 focus:ring-4 focus:outline-none focus:ring-gray-100 rounded-l-lg border-r-0"
                 disabled
               >
                 <svg
@@ -1363,13 +1456,8 @@ export default function Step2({
                     e.preventDefault();
                   }
                 }}
-                className={`block p-2.5 w-full text-sm text-gray-900 bg-white border border-gray-300 focus:ring-blue-500 focus:border-blue-500 ${interfaceLocale === "ar"
-                  ? "text-right rounded-s-lg border-e-0"
-                  : "rounded-e-lg border-s-0"
-                  }`}
-                placeholder={
-                  interfaceLocale === "fr" ? "0123456789" : "0123456789"
-                }
+                className={`block p-2.5 w-full text-sm text-gray-900 bg-white border border-gray-300 focus:ring-blue-500 focus:border-blue-500 ${interfaceLocale === "ar" ? "text-right rounded-r-lg border-l-0" : "rounded-r-lg border-l-0"}`}
+                placeholder={interfaceLocale === "fr" ? "0123456789" : "0123456789"}
                 pattern="[0-9]{10}"
                 maxLength="10"
               />
@@ -1394,9 +1482,9 @@ export default function Step2({
                 {interfaceLocale === "fr"
                   ? "Fichier existant :"
                   : "الملف الموجود :"}
-                {
-                  data.fichiers.find((f) => f.type === "attestation_travail")
-                    .nom_fichier_fr
+                {interfaceLocale === "fr"
+                  ? data.fichiers.find((f) => f.type === "attestation_travail").nom_fichier_fr
+                  : data.fichiers.find((f) => f.type === "attestation_travail").nom_fichier_ar
                 }{" "}
                 <a
                   href={`http://localhost:8000/storage/${data.fichiers.find((f) => f.type === "attestation_travail")
@@ -1463,9 +1551,9 @@ export default function Step2({
                 {interfaceLocale === "fr"
                   ? "Fichier existant :"
                   : "الملف الموجود :"}
-                {
-                  data.fichiers.find((f) => f.type === "carte_professionnelle")
-                    .nom_fichier_fr
+                {interfaceLocale === "fr"
+                  ? data.fichiers.find((f) => f.type === "carte_professionnelle").nom_fichier_fr
+                  : data.fichiers.find((f) => f.type === "carte_professionnelle").nom_fichier_ar
                 }{" "}
                 <a
                   href={`http://localhost:8000/storage/${data.fichiers.find(

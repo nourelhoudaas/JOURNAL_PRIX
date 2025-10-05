@@ -93,7 +93,7 @@ Route::get('/wilayas', function () {
     return response()->json($wilayas);
 });
 // ✅ Vérification du numéro d'attestation de travail
-Route::get('/check-num-attes', [SoumissionController::class, 'checkNumAttes'])->middleware('throttle:60,1');
+Route::get('/check-attestation-number', [SoumissionController::class, 'checkAttestationNumber'])->middleware('throttle:60,1');
 
 /*Route::get('/step3', function () {
     $secteurs = SecteurTravail::all()->map(function ($secteur) {
