@@ -179,8 +179,7 @@ export default function Step2({
           { id_professional_card: value, userId: data.userId, interfaceLocale }
         );
         const response = await fetch(
-          `http://localhost:8000/check-professional-card?id_professional_card=${value}&userId=${data.userId || ""
-          }&locale=${interfaceLocale}`,
+          `http://localhost:8000/check-professional-card?id_professional_card=${value}&userId=${data.userId || ""}&locale=${interfaceLocale}`,
           { headers: { Accept: "application/json" } }
         );
         const result = await response.json();
@@ -216,7 +215,13 @@ export default function Step2({
               }
             );
 
-            setProfessionalCardExistsMessage(t.professional_card_found);
+            setProfessionalCardExistsMessage(
+              result.message === t.professional_card_exists
+                ? interfaceLocale === "fr"
+                  ? "Cette carte professionnelle existe déjà et appartient à un autre utilisateur."
+                  : "هذه البطاقة المهنية موجودة مسبقًا وتنتمي إلى مستخدم آخر."
+                : t.professional_card_found
+            );
             setIsProfessionalCardDisabled(true);
             setProfessionalCardError("");
             setIsProfessionalCardValidated(true);
@@ -232,48 +237,11 @@ export default function Step2({
                 },
               },
             });
-
-            if (!categorieValue && result.data.secteur_travail === "Public") {
-              console.log(
-                "🚫 [validateProfessionalCard] Catégorie non définie pour secteur public"
-              );
-              setProfessionalCardError(t.invalid_category);
-              setIsProfessionalCardDisabled(false);
-              setIsProfessionalCardValidated(false);
-            }
-
-            if (
-              !typeMediaValue &&
-              result.data.secteur_travail === "Public" &&
-              categorieValue === "Média audio"
-            ) {
-              console.log(
-                "🚫 [validateProfessionalCard] Type média non défini pour Média audio"
-              );
-              setProfessionalCardError(t.invalid_media_type);
-              setIsProfessionalCardDisabled(false);
-              setIsProfessionalCardValidated(false);
-            }
-
-            console.log("✅ [validateProfessionalCard] Validation réussie");
             return true;
-          } else if (result.exists) {
-            console.log(
-              "🚫 [validateProfessionalCard] Carte professionnelle déjà utilisée par un autre utilisateur"
-            );
-            setProfessionalCardError(
-              result.error || t.professional_card_exists
-            );
-            setProfessionalCardExistsMessage("");
-            setIsProfessionalCardDisabled(false);
-            setIsProfessionalCardValidated(false);
-            return false;
           } else {
-            console.log(
-              "🔎 [validateProfessionalCard] Nouvelle carte professionnelle détectée"
-            );
-            setProfessionalCardError("");
+            setProfessionalCardExistsMessage(t.professional_card_not_found);
             setIsProfessionalCardDisabled(false);
+            setProfessionalCardError("");
             setIsProfessionalCardValidated(false);
             onChange({
               target: {
@@ -304,29 +272,18 @@ export default function Step2({
             return true;
           }
         } else {
-          console.log(
-            "🚫 [validateProfessionalCard] Erreur serveur lors de la vérification",
-            { message: result.message }
-          );
-          setProfessionalCardError(
-            result.message || t.professional_card_exists
-          );
+          setProfessionalCardError(result.message || t.professional_card_invalid);
           setProfessionalCardExistsMessage("");
-          setIsProfessionalCardValidated(false);
           return false;
         }
       } catch (error) {
-        console.error(
-          "❌ [validateProfessionalCard] Erreur lors de la vérification de la carte professionnelle:",
-          error
-        );
-        setProfessionalCardError(t.error_check_professional_card);
+        console.error("Erreur lors de la validation de la carte professionnelle :", error);
+        setProfessionalCardError(t.professional_card_invalid);
         setProfessionalCardExistsMessage("");
-        setIsProfessionalCardValidated(false);
         return false;
       }
     },
-    [data.userId, onChange, setIsProfessionalCardValidated, interfaceLocale, t]
+    [t, interfaceLocale, data.userId, onChange]
   );
 
   // Validation du numéro d'attestation avec gestion des états
@@ -931,6 +888,22 @@ export default function Step2({
     );
   }, [data, isFormComplete]);
 
+  // Supprimer un fichier existant (attestation_travail ou carte_professionnelle)
+  const handleRemoveExistingFile = (fileType) => {
+    const updatedFichiers = data.fichiers.filter((f) => f.type !== fileType);
+    onChange({
+      target: {
+        name: "batch",
+        value: {
+          ...data,
+          fichiers: updatedFichiers,
+          [fileType]: null, // Réinitialiser le champ correspondant
+        },
+      },
+    });
+  };
+
+  // Soumettre le formulaire
   const handleSubmit = async (e) => {
     e.preventDefault();
     console.log("📤 [handleSubmit] Soumission de Step2 déclenchée avec data :", { data });
@@ -989,6 +962,8 @@ export default function Step2({
         </div>
       )} */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        {/* id_professional_card */}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("id_professional_card", t.id_professional_card)}
@@ -1003,8 +978,10 @@ export default function Step2({
                 e.preventDefault();
               }
             }}
-            className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-              }`}
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.id_professional_card && data.id_professional_card.trim() !== "" && !professionalCardError
+              ? "border-gray-300"
+              : "border-red-500"
+              } ${interfaceLocale === "ar" ? "text-left" : ""}`}
             placeholder={t.id_professional_card}
             disabled={isProfessionalCardDisabled}
             required
@@ -1015,6 +992,7 @@ export default function Step2({
             </p>
           )}
         </div>
+        {/* num_attes */}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("num_attes", t.num_attes)}
@@ -1024,7 +1002,10 @@ export default function Step2({
             value={data.num_attes || ""}
             onChange={handleAttestationNumberChange}
             placeholder={t.num_attes}
-            className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""}`}
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.num_attes && data.num_attes.trim() !== "" && !attestationNumberError
+              ? "border-gray-300"
+              : "border-red-500"
+              } ${interfaceLocale === "ar" ? "text-left" : ""}`}
             disabled={isAttestationNumberDisabled}
             required
           />
@@ -1032,6 +1013,8 @@ export default function Step2({
             <p className="text-red-500 text-sm">{formErrors.num_attes}</p>
           )}
         </div>
+
+        {/* fonction_fr */}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("fonction_fr", t.fonction_fr)}
@@ -1041,7 +1024,10 @@ export default function Step2({
             value={data.fonction_fr || ""}
             onChange={onChange}
             placeholder={t.fonction_fr}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.fonction_fr && data.fonction_fr.trim() !== ""
+              ? "border-gray-300"
+              : "border-red-500"
+              } ${interfaceLocale === "ar" ? "text-left" : ""}`}
             required
           />
           {formErrors.fonction_fr && (
@@ -1057,7 +1043,10 @@ export default function Step2({
             value={data.fonction_ar || ""}
             onChange={onChange}
             placeholder={t.fonction_ar}
-            className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right`}
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.fonction_ar && data.fonction_ar.trim() !== ""
+              ? "border-gray-300"
+              : "border-red-500"
+              } ${interfaceLocale === "fr" ? "text-right" : ""}`}
             required
           />
           {formErrors.fonction_ar && (
@@ -1065,6 +1054,8 @@ export default function Step2({
           )}
         </div>
       </div>
+
+      {/* secteur_travail */}
       <div>
         <label className="block mb-2 text-sm font-medium text-gray-900">
           {getLabel("secteur_travail", t.secteur_travail)}
@@ -1073,8 +1064,10 @@ export default function Step2({
           name="secteur_travail"
           value={data.secteur_travail || ""}
           onChange={handleSecteurChange}
-          className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-            }`}
+          className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.secteur_travail && data.secteur_travail.trim() !== ""
+            ? "border-gray-300"
+            : "border-red-500"
+            } ${interfaceLocale === "ar" ? "text-right" : ""}`}
           required
         >
           <option value="">{t.secteur_travail}</option>
@@ -1088,6 +1081,8 @@ export default function Step2({
           <p className="text-red-500 text-sm">{formErrors.secteur_travail}</p>
         )}
       </div>
+
+      {/* categorie (conditionnel) */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {data.secteur_travail === "Public" && (
           <>
@@ -1099,8 +1094,10 @@ export default function Step2({
                 name="categorie"
                 value={data.categorie || ""}
                 onChange={handleCategorieChange}
-                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  }`}
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.categorie && data.categorie.trim() !== ""
+                  ? "border-gray-300"
+                  : "border-red-500"
+                  } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                 required
               >
                 <option value="">{t.categorie}</option>
@@ -1116,6 +1113,8 @@ export default function Step2({
                 <p className="text-red-500 text-sm">{formErrors.categorie}</p>
               )}
             </div>
+
+            {/* type_media */}
             {data.categorie === "Média audio" && (
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-900">
@@ -1125,8 +1124,10 @@ export default function Step2({
                   name="type_media"
                   value={data.type_media || ""}
                   onChange={handleTypeMediaChange}
-                  className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                    }`}
+                  className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.type_media && data.type_media.trim() !== ""
+                    ? "border-gray-300"
+                    : "border-red-500"
+                    } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                   required
                 >
                   <option value="">{t.type_media}</option>
@@ -1147,8 +1148,12 @@ export default function Step2({
                 )}
               </div>
             )}
+
+            {/* Media audio (conditionnel) */}
             {data.categorie === "Média audio" && data.type_media === "TV" && (
               <>
+
+                {/* TV */}
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-900">
                     {getLabel("tv", t.tv)}
@@ -1157,8 +1162,10 @@ export default function Step2({
                     name="tv"
                     value={data.tv || ""}
                     onChange={onChange}
-                    className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                      }`}
+                    className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.tv && data.tv.trim() !== ""
+                      ? "border-gray-300"
+                      : "border-red-500"
+                      } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                     required
                   >
                     <option value="">{t.tv}</option>
@@ -1174,6 +1181,8 @@ export default function Step2({
                     <p className="text-red-500 text-sm">{formErrors.tv}</p>
                   )}
                 </div>
+
+                {/* Spécialité */}
                 <div>
                   <label className="block mb-2 text-sm font-medium text-gray-900">
                     {getLabel("specialite", t.specialite)}
@@ -1182,8 +1191,10 @@ export default function Step2({
                     name="specialite"
                     value={data.specialite || ""}
                     onChange={onChange}
-                    className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                      }`}
+                    className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.specialite && data.specialite.trim() !== ""
+                      ? "border-gray-300"
+                      : "border-red-500"
+                      } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                     required={
                       data.secteur_travail === "Privé" ||
                       (data.secteur_travail === "Public" &&
@@ -1206,9 +1217,13 @@ export default function Step2({
                 </div>
               </>
             )}
+
+            {/* Media audio (conditionnel) */}
             {data.categorie === "Média audio" &&
               data.type_media === "Radio" && (
                 <>
+
+                  {/* Radio */}
                   <div>
                     <label className="block mb-2 text-sm font-medium text-gray-900">
                       {getLabel("radio", t.radio)}
@@ -1217,8 +1232,10 @@ export default function Step2({
                       name="radio"
                       value={data.radio || ""}
                       onChange={onChange}
-                      className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                        }`}
+                      className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.radio && data.radio.trim() !== ""
+                        ? "border-gray-300"
+                        : "border-red-500"
+                        } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                       required
                     >
                       <option value="">{t.radio}</option>
@@ -1234,6 +1251,8 @@ export default function Step2({
                       <p className="text-red-500 text-sm">{formErrors.radio}</p>
                     )}
                   </div>
+
+                  {/* Spécialité */}
                   <div>
                     <label className="block mb-2 text-sm font-medium text-gray-900">
                       {getLabel("specialite", t.specialite)}
@@ -1242,8 +1261,10 @@ export default function Step2({
                       name="specialite"
                       value={data.specialite || ""}
                       onChange={onChange}
-                      className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                        }`}
+                      className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.specialite && data.specialite.trim() !== ""
+                        ? "border-gray-300"
+                        : "border-red-500"
+                        } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                       required={
                         data.secteur_travail === "Privé" ||
                         (data.secteur_travail === "Public" &&
@@ -1266,6 +1287,8 @@ export default function Step2({
                   </div>
                 </>
               )}
+
+            {/* media ecrit et electro (conditionnel) */}
             {data.categorie === "Média écrit et électronique" && (
               <div>
                 <label className="block mb-2 text-sm font-medium text-gray-900">
@@ -1275,8 +1298,10 @@ export default function Step2({
                   name="media"
                   value={data.media || ""}
                   onChange={handleMediaChange}
-                  className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                    }`}
+                  className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.media && data.media.trim() !== ""
+                    ? "border-gray-300"
+                    : "border-red-500"
+                    } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                   required
                 >
                   <option value="">{t.media}</option>
@@ -1299,8 +1324,11 @@ export default function Step2({
             )}
           </>
         )}
+
+        {/* privé (conditionnel) */}
         {data.secteur_travail === "Privé" && (
           <>
+            {/* langue  */}
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-900">
                 {getLabel("langue", t.langue)}
@@ -1309,8 +1337,10 @@ export default function Step2({
                 name="langue"
                 value={data.langue || ""}
                 onChange={onChange}
-                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  }`}
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.langue && data.langue.trim() !== ""
+                  ? "border-gray-300"
+                  : "border-red-500"
+                  } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                 required
               >
                 <option value="">{t.langue}</option>
@@ -1324,6 +1354,8 @@ export default function Step2({
                 <p className="text-red-500 text-sm">{formErrors.langue}</p>
               )}
             </div>
+
+            {/* Specialité */}
             <div>
               <label className="block mb-2 text-sm font-medium text-gray-900">
                 {getLabel("specialite", t.specialite)}
@@ -1332,8 +1364,11 @@ export default function Step2({
                 name="specialite"
                 value={data.specialite || ""}
                 onChange={onChange}
-                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  }`}
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 
+                  ${data.specialite && data.specialite.trim() !== ""
+                    ? "border-gray-300"
+                    : "border-red-500"
+                  } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                 required={
                   data.secteur_travail === "Privé" ||
                   (data.secteur_travail === "Public" &&
@@ -1355,6 +1390,8 @@ export default function Step2({
           </>
         )}
       </div>
+
+      {/* Specialité */}
       {data.categorie === "Média écrit et électronique" && (
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
@@ -1385,7 +1422,10 @@ export default function Step2({
           )}
         </div>
       )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+        {/* Nom etablissement FR*/}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("nom_etablissement", t.nom_etablissement)}
@@ -1395,7 +1435,10 @@ export default function Step2({
             value={data.nom_etablissement || ""}
             onChange={onChange}
             placeholder={t.nom_etablissement}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.nom_etablissement && data.nom_etablissement.trim() !== ""
+                ? "border-gray-300"
+                : "border-red-500"
+              } ${interfaceLocale === "ar" ? "text-left" : ""}`}
             required
           />
           {formErrors.nom_etablissement && (
@@ -1404,6 +1447,8 @@ export default function Step2({
             </p>
           )}
         </div>
+
+        {/* Nom etablissement AR */}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("nom_etablissement_ar", t.nom_etablissement_ar)}
@@ -1413,7 +1458,10 @@ export default function Step2({
             value={data.nom_etablissement_ar || ""}
             onChange={onChange}
             placeholder={t.nom_etablissement_ar}
-            className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right`}
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.nom_etablissement_ar && data.nom_etablissement_ar.trim() !== ""
+                ? "border-gray-300"
+                : "border-red-500"
+              } ${interfaceLocale === "fr" ? "text-right" : ""}`}
             required
           />
           {formErrors.nom_etablissement_ar && (
@@ -1422,6 +1470,8 @@ export default function Step2({
             </p>
           )}
         </div>
+
+        {/* Email */}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("email", t.email)}
@@ -1429,16 +1479,28 @@ export default function Step2({
           <input
             name="email"
             value={data.email || ""}
-            onChange={onChange}
+            onChange={(e) => {
+              onChange(e);
+              const error = validateEmail(e.target.value);
+              setFormErrors((prev) => ({
+                ...prev,
+                email: error,
+              }));
+            }}
             onBlur={handleEmailBlur}
             placeholder={t.email}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.email && validateEmail(data.email) === ""
+                ? "border-gray-300"
+                : "border-red-500"
+              } ${interfaceLocale === "ar" ? "text-left" : ""}`}
             required
           />
           {formErrors.email && (
             <p className="text-red-500 text-sm">{formErrors.email}</p>
           )}
         </div>
+
+        {/* telephone */}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("tel", t.tel)}
@@ -1482,7 +1544,7 @@ export default function Step2({
                     e.preventDefault();
                   }
                 }}
-                className={`block p-2.5 w-full text-sm text-gray-900 bg-white border border-gray-300 focus:ring-blue-500 focus:border-blue-500 ${interfaceLocale === "ar" ? "text-right rounded-r-lg border-l-0" : "rounded-r-lg border-l-0"}`}
+                className={`block p-2.5 w-full text-sm text-gray-900 bg-white border border-gray-300 focus:ring-blue-500 focus:border-blue-500 ${interfaceLocale === "ar" ? "text-left rounded-r-lg border-l-0" : "rounded-r-lg border-l-0"}`}
                 placeholder={interfaceLocale === "fr" ? "0123456789" : "0123456789"}
                 pattern="[0-9]{10}"
                 maxLength="10"
@@ -1494,6 +1556,7 @@ export default function Step2({
           )}
         </div>
       </div>
+
       {/* Section attestation_travail */}
       <div>
         <label
@@ -1517,13 +1580,22 @@ export default function Step2({
                   className="text-blue-600 hover:underline"
                 >
                   {interfaceLocale === "fr" ? "(Voir)" : "(عرض)"}
-                </a>
+                </a>{" "}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveExistingFile("attestation_travail")}
+                  className="text-red-600 hover:underline"
+                >
+                  {interfaceLocale === "fr" ? "(Supprimer)" : "(حذف)"}
+                </button>
               </p>
             </div>
           )}
         <label
-          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""}`}
-        >
+          className={`relative inline-block bg-gray-50 border text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${selectedAttestationTravail || data.fichiers.some((f) => f.type === "attestation_travail")
+              ? "border-gray-300"
+              : "border-red-500"
+            } ${interfaceLocale === "ar" ? "text-right" : ""}`}>
           <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
             {interfaceLocale === "fr" ? "Sélectionner un fichier" : "اختر ملفًا"}
           </span>
@@ -1590,13 +1662,22 @@ export default function Step2({
                   className="text-blue-600 hover:underline"
                 >
                   {interfaceLocale === "fr" ? "(Voir)" : "(عرض)"}
-                </a>
+                </a>{" "}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveExistingFile("carte_professionnelle")}
+                  className="text-red-600 hover:underline"
+                >
+                  {interfaceLocale === "fr" ? "(Supprimer)" : "(حذف)"}
+                </button>
               </p>
             </div>
           )}
         <label
-          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""}`}
-        >
+          className={`relative inline-block bg-gray-50 border text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${selectedCarteProfessionnelle || data.fichiers.some((f) => f.type === "carte_professionnelle")
+              ? "border-gray-300"
+              : "border-red-500"
+            } ${interfaceLocale === "ar" ? "text-right" : ""}`}>
           <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
             {interfaceLocale === "fr" ? "Sélectionner un fichier" : "اختر ملفًا"}
           </span>
@@ -1639,6 +1720,7 @@ export default function Step2({
           <p className="text-red-500 text-sm">{formErrors.carte_professionnelle}</p>
         )}
       </div>
+
       <div className="flex justify-between mt-6">
         <button
           type="button"

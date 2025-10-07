@@ -998,8 +998,9 @@ export default function Step3({
                 name="theme"
                 value={data.theme || ""}
                 onChange={onChange}
-                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  }`}
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 
+                  ${data.theme ? "border-gray-300" : "border-red-500"
+                  } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                 required
               >
                 <option value="">
@@ -1029,9 +1030,15 @@ export default function Step3({
                 name="categorie"
                 value={data.categorie || ""}
                 onChange={onChange}
-                className={`w-full p-2.5 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 ${interfaceLocale === "ar" ? "text-right" : ""}`}
-              >
-                <option value="">{t.select_category || (interfaceLocale === "fr" ? "Sélectionner une catégorie" : "اختر فئة")}</option>
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 
+                  ${data.categorie ? "border-gray-300" : "border-red-500"
+                  } ${interfaceLocale === "ar" ? "text-right" : ""}`}
+                required
+                >
+                <option value="">
+                  {t.select_category || (interfaceLocale === "fr" ? "Sélectionner une catégorie" : "اختر فئة")}
+                  </option>
+
                 {categories.map((cat) => (
                   <option key={cat.id_categorie} value={cat.id_categorie}>
                     {interfaceLocale === "fr" ? cat.nom_categorie_fr : cat.nom_categorie_ar}
@@ -1056,8 +1063,8 @@ export default function Step3({
                 name="titre_oeuvre_fr"
                 value={data.titre_oeuvre_fr || ""}
                 onChange={onChange}
-                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  }`}
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.titre_oeuvre_fr?.trim() ? "border-gray-300" : "border-red-500"
+                  } ${interfaceLocale === "ar" ? "text-left" : ""}`}
                 required
               />
 
@@ -1080,8 +1087,8 @@ export default function Step3({
                 name="titre_oeuvre_ar"
                 value={data.titre_oeuvre_ar || ""}
                 onChange={onChange}
-                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  }`}
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.titre_oeuvre_ar?.trim() ? "border-gray-300" : "border-red-500"
+                  } ${interfaceLocale === "fr" ? "text-right" : ""}`}
                 required
               />
 
@@ -1103,8 +1110,8 @@ export default function Step3({
                 name="descriptif_oeuvre_fr"
                 value={data.descriptif_oeuvre_fr || ""}
                 onChange={onChange}
-                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  }`}
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.descriptif_oeuvre_fr?.trim() ? "border-gray-300" : "border-red-500"
+                  } ${interfaceLocale === "ar" ? "text-left" : ""}`}
                 rows="4"
                 required
               />
@@ -1127,8 +1134,8 @@ export default function Step3({
                 name="descriptif_oeuvre_ar"
                 value={data.descriptif_oeuvre_ar || ""}
                 onChange={onChange}
-                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  }`}
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.descriptif_oeuvre_ar?.trim() ? "border-gray-300" : "border-red-500"
+                  } ${interfaceLocale === "fr" ? "text-right" : ""}`}
                 rows="4"
                 required
               />
@@ -1152,8 +1159,8 @@ export default function Step3({
                 name="date_publication"
                 value={data.date_publication || ""}
                 onChange={onChange}
-                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  }`}
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.date_publication ? "border-gray-300" : "border-red-500"
+                  } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                 required
               />
 
@@ -1178,8 +1185,10 @@ export default function Step3({
                   selectedFiles.length > 0 ||
                   !getCategoryConstraints().allowVideoUrl
                 }
-                className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  } ${selectedFiles.length > 0 ||
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${(data.video_url && validateYouTubeUrl(data.video_url) && selectedFiles.length === 0) || selectedFiles.length > 0
+                    ? "border-gray-300"
+                    : "border-red-500"
+                  } ${interfaceLocale === "ar" ? "text-right" : ""} ${selectedFiles.length > 0 ||
                     !getCategoryConstraints().allowVideoUrl
                     ? "opacity-50 cursor-not-allowed"
                     : ""
@@ -1232,8 +1241,9 @@ export default function Step3({
 
                       setIsModalOpen(true);
                     }}
-                    className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : "text-left"
-                      }`}
+                    className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${
+                      collaborators.length === teamSize - 1 ? "border-gray-300" : "border-red-500"
+                    } ${interfaceLocale === "ar" ? "text-right" : "text-left"}`}
                     disabled={eligibleUsers.length === 0}
                   >
                     {interfaceLocale === "fr"
@@ -1411,8 +1421,9 @@ export default function Step3({
               </label>
 
               <label
-                className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  }`}
+                className={`relative inline-block bg-gray-50 border text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${
+                  certificateFile ? "border-gray-300" : "border-red-500"
+                } ${interfaceLocale === "ar" ? "text-right" : ""}`}
               >
                 <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
                   {interfaceLocale === "fr"
@@ -1474,8 +1485,10 @@ export default function Step3({
               </label>
 
               <label
-                className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-                  } ${data.video_url ? "opacity-50 cursor-not-allowed" : ""}`}
+                
+                  className={`relative inline-block bg-gray-50 border text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${
+                  (selectedFiles.length > 0 || data.video_url) ? "border-gray-300" : "border-red-500"
+                } ${interfaceLocale === "ar" ? "text-right" : ""} ${data.video_url ? "opacity-50 cursor-not-allowed" : ""}`}
               >
                 <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
                   {interfaceLocale === "fr"

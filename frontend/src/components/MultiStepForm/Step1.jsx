@@ -27,7 +27,7 @@ const Step1 = ({
 
   const [formErrors, setFormErrors] = useState({});
 
- const [selectedCarteNationale, setSelectedCarteNationale] = useState(null);
+  const [selectedCarteNationale, setSelectedCarteNationale] = useState(null);
   const [selectedPhoto, setSelectedPhoto] = useState(null);
 
   //console.log('step1 - interfaceLocale:', interfaceLocale, 't:', t);
@@ -62,117 +62,39 @@ const Step1 = ({
     async (value) => {
       if (!value) {
         setNinError(t.required.replace(":attribute", t.id_nin_personne));
-
         setNinExistsMessage("");
-
         return false;
       }
 
-      if (value.length !== 18) {
+      if (value.length !== 18 || !/^[0-9]{18}$/.test(value)) {
         setNinError(t.nin_invalid);
-
         setNinExistsMessage("");
-
-        return false;
-      }
-
-      if (!/^[0-9]{18}$/.test(value)) {
-        setNinError(t.nin_invalid);
-
-        setNinExistsMessage("");
-
         return false;
       }
 
       try {
         const response = await fetch(
           `http://localhost:8000/check-nin?nin=${value}&locale=${interfaceLocale}`,
-
           {
             headers: { Accept: "application/json" },
-
-            credentials: "include", // Inclure les cookies pour l'authentification
+            credentials: "include",
           }
         );
 
         const result = await response.json();
-
-        console.log("Réponse API check-nin:", result); // Log pour débogage
+        console.log("Réponse API check-nin:", result);
 
         if (response.ok) {
           if (result.exists) {
-            // Si le NIN existe et appartient à un autre utilisateur
-
-            if (result.message === t.nin_belongs_to_another_user) {
-              setNinError(t.nin_belongs_to_another_user);
-
-              setNinExistsMessage("");
-
-              setIsNinDisabled(false);
-
-              // Réinitialiser les champs du formulaire pour éviter d'afficher les données d'un autre utilisateur
-
-              onChange({
-                target: {
-                  name: "batch",
-
-                  value: {
-                    id_nin_personne: value,
-
-                    nom_personne_fr: "",
-
-                    prenom_personne_fr: "",
-
-                    nom_personne_ar: "",
-
-                    prenom_personne_ar: "",
-
-                    date_naissance: "",
-
-                    lieu_naissance_fr: "",
-
-                    lieu_naissance_ar: "",
-
-                    nationalite_fr: "Algerienne",
-
-                    nationalite_ar: "جزائرية",
-
-                    num_tlf_personne: "",
-
-                    adresse_fr: "",
-
-                    adresse_ar: "",
-
-                    sexe_personne_fr: "",
-
-                    sexe_personne_ar: "",
-
-                    groupage: "",
-
-                    carte_nationale: null,
-
-                    photo: null,
-
-                    id_professional_card: "",
-
-                    fonction_fr: "",
-
-                    fonction_ar: "",
-
-                    fichiers: [],
-                  },
-                },
-              });
-
-              return false;
-            }
-
-            // Si le NIN existe et appartient à l'utilisateur actuel
-
+            // Si le NIN existe (peu importe l'utilisateur)
             setNinExistsMessage(
-              interfaceLocale === "fr"
-                ? "Ce numéro NIN existe déjà dans la base de données."
-                : "رقم الهوية الوطنية موجود مسبقًا في قاعدة البيانات."
+              result.message === t.nin_belongs_to_another_user
+                ? interfaceLocale === "fr"
+                  ? "Ce numéro NIN existe déjà et appartient à un autre utilisateur."
+                  : "رقم الهوية الوطنية موجود مسبقًا وينتمي إلى مستخدم آخر."
+                : interfaceLocale === "fr"
+                  ? "Ce numéro NIN existe déjà dans la base de données."
+                  : "رقم الهوية الوطنية موجود مسبقًا في قاعدة البيانات."
             );
 
             setIsNinDisabled(true);
@@ -181,48 +103,27 @@ const Step1 = ({
               onChange({
                 target: {
                   name: "batch",
-
                   value: {
                     id_nin_personne: result.data.id_nin_personne || "",
-
                     nom_personne_fr: result.data.nom_personne_fr || "",
-
                     prenom_personne_fr: result.data.prenom_personne_fr || "",
-
                     nom_personne_ar: result.data.nom_personne_ar || "",
-
                     prenom_personne_ar: result.data.prenom_personne_ar || "",
-
                     date_naissance:
                       formatDateForInput(result.data.date_naissance) || "",
-
                     lieu_naissance_fr: result.data.lieu_naissance_fr || "",
-
                     lieu_naissance_ar: result.data.lieu_naissance_ar || "",
-
                     nationalite_fr: result.data.nationalite_fr || "Algerienne",
-
                     nationalite_ar: result.data.nationalite_ar || "جزائرية",
-
                     num_tlf_personne: result.data.num_tlf_personne || "",
-
                     adresse_fr: result.data.adresse_fr || "",
-
                     adresse_ar: result.data.adresse_ar || "",
-
                     sexe_personne_fr: result.data.sexe_personne_fr || "",
-
                     sexe_personne_ar: result.data.sexe_personne_ar || "",
-
                     groupage: result.data.groupage || "",
-
-                    id_professional_card:
-                      result.data.id_professional_card || "",
-
+                    id_professional_card: result.data.id_professional_card || "",
                     fonction_fr: result.data.fonction_fr || "",
-
                     fonction_ar: result.data.fonction_ar || "",
-
                     fichiers: result.data.fichiers || [],
                   },
                 },
@@ -230,93 +131,56 @@ const Step1 = ({
             }
 
             setNinError("");
-
             return true;
           } else {
             // Si le NIN n'existe pas
-
             setNinExistsMessage("");
-
             setIsNinDisabled(false);
-
             onChange({
               target: {
                 name: "batch",
-
                 value: {
                   id_nin_personne: value,
-
                   nom_personne_fr: "",
-
                   prenom_personne_fr: "",
-
                   nom_personne_ar: "",
-
                   prenom_personne_ar: "",
-
                   date_naissance: "",
-
                   lieu_naissance_fr: "",
-
                   lieu_naissance_ar: "",
-
                   nationalite_fr: "Algerienne",
-
                   nationalite_ar: "جزائرية",
-
                   num_tlf_personne: "",
-
                   adresse_fr: "",
-
                   adresse_ar: "",
-
                   sexe_personne_fr: "",
-
                   sexe_personne_ar: "",
-
                   groupage: "",
-
                   carte_nationale: null,
-
                   photo: null,
-
                   id_professional_card: "",
-
                   fonction_fr: "",
-
                   fonction_ar: "",
-
                   fichiers: [],
                 },
               },
             });
-
             setNinError("");
-
             return true;
           }
         } else {
-          setNinError(
-            result.message ||
-            t.required.replace(":attribute", t.id_nin_personne)
-          );
-
+          setNinError(result.message || t.nin_invalid);
           setNinExistsMessage("");
-
           return false;
         }
       } catch (error) {
-        console.error("Erreur lors de la vérification du NIN :", error);
-
-        setNinError(t.required.replace(":attribute", t.id_nin_personne));
-
+        console.error("Erreur lors de la validation du NIN :", error);
+        setNinError(t.nin_invalid);
         setNinExistsMessage("");
-
         return false;
       }
     },
-
-    [onChange, formatDateForInput, t, interfaceLocale]
+    [t, interfaceLocale, onChange, formatDateForInput]
   );
 
   // Gérer le changement du NIN
@@ -396,6 +260,21 @@ const Step1 = ({
     return `${baseName.slice(0, maxLength - 10 - extension.length)}...${baseName.slice(-5)}.${extension}`;
   };
 
+  // Fonction pour supprimer un fichier existant
+  const handleRemoveExistingFile = (fileType) => {
+    const updatedFichiers = data.fichiers.filter((f) => f.type !== fileType);
+    onChange({
+      target: {
+        name: "batch",
+        value: {
+          ...data,
+          fichiers: updatedFichiers,
+          [fileType]: null, // Réinitialiser le champ correspondant
+        },
+      },
+    });
+  };
+
   // Fonction pour prévisualiser un fichier
   const handlePreviewFile = (file) => {
     if (file && file instanceof File) {
@@ -417,7 +296,7 @@ const Step1 = ({
     onChange({ target: { name: "photo", value: null } });
   };
 
- // Gestion du changement de fichier pour carte_nationale
+  // Gestion du changement de fichier pour carte_nationale
   const handleCarteNationaleChange = (e) => {
     const file = e.target.files[0];
     const maxSize = 2 * 1024 * 1024; // 2 Mo en octets
@@ -464,7 +343,7 @@ const Step1 = ({
     }
   };
 
-// Gestion du changement de fichier pour photo
+  // Gestion du changement de fichier pour photo
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     const maxSize = 2 * 1024 * 1024; // 2 Mo en octets
@@ -944,8 +823,10 @@ const Step1 = ({
               e.preventDefault();
             }
           }}
-          className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""
-            }`}
+          className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.id_nin_personne && data.id_nin_personne.trim() !== "" && !ninError
+            ? "border-gray-300"
+            : "border-red-500"
+            } ${interfaceLocale === "ar" ? "text-left" : ""}`}
           placeholder={t.id_nin_personne}
           disabled={isNinDisabled}
           maxLength="18"
@@ -955,40 +836,46 @@ const Step1 = ({
         />
       </div>
 
+      {/* nom FR */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("nom_personne_fr", t.nom_personne_fr)}
           </label>
-
           <input
             name="nom_personne_fr"
             value={data.nom_personne_fr || ""}
             onChange={onChange}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 
+              ${data.nom_personne_fr && data.nom_personne_fr.trim() !== ""
+                ? "border-gray-300"
+                : "border-red-500"
+              } ${interfaceLocale === "ar" ? "text-left" : ""}`}
             placeholder={t.nom_personne_fr}
             required
           />
-
           {formErrors.nom_personne_fr && (
             <p className="text-red-500 text-sm">{formErrors.nom_personne_fr}</p>
           )}
         </div>
 
+        {/* prenom FR */}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("prenom_personne_fr", t.prenom_personne_fr)}
           </label>
-
           <input
             name="prenom_personne_fr"
             value={data.prenom_personne_fr || ""}
             onChange={onChange}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 
+              ${data.prenom_personne_fr && data.prenom_personne_fr.trim() !== ""
+                ? "border-gray-300"
+                : "border-red-500"
+              } ${interfaceLocale === "ar" ? "text-left" : ""}`}
             placeholder={t.prenom_personne_fr}
             required
           />
-
           {formErrors.prenom_personne_fr && (
             <p className="text-red-500 text-sm">
               {formErrors.prenom_personne_fr}
@@ -996,20 +883,22 @@ const Step1 = ({
           )}
         </div>
 
+        {/* Nom et Prénom AR */}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("nom_personne_ar", t.nom_personne_ar)}
           </label>
-
           <input
             name="nom_personne_ar"
             value={data.nom_personne_ar || ""}
             onChange={onChange}
-            className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right`}
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.nom_personne_ar && data.nom_personne_ar.trim() !== ""
+              ? "border-gray-300"
+              : "border-red-500"
+              } ${interfaceLocale === "fr" ? "text-right" : ""}`}
             placeholder={t.nom_personne_ar}
             required
           />
-
           {formErrors.nom_personne_ar && (
             <p className="text-red-500 text-sm">{formErrors.nom_personne_ar}</p>
           )}
@@ -1019,16 +908,19 @@ const Step1 = ({
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("prenom_personne_ar", t.prenom_personne_ar)}
           </label>
-
           <input
             name="prenom_personne_ar"
             value={data.prenom_personne_ar || ""}
             onChange={onChange}
-            className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right`}
+            className={`bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full 
+              p-2.5  
+              ${data.prenom_personne_ar && data.prenom_personne_ar.trim() !== ""
+                ? "border-gray-300"
+                : "border-red-500"
+              } ${interfaceLocale === "fr" ? "text-right" : ""} `}
             placeholder={t.prenom_personne_ar}
             required
           />
-
           {formErrors.prenom_personne_ar && (
             <p className="text-red-500 text-sm">
               {formErrors.prenom_personne_ar}
@@ -1036,17 +928,20 @@ const Step1 = ({
           )}
         </div>
 
+        {/* Date de naissance */}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("date_naissance", t.date_naissance)}
           </label>
-
           <input
             type="date"
             name="date_naissance"
             value={data.date_naissance || ""}
             onChange={onChange}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.date_naissance && data.date_naissance.trim() !== ""
+              ? "border-gray-300"
+              : "border-red-500"
+              } ${interfaceLocale === "ar" ? "text-right" : ""}`}
             required
             max={new Date().toISOString().split("T")[0]}
           />
@@ -1068,7 +963,10 @@ const Step1 = ({
               name="lieu_naissance_fr"
               value={data.lieu_naissance_fr || ""}
               onChange={handleChange}
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+              className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.lieu_naissance_fr && data.lieu_naissance_fr.trim() !== ""
+                ? "border-gray-300"
+                : "border-red-500"
+                } ${interfaceLocale === "ar" ? "text-right" : ""}`}
               disabled={isLoadingWilayas}
               required
             >
@@ -1103,7 +1001,10 @@ const Step1 = ({
               name="lieu_naissance_ar"
               value={data.lieu_naissance_ar || ""}
               onChange={handleChange}
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right"
+              className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.lieu_naissance_ar && data.lieu_naissance_ar.trim() !== ""
+                ? "border-gray-300"
+                : "border-red-500"
+                } ${interfaceLocale === "ar" ? "text-right" : ""}`}
               disabled={isLoadingWilayas}
               required
             >
@@ -1141,7 +1042,10 @@ const Step1 = ({
             name="adresse_fr"
             value={data.adresse_fr || ""}
             onChange={onChange}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.adresse_fr && data.adresse_fr.trim() !== ""
+              ? "border-gray-300"
+              : "border-red-500"
+              } ${interfaceLocale === "ar" ? "text-left" : ""}`}
             placeholder={t.adresse_fr}
             required
           />
@@ -1160,7 +1064,10 @@ const Step1 = ({
             name="adresse_ar"
             value={data.adresse_ar || ""}
             onChange={onChange}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right"
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5  ${data.adresse_ar && data.adresse_ar.trim() !== ""
+              ? "border-gray-300"
+              : "border-red-500"
+              } ${interfaceLocale === "fr" ? "text-right" : ""}`}
             placeholder={t.adresse_ar}
             required
           />
@@ -1185,7 +1092,10 @@ const Step1 = ({
               value={"Algerienne"}
               disabled
               onChange={onChange}
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+              className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.nationalite_fr && data.nationalite_fr.trim() !== ""
+                ? "border-gray-300"
+                : "border-red-500"
+                } ${interfaceLocale === "ar" ? "text-right" : ""}`}
               placeholder={t.nationalite_fr}
               required
             />
@@ -1209,7 +1119,10 @@ const Step1 = ({
               value={"جزائرية"}
               disabled
               onChange={onChange}
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right"
+              className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.nationalite_ar && data.nationalite_ar.trim() !== ""
+                ? "border-gray-300"
+                : "border-red-500"
+                } ${interfaceLocale === "ar" ? "text-right" : ""}`}
               placeholder={t.nationalite_ar}
               required
             />
@@ -1236,7 +1149,10 @@ const Step1 = ({
               name="sexe_personne_fr"
               value={data.sexe_personne_fr || ""}
               onChange={handleChange}
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+              className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.sexe_personne_fr && data.sexe_personne_fr.trim() !== ""
+                ? "border-gray-300"
+                : "border-red-500"
+                } ${interfaceLocale === "ar" ? "text-right" : ""}`}
               required
             >
               <option value="" disabled>
@@ -1268,7 +1184,10 @@ const Step1 = ({
               name="sexe_personne_ar"
               value={data.sexe_personne_ar || ""}
               onChange={handleChange}
-              className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 text-right"
+              className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.sexe_personne_ar && data.sexe_personne_ar.trim() !== ""
+                ? "border-gray-300"
+                : "border-red-500"
+                } ${interfaceLocale === "ar" ? "text-right" : ""}`}
               required
             >
               <option value="" disabled>
@@ -1298,7 +1217,6 @@ const Step1 = ({
           <label className="block mb-2 text-sm font-medium text-gray-900">
             {getLabel("num_tlf_personne", t.num_tlf_personne)}
           </label>
-
           <div className={`flex items-center ${interfaceLocale === "ar" ? "flex-row-reverse" : "flex-row"}`} dir={interfaceLocale === "ar" ? "rtl" : "ltr"}>
             <div className="relative">
               <button
@@ -1330,7 +1248,15 @@ const Step1 = ({
                 type="text"
                 name="num_tlf_personne"
                 value={data.num_tlf_personne || ""}
-                onChange={onChange}
+                onChange={(e) => {
+                  onChange(e);
+                  // Mettre à jour formErrors en temps réel
+                  const error = validatePhoneNumber(e.target.value);
+                  setFormErrors((prev) => ({
+                    ...prev,
+                    num_tlf_personne: error,
+                  }));
+                }}
                 onBlur={handlePhoneBlur}
                 onKeyPress={(e) => {
                   const charCode = e.charCode;
@@ -1338,7 +1264,10 @@ const Step1 = ({
                     e.preventDefault();
                   }
                 }}
-                className={`block p-2.5 w-full text-sm text-gray-900 bg-white border border-gray-300 focus:ring-blue-500 focus:border-blue-500 ${interfaceLocale === "ar" ? "text-right rounded-r-lg border-l-0" : "rounded-r-lg border-l-0"}`}
+                className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.num_tlf_personne && validatePhoneNumber(data.num_tlf_personne) === ""
+                    ? "border-gray-300"
+                    : "border-red-500"
+                  } ${interfaceLocale === "ar" ? "text-right" : ""}`}
                 placeholder={interfaceLocale === "fr" ? "0123456789" : "0123456789"}
                 required
                 pattern="[0-9]{10}"
@@ -1346,11 +1275,8 @@ const Step1 = ({
               />
             </div>
           </div>
-
           {formErrors.num_tlf_personne && (
-            <p className="text-red-500 text-sm">
-              {formErrors.num_tlf_personne}
-            </p>
+            <p className="text-red-500 text-sm">{formErrors.num_tlf_personne}</p>
           )}
         </div>
 
@@ -1367,7 +1293,10 @@ const Step1 = ({
             name="groupage"
             value={data.groupage || ""}
             onChange={onChange}
-            className="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5"
+            className={`bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 ${data.groupage && data.groupage.trim() !== ""
+              ? "border-gray-300"
+              : "border-red-500"
+              } ${interfaceLocale === "ar" ? "text-right" : ""}`}
             required
           >
             <option value="">{t.groupage}</option>
@@ -1412,9 +1341,7 @@ const Step1 = ({
           data.fichiers.some((f) => f.type === "carte_nationale") && (
             <div className="mb-2">
               <p className="text-sm text-gray-600">
-                {interfaceLocale === "fr"
-                  ? "Fichier existant :"
-                  : "الملف الموجود :"}{" "}
+                {interfaceLocale === "fr" ? "Fichier existant :" : "الملف الموجود :"}{" "}
                 {interfaceLocale === "fr"
                   ? data.fichiers.find((f) => f.type === "carte_nationale").nom_fichier_fr
                   : data.fichiers.find((f) => f.type === "carte_nationale").nom_fichier_ar}{" "}
@@ -1425,14 +1352,24 @@ const Step1 = ({
                   className="text-blue-600 hover:underline"
                 >
                   {interfaceLocale === "fr" ? "(Voir)" : "(عرض)"}
-                </a>
+                </a>{" "}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveExistingFile("carte_nationale")}
+                  className="text-red-600 hover:underline"
+                >
+                  {interfaceLocale === "fr" ? "(Supprimer)" : "(حذف)"}
+                </button>
               </p>
             </div>
           )}
 
         <label
-          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""}`}
-        >
+          className={`relative inline-block bg-gray-50 border text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 
+            ${selectedCarteNationale || data.fichiers.some((f) => f.type === "carte_nationale")
+              ? "border-gray-300"
+              : "border-red-500"
+            } ${interfaceLocale === "ar" ? "text-right" : ""}`}>
           <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
             {interfaceLocale === "fr" ? "Sélectionner un fichier" : "اختر ملفًا"}
           </span>
@@ -1501,13 +1438,25 @@ const Step1 = ({
                 className="text-blue-600 hover:underline"
               >
                 {interfaceLocale === "fr" ? "(Voir)" : "(عرض)"}
-              </a>
+              </a>{" "}
+              <button
+                type="button"
+                onClick={() => handleRemoveExistingFile("photo")}
+                className="text-red-600 hover:underline"
+              >
+                {interfaceLocale === "fr" ? "(Supprimer)" : "(حذف)"}
+              </button>
             </p>
           </div>
         )}
 
         <label
-          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 ${interfaceLocale === "ar" ? "text-right" : ""}`}
+          className={`relative inline-block bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus-within:ring-blue-500 focus-within:border-blue-500 w-full p-2.5 
+            ${selectedPhoto || data.fichiers.some((f) => f.type === "photo")
+              ? "border-gray-300"
+              : "border-red-500"
+            }
+            ${interfaceLocale === "ar" ? "text-right" : ""}`}
         >
           <span className="inline-block px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
             {interfaceLocale === "fr" ? "Sélectionner un fichier" : "اختر ملفًا"}
